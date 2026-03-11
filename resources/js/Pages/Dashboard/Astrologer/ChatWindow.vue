@@ -74,7 +74,6 @@ onMounted(async () => {
         callStatus.value = 'Incoming call...'
       } else if (e.type === 'offer') {
         offerData = e.data
-        console.log(offerData)
       } else if (e.type === 'candidate') {
         if (pc && pc.remoteDescription) {
           await pc.addIceCandidate(new RTCIceCandidate(e.data))
@@ -101,9 +100,11 @@ const acceptCall = async () => {
 
   pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] })
 
+
   localStream.getTracks().forEach(track => {
     pc.addTrack(track, localStream)
   })
+
 
   pc.ontrack = event => {
     remoteAudio.value.srcObject = event.streams[0]
@@ -113,6 +114,10 @@ const acceptCall = async () => {
     if (event.candidate) {
       sendSignal('candidate', event.candidate.toJSON())
     }
+  }
+
+  if (!offerData.sdp.endsWith('\r\n')) {
+    offerData.sdp += '\r\n';
   }
 
   await pc.setRemoteDescription(offerData)

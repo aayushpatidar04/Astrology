@@ -115,12 +115,12 @@ let pc = null
 let localStream = null
 
 function sendSignal(type, data) {
-  console.log('[ASTRO:sendSignal] Sending signal:', { type, data })
-  axios.post('/call/signal', {
-    roomId: props.chat.id,
-    type,
-    data
-  })
+    console.log('[ASTRO:sendSignal] Sending signal:', { type, data })
+    axios.post('/call/signal', {
+        roomId: props.chat.id,
+        type,
+        data
+    })
 }
 
 const startCall = async () => {
@@ -131,15 +131,16 @@ const startCall = async () => {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
 
         pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] })
-        
+
         localStream.getTracks().forEach(track => {
             pc.addTrack(track, localStream)
         })
-        
+
+
         pc.ontrack = event => {
             remoteAudio.value.srcObject = event.streams[0]
         }
-        
+
         pc.onicecandidate = event => {
             if (event.candidate) {
                 axios.post('/call/signal', {
@@ -152,13 +153,13 @@ const startCall = async () => {
 
         const offer = await pc.createOffer()
         await pc.setLocalDescription(offer)
-        
+
         axios.post('/call/signal', {
             roomId: props.chat.id,
             type: 'offer',
             data: { type: offer.type, sdp: offer.sdp }
         })
-        
+
 
         showCallScreen.value = true
     } catch (error) {
@@ -172,26 +173,26 @@ const toggleMute = () => {
 }
 
 const endCall = (send = false) => {
-  if (pc) {
-    pc.close()
-    pc = null
-  }
-  if (localStream) {
-    localStream.getTracks().forEach(track => track.stop())
-    localStream = null
-  }
-  if (remoteAudio.value) {
-    remoteAudio.value.srcObject = null
-  }
-  showCallScreen.value = false
-  callStatus.value = 'Call ended'
-  muted.value = false
+    if (pc) {
+        pc.close()
+        pc = null
+    }
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop())
+        localStream = null
+    }
+    if (remoteAudio.value) {
+        remoteAudio.value.srcObject = null
+    }
+    showCallScreen.value = false
+    callStatus.value = 'Call ended'
+    muted.value = false
 
-  // Only send signal if this side initiated the end
-  if (send) {
-    sendSignal('call_ended', { ended: true })
-    send = false
-  }
+    // Only send signal if this side initiated the end
+    if (send) {
+        sendSignal('call_ended', { ended: true })
+        send = false
+    }
 }
 
 
@@ -201,6 +202,9 @@ echo.private(`call.${props.chat.id}`)
         if (e.type === 'call_joined') {
             callStatus.value = 'Astrologer joined the call'
         } else if (e.type === 'answer') {
+            if (!e.data.sdp.endsWith('\r\n')) {
+                e.data.sdp += '\r\n';
+            }
             await pc.setRemoteDescription(new RTCSessionDescription(e.data))
         } else if (e.type === 'candidate') {
             if (pc && pc.remoteDescription) {
