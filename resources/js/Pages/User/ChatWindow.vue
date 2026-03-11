@@ -1,0 +1,303 @@
+<script setup>
+import UserLayout from '@/Layouts/UserLayout.vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { Head } from '@inertiajs/vue3'
+import dayjs from 'dayjs'
+import echo from '@/echo'
+import axios from 'axios'
+
+const props = defineProps({
+    auth: Object,
+    chat: Object,
+    messages: Array,
+})
+
+const newMessage = ref('')
+const liveMessages = ref([...props.messages])
+const messagesContainer = ref(null)
+const typingUser = ref(null)
+let typingTimeout = null
+
+const astrologerOnline = ref(
+    props.chat.participants.find(p => p.user_id !== props.auth.user.id)?.user?.astrologer?.online
+)
+
+
+const sendMessage = async () => {
+    if (!newMessage.value) return
+
+    let oldMessage = newMessage.value
+    newMessage.value = ''
+    try {
+        const response = await axios.post(route('user.chat.storeMessage', props.chat.id), {
+            message: oldMessage
+        })
+        if (response.data.success) {
+            liveMessages.value.push(response.data.message)
+            scrollToBottom()
+        }
+    } catch (error) {
+        console.error('Failed to send message:', error)
+        newMessage.value = oldMessage
+    }
+}
+
+onMounted(async () => {
+    await nextTick()
+    scrollToBottom()
+
+    echo.private(`chat.${props.chat.id}`)
+        .listen('MessageSent', (e) => {
+            liveMessages.value.push(e.message)
+            scrollToBottom()
+        })
+        .listen('TypingEvent', (e) => {
+            typingUser.value = e.typing ? e.userId : null
+        })
+
+    // listen for astrologer status changes
+    const astrologerId = props.chat.participants.find(p => p.user_id !== props.auth.user.id)?.user.id
+    echo.private(`astrologer.${astrologerId}`)
+        .listen('AstrologerStatusChanged', (e) => {
+            astrologerOnline.value = e.online
+        })
+})
+
+onUnmounted(() => {
+    echo.leave(`chat.${props.chat.id}`)
+})
+
+const scrollToBottom = () => {
+    if (messagesContainer.value) {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight - messagesContainer.value.clientHeight
+    }
+}
+
+watch(liveMessages, async () => {
+    await nextTick()
+    scrollToBottom()
+})
+
+let isTyping = false
+
+const handleTyping = () => {
+
+    if (!isTyping) {
+        axios.post(route('chat.typing', props.chat.id), { typing: true })
+        isTyping = true
+    }
+
+    // Reset timeout each keystroke
+    if (typingTimeout) clearTimeout(typingTimeout)
+
+    typingTimeout = setTimeout(() => {
+        // After 2s of no input, send false once
+        axios.post(route('chat.typing', props.chat.id), { typing: false })
+        isTyping = false
+    }, 1000)
+}
+
+const messageInput = ref(null)
+
+const autoResize = (event) => {
+    const el = event.target
+    el.style.height = 'auto' // reset
+    const lineHeight = 24 // adjust to your CSS line-height
+    const maxHeight = lineHeight * 5 // 5 rows max
+    el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px'
+}
+
+const showCallScreen = ref(false)
+const callStatus = ref('Waiting for astrologer...')
+const muted = ref(false)
+const remoteAudio = ref(null)
+let pc = null
+let localStream = null
+
+function sendSignal(type, data) {
+  console.log('[ASTRO:sendSignal] Sending signal:', { type, data })
+  axios.post('/call/signal', {
+    roomId: props.chat.id,
+    type,
+    data
+  })
+}
+
+const startCall = async () => {
+    try {
+        await axios.post('/call/start', { roomId: props.chat.id })
+
+        // Setup WebRTC
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+
+        pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] })
+        
+        localStream.getTracks().forEach(track => {
+            pc.addTrack(track, localStream)
+        })
+        
+        pc.ontrack = event => {
+            remoteAudio.value.srcObject = event.streams[0]
+        }
+        
+        pc.onicecandidate = event => {
+            if (event.candidate) {
+                axios.post('/call/signal', {
+                    roomId: props.chat.id,
+                    type: 'candidate',
+                    data: event.candidate.toJSON()
+                })
+            }
+        }
+
+        const offer = await pc.createOffer()
+        await pc.setLocalDescription(offer)
+        
+        axios.post('/call/signal', {
+            roomId: props.chat.id,
+            type: 'offer',
+            data: { type: offer.type, sdp: offer.sdp }
+        })
+        
+
+        showCallScreen.value = true
+    } catch (error) {
+        console.error('[USER:startCall] Failed to start call:', error)
+    }
+}
+
+const toggleMute = () => {
+    muted.value = !muted.value
+    localStream.getAudioTracks()[0].enabled = !muted.value
+}
+
+const endCall = (send = false) => {
+  if (pc) {
+    pc.close()
+    pc = null
+  }
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop())
+    localStream = null
+  }
+  if (remoteAudio.value) {
+    remoteAudio.value.srcObject = null
+  }
+  showCallScreen.value = false
+  callStatus.value = 'Call ended'
+  muted.value = false
+
+  // Only send signal if this side initiated the end
+  if (send) {
+    sendSignal('call_ended', { ended: true })
+    send = false
+  }
+}
+
+
+// Listen for astrologer joining
+echo.private(`call.${props.chat.id}`)
+    .listen('CallSignal', async (e) => {
+        if (e.type === 'call_joined') {
+            callStatus.value = 'Astrologer joined the call'
+        } else if (e.type === 'answer') {
+            await pc.setRemoteDescription(new RTCSessionDescription(e.data))
+        } else if (e.type === 'candidate') {
+            if (pc && pc.remoteDescription) {
+                await pc.addIceCandidate(new RTCIceCandidate(e.data))
+            }
+        } else if (e.type === 'call_ended') {
+            endCall(false)
+        }
+    })
+
+
+</script>
+
+<template>
+
+    <Head :title="chat.participants.find(p => p.user_id !== auth.user.id)?.user.name" />
+    <UserLayout>
+        <div class="flex h-[calc(100vh-4rem)] items-center justify-center bg-gray-50 my-3">
+            <div class="flex flex-col w-full max-w-4xl h-full bg-white border rounded-lg shadow-lg">
+                <!-- Header -->
+                <div class="border-b p-4 flex items-center justify-between bg-gray-100">
+                    <h2 class="font-semibold text-gray-800">
+                        Chat with {{chat.participants.find(p => p.user_id !== auth.user.id)?.user.name}}
+                    </h2>
+                    <span class="text-sm" :class="astrologerOnline ? 'text-green-500' : 'text-gray-400'">
+                        {{ astrologerOnline ? 'Online' : 'Offline' }}
+                    </span>
+
+                </div>
+
+                <!-- Messages -->
+                <div ref="messagesContainer" class="flex-1 overflow-y-auto p-6 space-y-1 bg-gray-50">
+                    <div v-for="msg in liveMessages" :key="msg.id"
+                        :class="msg.user_id === auth.user.id ? 'text-right' : 'text-left'">
+                        <div class="group inline-block">
+                            <div :class="msg.user_id === auth.user.id
+                                ? 'px-4 py-2 rounded-lg bg-orange-500 text-white'
+                                : 'px-4 py-2 rounded-lg bg-gray-200 text-gray-800'">
+                                {{ msg.message }}
+                            </div>
+                            <!-- timestamp hidden until hover -->
+                            <div class="text-xs text-gray-400 mt-1 hidden group-hover:block transition"
+                                :class="msg.user_id === auth.user.id ? 'text-right' : 'text-left'">
+                                {{ dayjs(msg.created_at).format('h:mm A') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="typingUser && typingUser !== auth.user.id" class="text-sm text-gray-500 px-5 pb-2">
+                    {{chat.participants.find(p => p.user_id === typingUser)?.user.name}} is typing...
+                </div>
+
+
+                <!-- Input -->
+                <form @submit.prevent="sendMessage" class="border-t p-4 flex items-end bg-gray-100">
+                    <textarea v-model="newMessage" @input="autoResize($event); handleTyping()"
+                        @keydown.enter.shift.exact.prevent="newMessage += '\n'"
+                        class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                        placeholder="Type a message..." rows="1" ref="messageInput" />
+
+                    <button type="submit" :disabled="!astrologerOnline"
+                        class="ml-2 px-6 py-2 bg-orange-500 text-white rounded-full transition"
+                        :class="!astrologerOnline ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600'"
+                        :title="!astrologerOnline ? 'Astrologer is offline. You cannot send a message.' : ''">
+                        Send
+                    </button>
+
+                    <!-- New Call Button -->
+                    <button type="button" @click="startCall"
+                        class="ml-2 px-6 py-2 bg-blue-500 text-white rounded-full transition hover:bg-blue-600">
+                        Call
+                    </button>
+                </form>
+
+                <div v-if="!astrologerOnline" class="text-sm text-red-500 my-2 px-5">
+                    Astrologer is offline. You cannot send a message.
+                </div>
+
+            </div>
+        </div>
+        <!-- Call Screen Popup -->
+        <div v-if="showCallScreen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg shadow-lg p-6 w-96 text-center">
+                <h3 class="text-lg font-semibold mb-4">Audio Call</h3>
+                <p class="mb-2">{{ callStatus }}</p>
+                <audio ref="remoteAudio" autoplay></audio>
+                <div class="mt-4 flex justify-center space-x-4">
+                    <button @click="toggleMute" class="px-4 py-2 rounded bg-gray-200">
+                        {{ muted ? 'Unmute' : 'Mute' }}
+                    </button>
+                    <button @click="endCall(true)" class="px-4 py-2 rounded bg-red-500 text-white">
+                        End Call
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </UserLayout>
+</template>

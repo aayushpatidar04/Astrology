@@ -1,0 +1,61 @@
+<?php
+
+use App\Events\CallSignal;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AstrologerController;
+use App\Http\Controllers\MainController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\WebRTCController;
+use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
+
+Route::get('/', [MainController::class, 'index'])->name('index');
+Route::get('/about-us', [MainController::class, 'about'])->name('about-us');
+Route::get('/services', [MainController::class, 'services'])->name('services');
+Route::get('/blog', [MainController::class, 'blog'])->name('blog');
+Route::get('/blog/category/{slug}', [MainController::class, 'categoryBlogs'])->name('category-blog');
+Route::get('/blog/{slug}', [MainController::class, 'blogDetails'])->name('blog-details');
+
+Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/blogs', [AdminController::class, 'blogs'])->name('blogs');
+
+    Route::post('/blog-category', [AdminController::class, 'blogCategoryStore'])->name('blog-category.store');
+    Route::post('/blogs', [AdminController::class, 'blogStore'])->name('blogs.store');
+    Route::post('/blogs/{id}', [AdminController::class, 'blogUpdate'])->name('blogs.update');
+    Route::delete('/blogs/{id}', [AdminController::class, 'blogDelete'])->name('blogs.delete');
+});
+
+Route::middleware(['auth', 'verified', 'role:Astrologer'])->group(function () {
+    Route::get('/astrologer/dashboard', [AstrologerController::class, 'dashboard'])->name('astrologer.dashboard');
+    Route::post('/astrologer/status', [AstrologerController::class, 'status'])->name('astrologer.status');
+    Route::get('/astrologer/chats/{id?}', [AstrologerController::class, 'chats'])->name('astrologer.chats');
+    Route::post('/astrologer/chats/{id}/messages', [AstrologerController::class, 'storeMessage'])->name('astrologer.chats.storeMessage');
+});
+
+Route::middleware(['auth', 'verified', 'role:User'])->group(function () {
+    Route::get('/user/chat-with-astrologers', [UserController::class, 'chatWithAstrologers'])->name('user.chat-with-astrologers');
+    Route::get('/user/chat/start/{astrologer}', [UserController::class, 'startChat'])->name('user.chat.start');
+    Route::get('/user/chats/{id}', action: [UserController::class, 'showChat'])->name('user.chat.show');
+    Route::post('/user/chats/{id}/message', [UserController::class, 'storeMessage'])->name('user.chat.storeMessage');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::post('/chat/{chat}/typing', [ProfileController::class, 'typing'])->name('chat.typing');
+
+    Route::post('/call/start', [ProfileController::class, 'start'])->name('call');
+    Route::post('/call/signal', [ProfileController::class, 'signal'])->name('signal');
+
+    
+});
+
+
+require __DIR__ . '/auth.php';
