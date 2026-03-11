@@ -48,7 +48,9 @@ onMounted(async () => {
 
     echo.private(`chat.${props.chat.id}`)
         .listen('MessageSent', (e) => {
-            liveMessages.value.push(e.message)
+            if(props.auth.user.id != e.user_id){
+                liveMessages.value.push(e.message)
+            }
             scrollToBottom()
         })
         .listen('TypingEvent', (e) => {
@@ -205,7 +207,7 @@ echo.private(`call.${props.chat.id}`)
             if (!e.data.sdp.endsWith('\r\n')) {
                 e.data.sdp += '\r\n';
             }
-            await pc.setRemoteDescription(new RTCSessionDescription(e.data))
+            await pc.setRemoteDescription(e.data)
         } else if (e.type === 'candidate') {
             if (pc && pc.remoteDescription) {
                 await pc.addIceCandidate(new RTCIceCandidate(e.data))
@@ -242,7 +244,7 @@ echo.private(`call.${props.chat.id}`)
                         <div class="group inline-block">
                             <div :class="msg.user_id === auth.user.id
                                 ? 'px-4 py-2 rounded-lg bg-orange-500 text-white'
-                                : 'px-4 py-2 rounded-lg bg-gray-200 text-gray-800'">
+                                : 'px-4 py-2 rounded-lg bg-gray-200 text-gray-800'" style="white-space: pre-line;">
                                 {{ msg.message }}
                             </div>
                             <!-- timestamp hidden until hover -->
@@ -263,6 +265,7 @@ echo.private(`call.${props.chat.id}`)
                 <form @submit.prevent="sendMessage" class="border-t p-4 flex items-end bg-gray-100">
                     <textarea v-model="newMessage" @input="autoResize($event); handleTyping()"
                         @keydown.enter.shift.exact.prevent="newMessage += '\n'"
+                        @keydown.enter.exact.prevent="sendMessage()"
                         class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
                         placeholder="Type a message..." rows="1" ref="messageInput" />
 

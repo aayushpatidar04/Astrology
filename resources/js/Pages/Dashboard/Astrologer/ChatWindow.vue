@@ -60,7 +60,9 @@ onMounted(async () => {
   scrollToBottom()
   echo.private(`chat.${props.chat.id}`)
     .listen('MessageSent', (e) => {
-      liveMessages.value.push(e.message)
+      if(props.user.id != e.message.user_id){
+        liveMessages.value.push(e.message)
+      }
       scrollToBottom()
     })
     .listen('TypingEvent', (e) => {
@@ -165,7 +167,7 @@ const endCall = (send = true) => {
 
 const scrollToBottom = () => {
   if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight - messagesContainer.value.clientHeight
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
   }
 }
 
@@ -218,7 +220,7 @@ const autoResize = (event) => {
         <div class="group inline-block">
           <div :class="msg.user_id === user.id
             ? 'px-4 py-2 rounded-lg bg-orange-500 text-white'
-            : 'px-4 py-2 rounded-lg bg-gray-200 text-gray-800'">
+            : 'px-4 py-2 rounded-lg bg-gray-200 text-gray-800'" style="white-space: pre-line;">
             {{ msg.message }}
           </div>
           <!-- timestamp hidden until hover -->
@@ -238,6 +240,7 @@ const autoResize = (event) => {
     <form @submit.prevent="sendMessage" class="border-t p-4 flex items-end bg-gray-200">
       <textarea v-model="newMessage" @input="autoResize($event); handleTyping()"
         @keydown.enter.shift.exact.prevent="newMessage += '\n'"
+        @keydown.enter.exact.prevent="sendMessage()"
         class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
         placeholder="Type a message..." rows="1" ref="messageInput" />
       <button type="submit"
