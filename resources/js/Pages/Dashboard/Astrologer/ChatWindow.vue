@@ -78,6 +78,7 @@ onMounted(async () => {
         offerData = e.data
       } else if (e.type === 'candidate') {
         if (pc && pc.remoteDescription) {
+          console.log('Adding remote candidate:', data.candidate.candidate);
           await pc.addIceCandidate(new RTCIceCandidate(e.data))
         }
       } else if (e.type === 'call_ended') {
@@ -117,6 +118,8 @@ const acceptCall = async () => {
       sendSignal('candidate', event.candidate.toJSON())
     }
   }
+
+  
 
   if (!offerData.sdp.endsWith('\r\n')) {
     offerData.sdp += '\r\n';

@@ -102,6 +102,15 @@ const mobileMenuOpen = ref(false)
                 <li>
                     <Link href="/contact" class="hover:text-orange-500">Contact Us</Link>
                 </li>
+                <li v-if="user && user.roles[0].name === 'Astrologer'">
+                    <Link href="/astrologer/dashboard">Dashboard</Link>
+                </li>
+                <li v-if="user && user.roles[0].name === 'Admin'">
+                    <Link href="/dashboard">Dashboard</Link>
+                </li>
+                <li v-if="user && user.roles[0].name === 'User'">
+                    <Link href="/profile">Profile</Link>
+                </li>
             </ul>
 
             <!-- Action Buttons -->
@@ -116,6 +125,24 @@ const mobileMenuOpen = ref(false)
                         <Icon icon="mdi:phone-in-talk-outline" width="20" height="20" class="mr-1" /> Talk With Astrologer
                     </button>
                 </div>
+            </div>
+            <!-- Auth / Balance -->
+            <div class="md:hidden mt-2 md:mt-0">
+                <template v-if="user">
+                    <span class="flex items-center text-gray-700 font-semibold justify-between">
+                        <div class="flex mr-5">
+                            <Icon icon="mdi:wallet" width="20" height="20" class="mr-1" /> Balance: ₹ {{ user.balance }}
+                        </div>
+                        <div>
+                            <Link href="/logout" method="post" as="button" class="flex text-red-400 hover:text-red-500"><Icon icon="mdi:logout" width="20" height="20" class="mr-1" />Logout</Link>
+                        </div>
+                    </span>
+                </template>
+                <template v-else>
+                    <Link href="/login" class="text-gray-600 hover:text-orange-500 flex items-center">
+                        <Icon icon="mdi:login" width="20" height="20" class="mr-1" /> Login / Register
+                    </Link>
+                </template>
             </div>
         </nav>
     </header>

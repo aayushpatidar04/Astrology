@@ -28,13 +28,28 @@ Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {
     Route::post('/blogs', [AdminController::class, 'blogStore'])->name('blogs.store');
     Route::post('/blogs/{id}', [AdminController::class, 'blogUpdate'])->name('blogs.update');
     Route::delete('/blogs/{id}', [AdminController::class, 'blogDelete'])->name('blogs.delete');
+
+    Route::get('/admin/horoscopes', [AdminController::class, 'horoscopes'])->name('admin.horoscopes');
+    Route::post('/admin/horoscopes', [AdminController::class, 'storeHoroscope'])->name('admin.horoscopes.store');
+
+    Route::get('/astrologers', [AdminController::class, 'astrologers'])->name('admin.astrologers');
+    Route::post('/astrologers/{astrologer}/status', [AdminController::class, 'updateStatus'])->name('admin.astrologers.updateStatus');
+    Route::post('/astrologers/{astrologer}/pricing', [AdminController::class, 'updatePricing'])->name('admin.astrologers.updatePricing');
+
+    Route::get('/users', [AdminController::class, 'users'])->name('admin.users');
+
 });
 
 Route::middleware(['auth', 'verified', 'role:Astrologer'])->group(function () {
     Route::get('/astrologer/dashboard', [AstrologerController::class, 'dashboard'])->name('astrologer.dashboard');
     Route::post('/astrologer/status', [AstrologerController::class, 'status'])->name('astrologer.status');
-    Route::get('/astrologer/chats/{id?}', [AstrologerController::class, 'chats'])->name('astrologer.chats');
+    Route::get('/astrologer/chats/{id?}', [AstrologerController::class, 'chats'])->middleware('astrologer.status')->name('astrologer.chats');
     Route::post('/astrologer/chats/{id}/messages', [AstrologerController::class, 'storeMessage'])->name('astrologer.chats.storeMessage');
+
+    Route::get('/astrologer/profile', [AstrologerController::class, 'edit'])->name('astrologer.profile.edit');
+    Route::patch('/astrologer/profile', [AstrologerController::class, 'update'])->name('astrologer.profile.update');
+    Route::post('/astrologer/astrologer', [AstrologerController::class, 'updateAstrologer'])->name('astrologer.astrologer.update');
+    Route::delete('/astrologer/profile', [AstrologerController::class, 'destroy'])->name('astrologer.profile.destroy');
 });
 
 Route::middleware(['auth', 'verified', 'role:User'])->group(function () {

@@ -2,11 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Astrologer;
 use App\Models\Blog;
 use App\Models\BlogCategory;
+use App\Models\Horoscope;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
+use Pusher\PushNotifications\PushNotifications;
 
 class AdminController extends Controller
 {
@@ -25,7 +31,7 @@ class AdminController extends Controller
         $blogs = Blog::with(['category'])->latest()->get();
         $categories = BlogCategory::all();
 
-        return Inertia::render('Dashboard/Blog/Index', [
+        return Inertia::render('Dashboard/Admin/Blog/Index', [
             'blogs' => $blogs,
             'categories' => $categories
         ]);
@@ -155,5 +161,105 @@ class AdminController extends Controller
         $blog->forceDelete();
 
         return redirect()->route('blogs')->with('success', 'Blog deleted successfully!');
+    }
+
+    public function horoscopes()
+    {
+        return Inertia::render('Dashboard/Admin/Horoscope/Index');
+    }
+
+    public function storeHoroscope(Request $request)
+    {
+        $validated = $request->validate([
+            'sign' => 'required|string|in:Aries,Taurus,Gemini,Cancer,Leo,Virgo,Libra,Scorpio,Sagittarius,Capricorn,Aquarius,Pisces',
+            'type' => 'required|in:daily,weekly,monthly,yearly',
+
+            // Time keys
+            'date' => 'nullable|date|required_if:type,daily',
+            'week_key' => 'nullable|string|max:7|required_if:type,weekly|regex:/^\d{4}-\d{2}$/',
+            'month_key' => 'nullable|string|max:7|required_if:type,monthly|regex:/^\d{4}-\d{2}$/',
+            'year_key' => 'nullable|string|max:4|required_if:type,yearly|regex:/^\d{4}$/',
+
+            // Horoscope content
+            'colors' => 'required|string',
+            'numbers' => 'required|string',
+            'alphabets' => 'required|string',
+            'love' => 'required|string',
+            'health' => 'required|string',
+            'career' => 'required|string',
+            'emotions' => 'required|string',
+            'travel' => 'required|string',
+            'description' => 'required|string',
+            'cosmic_tip' => 'required|string',
+            'tip_for_singles' => 'required|string',
+            'tip_for_couples' => 'required|string',
+        ]);
+
+        Horoscope::create($validated);
+
+        return redirect()->back()->with('success', 'Horoscope added successfully!');
+    }
+
+    public function astrologers()
+    {
+        $astrologers = User::with(['astrologer.verifier'])->role('Astrologer')->get();
+        return Inertia::render('Dashboard/Admin/Astrologers/Index', [
+            'astrologers' => $astrologers
+        ]);
+    }
+
+    public function updateStatus(Request $request, Astrologer $astrologer): RedirectResponse
+    {
+        $request->validate([
+            'status' => ['required', 'in:pending_verification,verified,active,rejected'],
+        ]);
+
+        $astrologer->status = $request->status;
+        $astrologer->verified_by = $request->user()->id;
+        $astrologer->save();
+
+        return Redirect::back();
+    }
+
+    public function updatePricing(Request $request, Astrologer $astrologer): RedirectResponse
+    {
+        $validated = $request->validate([
+            'asked_call_price'   => ['required', 'numeric', 'min:0'],
+            'charged_call_price' => ['required', 'numeric', 'gte:asked_call_price'],
+            'asked_text_price'   => ['required', 'numeric', 'min:0'],
+            'charged_text_price' => ['required', 'numeric', 'gte:asked_text_price'],
+        ]);
+
+        $astrologer->update($validated);
+
+        return Redirect::back();
+    }
+
+    public function users()
+    {
+        $beamsClient = new PushNotifications([
+            "instanceId" => env('VITE_PUSHER_BEAMS_INSTANCE_ID'),
+            "secretKey" => env('VITE_PUSHER_BEAMS_SECRET_KEY'),
+        ]);
+
+        $beamsClient->publishToInterests(
+            ["NewsLetter"],
+            [
+                "web" => [
+                    "notification" => [
+                        "title" => "Hey There!",
+                        "body" => "Testing Newsletter interests",
+                        "icon" => "https://img.icons8.com/?size=100&id=LoL4bFzqmAa0&format=png&color=000000",
+                        "deep_link" => "https://aayushpatidar04.github.io",
+                        "data" => [],
+                    ]
+                ]
+            ]
+        );
+
+        $users = User::with(['details'])->role('User')->get();
+        return Inertia::render('Dashboard/Admin/Users/Index', [
+            'users' => $users
+        ]);
     }
 }

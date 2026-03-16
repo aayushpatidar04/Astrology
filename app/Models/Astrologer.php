@@ -18,7 +18,10 @@ class Astrologer extends Model
         'experience_years',
         'documents',
         'profile_image',
-        'pricing_per_minute',
+        'asked_call_price',
+        'charged_call_price',
+        'asked_text_price',
+        'charged_text_price',
         'online',
         'status',
         'verified_by',
@@ -30,11 +33,13 @@ class Astrologer extends Model
         'documents' => 'array',
     ];
 
-    public function user(){
+    public function user()
+    {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function verifier(){
+    public function verifier()
+    {
         return $this->belongsTo(User::class, 'verified_by');
     }
 }

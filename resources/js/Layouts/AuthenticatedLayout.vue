@@ -51,6 +51,24 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Blogs
                                 </NavLink>
+                                <NavLink
+                                    :href="route('admin.horoscopes')"
+                                    :active="route().current('admin.horoscopes')"
+                                >
+                                    Horoscopes
+                                </NavLink>
+                                <NavLink
+                                    :href="route('admin.astrologers')"
+                                    :active="route().current('admin.astrologers')"
+                                >
+                                    Astrologers
+                                </NavLink>
+                                <NavLink
+                                    :href="route('admin.users')"
+                                    :active="route().current('admin.users')"
+                                >
+                                    Users
+                                </NavLink>
                             </div>
                         </div>
 

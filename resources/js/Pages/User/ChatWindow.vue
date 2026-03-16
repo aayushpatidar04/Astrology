@@ -48,7 +48,7 @@ onMounted(async () => {
 
     echo.private(`chat.${props.chat.id}`)
         .listen('MessageSent', (e) => {
-            if(props.auth.user.id != e.user_id){
+            if (props.auth.user.id != e.user_id) {
                 liveMessages.value.push(e.message)
             }
             scrollToBottom()
@@ -117,7 +117,6 @@ let pc = null
 let localStream = null
 
 function sendSignal(type, data) {
-    console.log('[ASTRO:sendSignal] Sending signal:', { type, data })
     axios.post('/call/signal', {
         roomId: props.chat.id,
         type,
@@ -145,13 +144,21 @@ const startCall = async () => {
 
         pc.onicecandidate = event => {
             if (event.candidate) {
+                console.log('Local candidate:', event.candidate.candidate);
                 axios.post('/call/signal', {
                     roomId: props.chat.id,
                     type: 'candidate',
                     data: event.candidate.toJSON()
                 })
+            } else {
+                console.log('All candidates sent');
             }
         }
+
+        pc.oniceconnectionstatechange = () => {
+            console.log('Callee ICE state:', pc.iceConnectionState);
+        };
+
 
         const offer = await pc.createOffer()
         await pc.setLocalDescription(offer)
