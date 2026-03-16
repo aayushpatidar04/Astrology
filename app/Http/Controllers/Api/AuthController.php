@@ -54,7 +54,7 @@ class AuthController extends Controller
         try {
             // Send OTP via WhatsApp API
             Http::post('http://wa.intouchsoftwaresolution.com/api/v1/sendMessage', [
-                'key'     => env('WHATSAPP_API_KEY'),
+                'key'     => config('app.WHATSAPP_API_KEY'),
                 'to'      => '91' . $validated['phone'],
                 'message' => $content,
             ]);

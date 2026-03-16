@@ -165,7 +165,9 @@ class AdminController extends Controller
 
     public function horoscopes()
     {
-        return Inertia::render('Dashboard/Admin/Horoscope/Index');
+        return Inertia::render('Dashboard/Admin/Horoscope/Index', [
+            'horoscopes' => Horoscope::latest()->get()
+        ]);
     }
 
     public function storeHoroscope(Request $request)
