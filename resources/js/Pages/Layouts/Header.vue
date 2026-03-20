@@ -47,7 +47,9 @@ const mobileMenuOpen = ref(false)
                             <Icon icon="mdi:wallet" width="20" height="20" class="mr-1" /> Balance: ₹ {{ user.balance }}
                         </div>
                         <div>
-                            <Link href="/logout" method="post" as="button" class="flex text-red-400 hover:text-red-500"><Icon icon="mdi:logout" width="20" height="20" class="mr-1" />Logout</Link>
+                            <Link href="/logout" method="post" as="button" class="flex text-red-400 hover:text-red-500">
+                                <Icon icon="mdi:logout" width="20" height="20" class="mr-1" />Logout
+                            </Link>
                         </div>
                     </span>
                 </template>
@@ -99,6 +101,52 @@ const mobileMenuOpen = ref(false)
                         Blogs
                     </Link>
                 </li>
+                <li class="relative group">
+                    <div class="flex items-center cursor-pointer">
+                        <span href="#" class="flex"
+                            :class="route().current('horoscope') || route().current('horoscope-type') ? 'text-primary font-bold' : 'hover:text-orange-500'">
+                            <template v-if="route().current('horoscope') || route().current('horoscope-type')">
+                                <Icon icon="mdi:star-outline" width="20" height="20" class="mr-1" />
+                            </template>
+                            Horoscopes
+                        </span>
+                        <!-- Dropdown arrow -->
+                        <svg class="w-4 h-4 ml-1 text-gray-500 group-hover:text-orange-500" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+
+                    <!-- Dropdown menu -->
+                    <ul
+                        class="absolute left-0 mt-2 w-48 bg-white border rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
+                        <li>
+                            <Link :href="route('horoscope-type', { type: 'daily' })"
+                                class="block px-4 py-2 hover:bg-orange-100">Today Horoscope</Link>
+                        </li>
+                        <li>
+                            <Link :href="route('horoscope-type', { type: 'yesterday' })"
+                                class="block px-4 py-2 hover:bg-orange-100">Yesterday Horoscope</Link>
+                        </li>
+                        <li>
+                            <Link :href="route('horoscope-type', { type: 'tomorrow' })"
+                                class="block px-4 py-2 hover:bg-orange-100">Tomorrow Horoscope</Link>
+                        </li>
+                        <li>
+                            <Link :href="route('horoscope-type', { type: 'weekly' })"
+                                class="block px-4 py-2 hover:bg-orange-100">Weekly Horoscope</Link>
+                        </li>
+                        <li>
+                            <Link :href="route('horoscope-type', { type: 'monthly' })"
+                                class="block px-4 py-2 hover:bg-orange-100">Monthly Horoscope</Link>
+                        </li>
+                        <li>
+                            <Link :href="route('horoscope-type', { type: 'yearly' })"
+                                class="block px-4 py-2 hover:bg-orange-100">Yearly Horoscope</Link>
+                        </li>
+                    </ul>
+                </li>
+
                 <li>
                     <Link href="/contact" class="hover:text-orange-500">Contact Us</Link>
                 </li>
@@ -122,7 +170,8 @@ const mobileMenuOpen = ref(false)
                     </Link>
                     <button
                         class="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                        <Icon icon="mdi:phone-in-talk-outline" width="20" height="20" class="mr-1" /> Talk With Astrologer
+                        <Icon icon="mdi:phone-in-talk-outline" width="20" height="20" class="mr-1" /> Talk To
+                        Astrologer
                     </button>
                 </div>
             </div>
@@ -134,7 +183,9 @@ const mobileMenuOpen = ref(false)
                             <Icon icon="mdi:wallet" width="20" height="20" class="mr-1" /> Balance: ₹ {{ user.balance }}
                         </div>
                         <div>
-                            <Link href="/logout" method="post" as="button" class="flex text-red-400 hover:text-red-500"><Icon icon="mdi:logout" width="20" height="20" class="mr-1" />Logout</Link>
+                            <Link href="/logout" method="post" as="button" class="flex text-red-400 hover:text-red-500">
+                                <Icon icon="mdi:logout" width="20" height="20" class="mr-1" />Logout
+                            </Link>
                         </div>
                     </span>
                 </template>

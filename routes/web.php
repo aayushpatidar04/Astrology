@@ -19,6 +19,8 @@ Route::get('/services', [MainController::class, 'services'])->name('services');
 Route::get('/blog', [MainController::class, 'blog'])->name('blog');
 Route::get('/blog/category/{slug}', [MainController::class, 'categoryBlogs'])->name('category-blog');
 Route::get('/blog/{slug}', [MainController::class, 'blogDetails'])->name('blog-details');
+Route::get('/horoscope/{type}-horoscope/{sign}', [MainController::class, 'horoscope'])->name('horoscope');
+Route::get('/horoscope/{type}-horoscope', [MainController::class, 'horoscopeType'])->name('horoscope-type');
 
 Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
@@ -31,6 +33,12 @@ Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {
 
     Route::get('/admin/horoscopes', [AdminController::class, 'horoscopes'])->name('admin.horoscopes');
     Route::post('/admin/horoscopes', [AdminController::class, 'storeHoroscope'])->name('admin.horoscopes.store');
+    
+    Route::get('/admin/banners', [AdminController::class, 'banners'])->name('admin.banners');
+    Route::post('/admin/banners', [AdminController::class, 'bannerStore'])->name('admin.banners.store');
+    Route::post('/admin/banners/{id}', [AdminController::class, 'updateBanner'])->name('admin.banners.edit');
+    Route::delete('/admin/banners/{id}', [AdminController::class, 'deleteBanner'])->name('admin.banners.destroy');
+    Route::patch('/admin/banners/{id}', [AdminController::class, 'activeBanner'])->name('admin.banners.toggle');
 
     Route::get('/astrologers', [AdminController::class, 'astrologers'])->name('admin.astrologers');
     Route::post('/astrologers/{astrologer}/status', [AdminController::class, 'updateStatus'])->name('admin.astrologers.updateStatus');

@@ -93,16 +93,15 @@ class ProfileController extends Controller
     }
 
     public function signal(Request $request)
-{
-    // Carry actual SDP or ICE candidate
-    broadcast(new CallSignal(
-        (int)$request->roomId,
-        $request->type,
-        $request->data,
-        auth()->id()
-    ))->toOthers();
+    {
+        // Carry actual SDP or ICE candidate
+        broadcast(new CallSignal(
+            (int)$request->roomId,
+            $request->type,
+            $request->data,
+            auth()->id()
+        ))->toOthers();
 
-    return response()->json(['status' => 'ok']);
-}
-
+        return response()->json(['status' => 'ok']);
+    }
 }

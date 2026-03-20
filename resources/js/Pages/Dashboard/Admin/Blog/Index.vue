@@ -25,7 +25,7 @@ const columns = [
 
 <template>
 
-    <Head title="Dashboard" />
+    <Head title="Blogs" />
 
     <AuthenticatedLayout>
         <template #header>

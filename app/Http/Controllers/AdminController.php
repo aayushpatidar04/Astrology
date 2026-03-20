@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Astrologer;
+use App\Models\Banner;
 use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\Horoscope;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -78,7 +81,7 @@ class AdminController extends Controller
                 $file->move(public_path('uploads/blogs'), $filename);
 
                 $storedImages[] = [
-                    'image' => 'uploads/blogs/' . $filename,
+                    'image' => '/uploads/blogs/' . $filename,
                     'alt_text' => $img['alt_text'],
                 ];
             }
@@ -132,7 +135,7 @@ class AdminController extends Controller
                 $file->move(public_path('uploads/blogs'), $filename);
 
                 $storedImages[] = [
-                    'image' => 'uploads/blogs/' . $filename,
+                    'image' => '/uploads/blogs/' . $filename,
                     'alt_text' => $img['alt_text'],
                 ];
             }
@@ -166,7 +169,8 @@ class AdminController extends Controller
     public function horoscopes()
     {
         return Inertia::render('Dashboard/Admin/Horoscope/Index', [
-            'horoscopes' => Horoscope::latest()->get()
+            'horoscopes' => Horoscope::latest()->get(),
+            'user' => Auth::user()
         ]);
     }
 
@@ -200,6 +204,94 @@ class AdminController extends Controller
         Horoscope::create($validated);
 
         return redirect()->back()->with('success', 'Horoscope added successfully!');
+    }
+
+    public function banners()
+    {
+        $banners = Banner::orderBy('active', 'desc')->paginate(12);
+        return Inertia::render('Dashboard/Admin/Banner/Index', [
+            'banners' => $banners,
+        ]);
+    }
+
+    public function bannerStore(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|unique:banners,title',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'link' => 'nullable',
+        ]);
+
+        if ($request->hasFile('image')) {
+            $file = $request->image;
+            $filename = Str::slug($validated['title']) . '_.' . $file->getClientOriginalExtension();
+            $file->move(public_path('uploads/banners'), $filename);
+
+            $validated['image'] = '/uploads/banners/' . $filename;
+        }
+
+        $banner = Banner::create($validated);
+        return redirect()->back();
+    }
+
+    public function updateBanner(Request $request, $id)
+    {
+        $rules = [
+            'title' => 'required|unique:banners,title,' . $id,
+            'link'  => 'nullable',
+        ];
+
+        if ($request->hasFile('image')) {
+            $rules['image'] = 'image|mimes:jpeg,png,jpg,gif,svg|max:2048';
+        } else {
+            $rules['image'] = 'nullable|string';
+        }
+
+        $validated = $request->validate($rules);
+
+        $flag = False;
+        if ($request->hasFile('image')) {
+            $file = $request->image;
+            $filename = Str::slug($validated['title']) . '_.' . $file->getClientOriginalExtension();
+            $file->move(public_path('uploads/banners'), $filename);
+
+            $validated['image'] = '/uploads/banners/' . $filename;
+            $flag = True;
+        }
+
+        $banner = Banner::findOrFail($id);
+        $oldImage = $banner->image;
+        $banner->update($validated);
+        if ($flag && $oldImage && File::exists(public_path($oldImage))) {
+            File::delete(public_path($oldImage));
+        }
+        return redirect()->back();
+    }
+
+    public function deleteBanner($id){
+        $banner = Banner::findOrFail($id);
+
+        $path = public_path($banner->image);
+        if (file_exists($path)) {
+            unlink($path);
+        }
+
+        $banner->delete();
+
+        return redirect()->back();
+    }
+
+    public function activeBanner(Request $request, $id)
+    {
+        $banner = Banner::findOrFail($id);
+        $banner->active = $request->boolean('active');
+        $banner->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Banner status updated!',
+            'active'  => $banner->active,
+        ]);
     }
 
     public function astrologers()

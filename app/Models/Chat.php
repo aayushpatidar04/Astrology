@@ -15,8 +15,14 @@ class Chat extends Model
         'name'
     ];
 
-    public function participants(){
+    public function participants()
+    {
         return $this->hasMany(ChatParticipant::class, 'chat_id');
+    }
+
+    public function lastMessage()
+    {
+        return $this->hasOne(ChatMessage::class, 'chat_id')->latestOfMany();
     }
 
     public function messages()

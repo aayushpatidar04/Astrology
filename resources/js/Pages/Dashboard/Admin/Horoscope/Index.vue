@@ -1,5 +1,5 @@
 <script setup>
-import { Head } from '@inertiajs/vue3'
+import { Head, Link } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import Create from './Create.vue';
 import { VueGoodTable } from "vue-good-table-next";
@@ -7,7 +7,8 @@ import "vue-good-table-next/dist/vue-good-table-next.css";
 import { ref, computed } from 'vue'
 
 const props = defineProps({
-    horoscopes: Array
+    horoscopes: Array,
+    user: Object
 })
 
 const columns = [
@@ -70,13 +71,11 @@ const groupedHoroscopes = computed(() => {
                             <div v-else-if="props.row.type === 'yearly'" class="text-sm text-gray-500 lowercase">{{ props.row.year_key }}</div>
                         </div>
                     </span>
-                    <!-- <span v-else-if="props.column.field === 'actions'" class="flex">
-                        <Link :href="route('blog-details', { slug: props.row.slug })"><button class="px-2 py-1 bg-orange-500 text-white rounded mr-2 mt-1">
+                    <span v-else-if="props.column.field === 'actions'" class="flex">
+                        <Link :href="route('horoscope', { type: props.row.type, sign: props.row.sign, key: (user.roles[0].name === 'Admin' ? props.row.date || props.row.week_key || props.row.month_key || props.row.year_key : null) })"><button class="px-2 py-1 bg-orange-500 text-white rounded mr-2 mt-1">
                             View
                         </button></Link>
-                        <Edit :categories="categories" :blog="props.row" />
-                        <Delete :blog="props.row" />
-                    </span> -->
+                    </span>
                     <span v-else>
                         {{ props.formattedRow[props.column.field] }}
                     </span>

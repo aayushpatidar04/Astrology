@@ -172,7 +172,7 @@ class AstrologerController extends Controller
             $ext = $file->getClientOriginalExtension();
             $filename = '_' . $request->user()->phone . '_.' . $ext;
             $file->move(public_path('uploads/astrologer_profile/'), $filename);
-            $validated['profile_image'] = 'uploads/astrologer_profile/' . $filename;
+            $validated['profile_image'] = '/uploads/astrologer_profile/' . $filename;
         }
 
         $docs = [];
@@ -185,7 +185,7 @@ class AstrologerController extends Controller
                     $slugName = Str::slug($doc['name']);
                     $filename = '_' . $request->user()->phone . '_' . $slugName . '_.' . $ext;
                     $doc['file']->move(public_path('uploads/documents/'), $filename);
-                    $path = 'uploads/documents/' . $filename;
+                    $path = '/uploads/documents/' . $filename;
                 }
 
                 $docs[] = [

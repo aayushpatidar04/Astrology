@@ -58,6 +58,12 @@ const showingNavigationDropdown = ref(false);
                                     Horoscopes
                                 </NavLink>
                                 <NavLink
+                                    :href="route('admin.banners')"
+                                    :active="route().current('admin.banners')"
+                                >
+                                    Banners
+                                </NavLink>
+                                <NavLink
                                     :href="route('admin.astrologers')"
                                     :active="route().current('admin.astrologers')"
                                 >

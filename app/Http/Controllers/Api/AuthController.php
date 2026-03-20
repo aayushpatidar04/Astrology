@@ -217,7 +217,7 @@ class AuthController extends Controller
                 'user_id' => $user->id,
                 'expertise' => $data['expertise'],
                 'experience_years' => $data['experience_years'],
-                'profile_image' => 'uploads/astrologer_profile/' . $image,
+                'profile_image' => '/uploads/astrologer_profile/' . $image,
             ]);
 
             $token = $user->createToken('myastrosathi')->plainTextToken;
@@ -299,7 +299,7 @@ class AuthController extends Controller
 
             $details = UserDetail::create([
                 'user_id' => $user->id,
-                'profile_image' => 'uploads/user_profile/' . $image,
+                'profile_image' => '/uploads/user_profile/' . $image,
                 'dob' => $data['dob'],
                 'birth_time' => $data['birth_time'],
                 'gender' => $data['gender'],
