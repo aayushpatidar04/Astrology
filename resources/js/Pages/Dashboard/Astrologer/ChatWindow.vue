@@ -60,7 +60,7 @@ onMounted(async () => {
   scrollToBottom()
   echo.private(`chat.${props.chat.id}`)
     .listen('MessageSent', (e) => {
-      if(props.user.id != e.message.user_id){
+      if (props.user.id != e.message.user_id) {
         liveMessages.value.push(e.message)
       }
       scrollToBottom()
@@ -78,7 +78,7 @@ onMounted(async () => {
         offerData = e.data
       } else if (e.type === 'candidate') {
         if (pc && pc.remoteDescription) {
-          console.log('Adding remote candidate:', e.data.candidate.candidate);
+          console.log('Adding remote candidate:', e.data);
           await pc.addIceCandidate(new RTCIceCandidate(e.data))
         }
       } else if (e.type === 'call_ended') {
@@ -101,7 +101,20 @@ const acceptCall = async () => {
 
   localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
 
-  pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] })
+  pc = new RTCPeerConnection({
+    iceServers: [
+      // { urls: 'stun:stun.l.google.com:19302' },
+      {
+        urls: [
+          'turn:openrelay.metered.ca:80',
+          'turn:openrelay.metered.ca:443',
+          'turn:openrelay.metered.ca:443?transport=tcp'
+        ],
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      }
+    ]
+  })
 
 
   localStream.getTracks().forEach(track => {
@@ -110,7 +123,8 @@ const acceptCall = async () => {
 
 
   pc.ontrack = event => {
-    remoteAudio.value.srcObject = event.streams[0]
+    remoteAudio.value.srcObject = event.streams[0];
+    remoteAudio.value.play().catch(err => console.error('Play failed:', err));
   }
 
   pc.onicecandidate = event => {
@@ -119,7 +133,7 @@ const acceptCall = async () => {
     }
   }
 
-  
+
 
   if (!offerData.sdp.endsWith('\r\n')) {
     offerData.sdp += '\r\n';
@@ -242,8 +256,7 @@ const autoResize = (event) => {
     <!-- Input -->
     <form @submit.prevent="sendMessage" class="border-t p-4 flex items-end bg-gray-200">
       <textarea v-model="newMessage" @input="autoResize($event); handleTyping()"
-        @keydown.enter.shift.exact.prevent="newMessage += '\n'"
-        @keydown.enter.exact.prevent="sendMessage()"
+        @keydown.enter.shift.exact.prevent="newMessage += '\n'" @keydown.enter.exact.prevent="sendMessage()"
         class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
         placeholder="Type a message..." rows="1" ref="messageInput" />
       <button type="submit"

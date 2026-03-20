@@ -131,7 +131,20 @@ const startCall = async () => {
         // Setup WebRTC
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
 
-        pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] })
+        pc = new RTCPeerConnection({
+            iceServers: [
+                // { urls: 'stun:stun.l.google.com:19302' },
+                {
+                    urls: [
+                        'turn:openrelay.metered.ca:80',
+                        'turn:openrelay.metered.ca:443',
+                        'turn:openrelay.metered.ca:443?transport=tcp'
+                    ],
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                }
+            ]
+        })
 
         localStream.getTracks().forEach(track => {
             pc.addTrack(track, localStream)
@@ -139,7 +152,8 @@ const startCall = async () => {
 
 
         pc.ontrack = event => {
-            remoteAudio.value.srcObject = event.streams[0]
+            remoteAudio.value.srcObject = event.streams[0];
+            remoteAudio.value.play().catch(err => console.error('Play failed:', err));
         }
 
         pc.onicecandidate = event => {
