@@ -78,7 +78,7 @@ onMounted(async () => {
         offerData = e.data
       } else if (e.type === 'candidate') {
         if (pc && pc.remoteDescription) {
-          console.log('Adding remote candidate:', data.candidate.candidate);
+          console.log('Adding remote candidate:', e.data.candidate.candidate);
           await pc.addIceCandidate(new RTCIceCandidate(e.data))
         }
       } else if (e.type === 'call_ended') {
