@@ -143,7 +143,8 @@ const startCall = async () => {
                     username: 'openrelayproject',
                     credential: 'openrelayproject'
                 }
-            ]
+            ],
+            iceTransportPolicy: 'relay'
         })
 
         localStream.getTracks().forEach(track => {

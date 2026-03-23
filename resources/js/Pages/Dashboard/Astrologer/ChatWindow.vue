@@ -113,7 +113,8 @@ const acceptCall = async () => {
         username: 'openrelayproject',
         credential: 'openrelayproject'
       }
-    ]
+    ],
+    iceTransportPolicy: 'relay'
   })
 
 
