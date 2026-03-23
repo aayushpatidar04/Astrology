@@ -159,6 +159,7 @@ const startCall = async () => {
         pc.onicecandidate = event => {
             if (event.candidate) {
                 console.log('Local candidate:', event.candidate.candidate);
+                console.log('Candidate type:', event.candidate.type, event.candidate);
                 axios.post('/call/signal', {
                     roomId: props.chat.id,
                     type: 'candidate',

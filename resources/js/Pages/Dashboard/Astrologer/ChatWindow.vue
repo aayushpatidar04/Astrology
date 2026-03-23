@@ -129,6 +129,7 @@ const acceptCall = async () => {
 
   pc.onicecandidate = event => {
     if (event.candidate) {
+      console.log('Candidate type:', event.candidate.type, event.candidate);
       sendSignal('candidate', event.candidate.toJSON())
     }
   }
