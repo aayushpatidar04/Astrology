@@ -53,12 +53,26 @@ class User extends Authenticatable
         ];
     }
 
+    protected static function booted()
+    {
+        static::created(function ($user) {
+            if ($user->hasRole('User')) {
+                UserWallet::create([
+                    'user_id' => $user->id,
+                    'balance' => 0,
+                ]);
+            }
+        });
+    }
+
+
     public function astrologer()
     {
         return $this->hasOne(Astrologer::class, 'user_id');
     }
 
-    public function details(){
+    public function details()
+    {
         return $this->hasOne(UserDetail::class, 'user_id');
     }
 
@@ -66,5 +80,10 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Chat::class, 'chat_participants')
             ->withTimestamps();
+    }
+
+    public function wallet()
+    {
+        return $this->hasOne(UserWallet::class, 'user_id');
     }
 }

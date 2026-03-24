@@ -44,7 +44,7 @@ const mobileMenuOpen = ref(false)
                 <template v-if="user">
                     <span class="flex items-center text-gray-700 font-semibold">
                         <div class="flex mr-5">
-                            <Icon icon="mdi:wallet" width="20" height="20" class="mr-1" /> Balance: ₹ {{ user.balance }}
+                            <Icon icon="mdi:wallet" width="20" height="20" class="mr-1" /> Balance: ₹{{ user.wallet.balance }}
                         </div>
                         <div>
                             <Link href="/logout" method="post" as="button" class="flex text-red-400 hover:text-red-500">
@@ -159,6 +159,9 @@ const mobileMenuOpen = ref(false)
                 <li v-if="user && user.roles[0].name === 'User'">
                     <Link href="/profile">Profile</Link>
                 </li>
+                <li v-if="user && user.roles[0].name === 'User'">
+                    <Link href="/user/chat-sessions">Chat Sessions</Link>
+                </li>
             </ul>
 
             <!-- Action Buttons -->
@@ -180,7 +183,7 @@ const mobileMenuOpen = ref(false)
                 <template v-if="user">
                     <span class="flex items-center text-gray-700 font-semibold justify-between">
                         <div class="flex mr-5">
-                            <Icon icon="mdi:wallet" width="20" height="20" class="mr-1" /> Balance: ₹ {{ user.balance }}
+                            <Icon icon="mdi:wallet" width="20" height="20" class="mr-1" /> Balance: ₹ {{ user.wallet?.balance }}
                         </div>
                         <div>
                             <Link href="/logout" method="post" as="button" class="flex text-red-400 hover:text-red-500">

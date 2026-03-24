@@ -33,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('role:User')->group(function () {
         Route::get('/astrologers', [UserController::class, 'astrologers']);
+        Route::get('/start-chat/{astrologerId}', [UserController::class, 'startChat']);
         Route::get('/chats', [UserController::class, 'chats']);
         Route::get('/chats/{chatId}/messages', [UserController::class, 'messages']);
 

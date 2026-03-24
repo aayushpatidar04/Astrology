@@ -81,7 +81,7 @@ class AdminController extends Controller
                 $file->move(public_path('uploads/blogs'), $filename);
 
                 $storedImages[] = [
-                    'image' => '/uploads/blogs/' . $filename,
+                    'image' => 'uploads/blogs/' . $filename,
                     'alt_text' => $img['alt_text'],
                 ];
             }
@@ -135,7 +135,7 @@ class AdminController extends Controller
                 $file->move(public_path('uploads/blogs'), $filename);
 
                 $storedImages[] = [
-                    'image' => '/uploads/blogs/' . $filename,
+                    'image' => 'uploads/blogs/' . $filename,
                     'alt_text' => $img['alt_text'],
                 ];
             }
@@ -170,7 +170,7 @@ class AdminController extends Controller
     {
         return Inertia::render('Dashboard/Admin/Horoscope/Index', [
             'horoscopes' => Horoscope::latest()->get(),
-            'user' => Auth::user()
+            'user' => Auth::user()?->load(['wallet'])
         ]);
     }
 
@@ -227,7 +227,7 @@ class AdminController extends Controller
             $filename = Str::slug($validated['title']) . '_.' . $file->getClientOriginalExtension();
             $file->move(public_path('uploads/banners'), $filename);
 
-            $validated['image'] = '/uploads/banners/' . $filename;
+            $validated['image'] = 'uploads/banners/' . $filename;
         }
 
         $banner = Banner::create($validated);
@@ -255,7 +255,7 @@ class AdminController extends Controller
             $filename = Str::slug($validated['title']) . '_.' . $file->getClientOriginalExtension();
             $file->move(public_path('uploads/banners'), $filename);
 
-            $validated['image'] = '/uploads/banners/' . $filename;
+            $validated['image'] = 'uploads/banners/' . $filename;
             $flag = True;
         }
 

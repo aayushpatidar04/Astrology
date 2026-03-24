@@ -8,11 +8,21 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 });
 
 Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
-    return Chat::where('id', $chatId)
+    $chat = Chat::where('id', $chatId)
         ->whereHas('participants', function ($q) use ($user) {
             $q->where('user_id', $user->id);
         })
-        ->exists();
+        ->first();
+
+    if ($chat) {
+        return [
+            'id'   => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+        ];
+    }
+
+    return false;
 });
 
 Broadcast::channel('astrologer.{userId}', function ($user, $userId) {

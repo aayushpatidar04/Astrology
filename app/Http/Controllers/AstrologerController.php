@@ -27,7 +27,7 @@ class AstrologerController extends Controller
     public function dashboard()
     {
         return Inertia::render('Dashboard/Astrologer/Dashboard', [
-            'user' => Auth::user()->load('astrologer'),
+            'user' => Auth::user()?->load('astrologer'),
         ]);
     }
 
@@ -120,15 +120,12 @@ class AstrologerController extends Controller
         ]);
     }
 
-
-
-
     public function edit(Request $request): Response
     {
         return Inertia::render('Dashboard/Astrologer/Profile', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
-            'user' => Auth::user()->load('astrologer'),
+            'user' => Auth::user()?->load('astrologer'),
         ]);
     }
 
@@ -172,7 +169,7 @@ class AstrologerController extends Controller
             $ext = $file->getClientOriginalExtension();
             $filename = '_' . $request->user()->phone . '_.' . $ext;
             $file->move(public_path('uploads/astrologer_profile/'), $filename);
-            $validated['profile_image'] = '/uploads/astrologer_profile/' . $filename;
+            $validated['profile_image'] = 'uploads/astrologer_profile/' . $filename;
         }
 
         $docs = [];
@@ -185,7 +182,7 @@ class AstrologerController extends Controller
                     $slugName = Str::slug($doc['name']);
                     $filename = '_' . $request->user()->phone . '_' . $slugName . '_.' . $ext;
                     $doc['file']->move(public_path('uploads/documents/'), $filename);
-                    $path = '/uploads/documents/' . $filename;
+                    $path = 'uploads/documents/' . $filename;
                 }
 
                 $docs[] = [

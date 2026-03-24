@@ -54,11 +54,50 @@ function sendSignal(type, data) {
   })
 }
 
+async function endChat(elapsedSeconds, reason) {
+  try {
+    await axios.post(route('user.chat.end', props.chat.id), {
+      reason: reason,
+      elapsed_seconds: elapsedSeconds
+    })
+  } catch (e) {
+    console.error('Error ending chat:', e)
+  }
+}
+
+
+const canSend = ref(true)
 
 onMounted(async () => {
   await nextTick()
   scrollToBottom()
-  echo.private(`chat.${props.chat.id}`)
+
+
+  let currentMembers = []
+  const chatStartTime = ref(null)
+  echo.join(`chat.${props.chat.id}`)
+    .here((users) => {
+      currentMembers = users
+      canSend.value = currentMembers.length === 2
+      if (users.length === 2) {
+        chatStartTime.value = Date.now()
+      }
+    })
+    .joining((user) => {
+      currentMembers.push(user)
+      canSend.value = currentMembers.length === 2
+      if (currentMembers.length === 2) {
+        chatStartTime.value = Date.now()
+      }
+    })
+    .leaving((user) => {
+      currentMembers = currentMembers.filter(u => u.id !== user.id)
+      canSend.value = currentMembers.length === 2
+      if (chatStartTime.value) {
+        const elapsedSeconds = Math.floor((Date.now() - chatStartTime.value) / 1000)
+        endChat(elapsedSeconds, 'user') // reason: user left
+      }
+    })
     .listen('MessageSent', (e) => {
       if (props.user.id != e.message.user_id) {
         liveMessages.value.push(e.message)
@@ -113,8 +152,7 @@ const acceptCall = async () => {
         username: 'openrelayproject',
         credential: 'openrelayproject'
       }
-    ],
-    iceTransportPolicy: 'relay'
+    ]
   })
 
 
@@ -261,7 +299,8 @@ const autoResize = (event) => {
         @keydown.enter.shift.exact.prevent="newMessage += '\n'" @keydown.enter.exact.prevent="sendMessage()"
         class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
         placeholder="Type a message..." rows="1" ref="messageInput" />
-      <button type="submit"
+      <button type="submit" :disabled="!canSend"
+        :class="!canSend ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600'"
         class="ml-2 px-6 py-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition">Send</button>
     </form>
   </div>

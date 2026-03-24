@@ -33,7 +33,7 @@ Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {
 
     Route::get('/admin/horoscopes', [AdminController::class, 'horoscopes'])->name('admin.horoscopes');
     Route::post('/admin/horoscopes', [AdminController::class, 'storeHoroscope'])->name('admin.horoscopes.store');
-    
+
     Route::get('/admin/banners', [AdminController::class, 'banners'])->name('admin.banners');
     Route::post('/admin/banners', [AdminController::class, 'bannerStore'])->name('admin.banners.store');
     Route::post('/admin/banners/{id}', [AdminController::class, 'updateBanner'])->name('admin.banners.edit');
@@ -45,7 +45,6 @@ Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {
     Route::post('/astrologers/{astrologer}/pricing', [AdminController::class, 'updatePricing'])->name('admin.astrologers.updatePricing');
 
     Route::get('/users', [AdminController::class, 'users'])->name('admin.users');
-
 });
 
 Route::middleware(['auth', 'verified', 'role:Astrologer'])->group(function () {
@@ -65,6 +64,7 @@ Route::middleware(['auth', 'verified', 'role:User'])->group(function () {
     Route::get('/user/chat/start/{astrologer}', [UserController::class, 'startChat'])->name('user.chat.start');
     Route::get('/user/chats/{id}', action: [UserController::class, 'showChat'])->name('user.chat.show');
     Route::post('/user/chats/{id}/message', [UserController::class, 'storeMessage'])->name('user.chat.storeMessage');
+    Route::get('/user/chat-sessions', [UserController::class, 'chatSessions'])->name('user.chat.sessions');
 });
 
 Route::middleware('auth')->group(function () {
@@ -76,8 +76,9 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/call/start', [ProfileController::class, 'start'])->name('call');
     Route::post('/call/signal', [ProfileController::class, 'signal'])->name('signal');
+    Route::post('/user/chats/{id}/end', [ProfileController::class, 'chatEnd'])->name('user.chat.end');
 
-    
+    Route::post('/beams-auth', [ProfileController::class, 'beamAuth'])->name('beam.auth');
 });
 
 

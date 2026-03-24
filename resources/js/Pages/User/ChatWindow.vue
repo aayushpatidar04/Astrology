@@ -1,7 +1,7 @@
 <script setup>
 import UserLayout from '@/Layouts/UserLayout.vue'
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { Head } from '@inertiajs/vue3'
+import { Head, Link } from '@inertiajs/vue3'
 import dayjs from 'dayjs'
 import echo from '@/echo'
 import axios from 'axios'
@@ -21,6 +21,57 @@ let typingTimeout = null
 const astrologerOnline = ref(
     props.chat.participants.find(p => p.user_id !== props.auth.user.id)?.user?.astrologer?.online
 )
+
+const joined = ref(false)
+
+// --- Countdown state ---
+const userWalletBalance = ref(props.auth.user.wallet.balance ?? 0)
+const astrologerRate = props.chat.participants.find(p => p.user_id !== props.auth.user.id)?.user?.astrologer?.charged_text_price ?? 0
+const totalSeconds = Math.floor((userWalletBalance.value / astrologerRate) * 60)
+const remainingSeconds = ref(totalSeconds)
+const countdown = ref(null)
+
+// Format H:m:s
+function formatTime(seconds) {
+    const h = Math.floor(seconds / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    const s = seconds % 60
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+const chatEndReason = ref(null) // 'user', 'astrologer', 'balance'
+const showEndModal = ref(false)
+
+// Start countdown only when astrologer joins
+function startCountdown() {
+    if (countdown.value) clearInterval(countdown.value)
+    countdown.value = setInterval(() => {
+        if (remainingSeconds.value > 0) {
+            remainingSeconds.value--
+        } else {
+            chatEndReason.value = 'balance'
+            clearInterval(countdown.value)
+            endChat()
+        }
+    }, 1000)
+}
+
+// End chat when time runs out or either leaves
+async function endChat() {
+    try {
+        const usedSeconds = totalSeconds - remainingSeconds.value
+        const usedMinutes = usedSeconds / 60
+        const deduction = usedMinutes * astrologerRate
+
+        await axios.post(route('user.chat.end', props.chat.id), {
+            reason: chatEndReason.value,   // 'user', 'astrologer', 'balance'
+            deduction: deduction           // exact fractional deduction
+        })
+    } catch (e) {
+        console.error('Error ending chat:', e)
+    }
+    showEndModal.value = true
+}
 
 
 const sendMessage = async () => {
@@ -46,16 +97,42 @@ onMounted(async () => {
     await nextTick()
     scrollToBottom()
 
-    echo.private(`chat.${props.chat.id}`)
+    let currentMembers = []
+
+    echo.join(`chat.${props.chat.id}`)
+        .here((users) => {
+            currentMembers = users
+            if (users.length === 2) {
+                startCountdown();
+                joined.value = true;
+            }
+        })
+        .joining((user) => {
+            currentMembers.push(user);
+            if (currentMembers.length === 2) {
+                startCountdown();
+                joined.value = true;
+            }
+        })
+        .leaving((user) => {
+            currentMembers = currentMembers.filter(u => u.id !== user.id)
+            if (user.id === props.auth.user.id) {
+                chatEndReason.value = 'user'
+            } else {
+                chatEndReason.value = 'astrologer'
+            }
+            clearInterval(countdown.value);
+            endChat();
+        })
         .listen('MessageSent', (e) => {
             if (props.auth.user.id != e.user_id) {
-                liveMessages.value.push(e.message)
+                liveMessages.value.push(e.message);
             }
-            scrollToBottom()
+            scrollToBottom();
         })
         .listen('TypingEvent', (e) => {
-            typingUser.value = e.typing ? e.userId : null
-        })
+            typingUser.value = e.typing ? e.userId : null;
+        });
 
     // listen for astrologer status changes
     const astrologerId = props.chat.participants.find(p => p.user_id !== props.auth.user.id)?.user.id
@@ -143,8 +220,7 @@ const startCall = async () => {
                     username: 'openrelayproject',
                     credential: 'openrelayproject'
                 }
-            ],
-            iceTransportPolicy: 'relay'
+            ]
         })
 
         localStream.getTracks().forEach(track => {
@@ -253,11 +329,16 @@ echo.private(`call.${props.chat.id}`)
                 <div class="border-b p-4 flex items-center justify-between bg-gray-100">
                     <h2 class="font-semibold text-gray-800">
                         Chat with {{chat.participants.find(p => p.user_id !== auth.user.id)?.user.name}}
-                    </h2>
-                    <span class="text-sm" :class="astrologerOnline ? 'text-green-500' : 'text-gray-400'">
-                        {{ astrologerOnline ? 'Online' : 'Offline' }}
-                    </span>
+                        <span class="text-sm ml-5" :class="astrologerOnline ? 'text-green-500' : 'text-gray-400'">
+                            {{ astrologerOnline ? 'Online' : 'Offline' }}<span class="text-green-500" v-if="joined"> |
+                                Joined</span>
+                        </span>
 
+                    </h2>
+                    <span class="text-sm font-mono text-orange-600">
+                        Time Remaining<br>
+                        {{ formatTime(remainingSeconds) }}
+                    </span>
                 </div>
 
                 <!-- Messages -->
@@ -328,6 +409,28 @@ echo.private(`call.${props.chat.id}`)
                 </div>
             </div>
         </div>
+
+        <div v-if="showEndModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg shadow-lg p-6 w-96 text-center">
+                <h3 class="text-lg font-semibold mb-4">Chat Ended</h3>
+                <p v-if="chatEndReason === 'balance'" class="text-gray-700">
+                    Your balance is over. Chat ended.
+                </p>
+                <p v-else-if="chatEndReason === 'user'" class="text-gray-700">
+                    You left the chat.
+                </p>
+                <p v-else-if="chatEndReason === 'astrologer'" class="text-gray-700">
+                    The astrologer left the chat.
+                </p>
+                <div class="mt-4">
+                    <Link :href="route('user.chat-with-astrologers')"
+                        class="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">
+                        Back to Astrologers
+                    </Link>
+                </div>
+            </div>
+        </div>
+
 
     </UserLayout>
 </template>

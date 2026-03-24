@@ -1,0 +1,1 @@
+import{_ as o}from"./_plugin-vue_export-helper-DlAUqK2U.js";import{o as t,c}from"./app-c8UYsKVs.js";const s={},e={src:"/images/logo.png",alt:"MyAstroSathi",class:"h-12 w-auto"};function r(a,n){return t(),c("img",e)}const m=o(s,[["render",r]]);export{m as A};

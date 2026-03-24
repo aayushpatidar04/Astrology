@@ -14,6 +14,7 @@ import ApplicationLogo from '@/Components/ApplicationLogo.vue';
                 <nav class="space-x-4">
                     <Link href="/" class="text-gray-600 hover:text-gray-900">Home</Link>
                     <Link href="/user/chat-with-astrologers" class="text-gray-600 hover:text-gray-900">Chat</Link>
+                    <Link href="/user/chat-sessions" class="text-gray-600 hover:text-gray-900">Chat Sessions</Link>
                     <Link href="/profile" class="text-gray-600 hover:text-gray-900">Profile</Link>
                     <Link href="/logout" method="post" as="button" class="text-red-500 hover:text-red-700">Logout</Link>
                 </nav>

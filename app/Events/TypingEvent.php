@@ -35,7 +35,7 @@ class TypingEvent implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('chat.' . $this->chatId),
+            new PresenceChannel('chat.' . $this->chatId),
         ];
     }
 }

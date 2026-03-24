@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Astrologer;
 use App\Models\Chat;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -32,7 +33,7 @@ class UserController extends Controller
                     'online' => $astrologer->online,
                     'bio' => $astrologer->bio,
                     'status' => $astrologer->status,
-                    'charged_chat_price' => $astrologer->charged_chat_price,
+                    'charged_text_price' => $astrologer->charged_text_price,
                     'charged_call_price' => $astrologer->charged_call_price,
                 ];
             });
@@ -41,6 +42,34 @@ class UserController extends Controller
             'status' => 'success',
             'message' => 'Astrologers fetched successfully!',
             'astrologers' => $astrologers,
+        ]);
+    }
+
+    public function startChat($astrologerId){
+        $user = auth()->user();
+        $astrologer = User::findOrFail($astrologerId);
+
+        $chat = Chat::whereHas('participants', function ($q) use ($user) {
+            $q->where('user_id', $user->id);
+        })->whereHas('participants', function ($q) use ($astrologer) {
+            $q->where('user_id', $astrologer->id);
+        })->first();
+
+        if (! $chat) {
+            $chat = Chat::create([
+                'name' => 'chat_' . $user->id . '_' . $astrologer->user_id,
+            ]);
+
+            $chat->participants()->createMany([
+                ['user_id' => $user->id],
+                ['user_id' => $astrologer->user_id],
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Chat fetched successfully',
+            'chat' => $chat
         ]);
     }
 

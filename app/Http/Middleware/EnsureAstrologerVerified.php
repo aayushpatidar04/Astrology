@@ -16,7 +16,7 @@ class EnsureAstrologerVerified
      */
     public function handle(Request $request, Closure $next)
     {
-        $user = Auth::user()->load('astrologer');
+        $user = Auth::user()?->load('astrologer');
 
         if ($user->hasRole('Astrologer')) {
             switch ($user->astrologer->status) {
