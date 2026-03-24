@@ -170,7 +170,7 @@ class AdminController extends Controller
     {
         return Inertia::render('Dashboard/Admin/Horoscope/Index', [
             'horoscopes' => Horoscope::latest()->get(),
-            'user' => Auth::user()?->load(['wallet'])
+            'user' => Auth::user()?->load('wallet')
         ]);
     }
 
@@ -332,8 +332,8 @@ class AdminController extends Controller
     public function users()
     {
         $beamsClient = new PushNotifications([
-            "instanceId" => env('VITE_PUSHER_BEAMS_INSTANCE_ID'),
-            "secretKey" => env('VITE_PUSHER_BEAMS_SECRET_KEY'),
+            "instanceId" => config('app.VITE_PUSHER_BEAMS_INSTANCE_ID'),
+            "secretKey" => config('app.VITE_PUSHER_BEAMS_SECRET_KEY'),
         ]);
 
         $beamsClient->publishToInterests(

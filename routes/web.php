@@ -78,7 +78,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/call/signal', [ProfileController::class, 'signal'])->name('signal');
     Route::post('/user/chats/{id}/end', [ProfileController::class, 'chatEnd'])->name('user.chat.end');
 
-    Route::post('/beams-auth', [ProfileController::class, 'beamAuth'])->name('beam.auth');
+    Route::get('/beams-auth', [ProfileController::class, 'beamAuth'])->name('beam.auth');
 });
 
 

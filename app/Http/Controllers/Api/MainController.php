@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Banner;
 use App\Models\Blog;
 use App\Models\BlogCategory;
+use App\Models\Chat;
 use App\Models\Chogdiya;
 use App\Models\Horoscope;
 use App\Models\Testimonial;

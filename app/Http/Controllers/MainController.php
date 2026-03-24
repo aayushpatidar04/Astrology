@@ -16,7 +16,7 @@ class MainController extends Controller
     public function index()
     {
         return Inertia::render('HomePage/Index', [
-            'user' => Auth::user()?->load(['wallet']),
+            'user' => Auth::user()?->load('wallet'),
             'blogs' => Blog::latest()->take(3)->get(),
             'astrologers' => Astrologer::with('user')->where('online', 1)->latest()->take(9)->get()
         ]);
@@ -25,21 +25,21 @@ class MainController extends Controller
     public function about()
     {
         return Inertia::render('AboutUs/Index', [
-            'user' => Auth::user()?->load(['wallet']),
+            'user' => Auth::user()?->load('wallet'),
         ]);
     }
 
     public function services()
     {
         return Inertia::render('Services/Index', [
-            'user' => Auth::user()?->load(['wallet']),
+            'user' => Auth::user()?->load('wallet'),
         ]);
     }
 
     public function blog()
     {
         return Inertia::render('Blog/Index', [
-            'user' => Auth::user()?->load(['wallet']),
+            'user' => Auth::user()?->load('wallet'),
             'blogs' => Blog::latest()->paginate(20),
             'categories' => BlogCategory::all()
         ]);
@@ -51,7 +51,7 @@ class MainController extends Controller
 
         if ($category) {
             return Inertia::render('Blog/Index', [
-                'user' => Auth::user()?->load(['wallet']),
+                'user' => Auth::user()?->load('wallet'),
                 'blogs' => $category->blogs()
                     ->latest()
                     ->paginate(20),
@@ -67,7 +67,7 @@ class MainController extends Controller
         $blog = Blog::where('slug', $slug)->first();
 
         return Inertia::render('Blog/View', [
-            'user' => Auth::user()?->load(['wallet']),
+            'user' => Auth::user()?->load('wallet'),
             'blog' => $blog,
             'categories' => BlogCategory::all()
         ]);
@@ -77,7 +77,7 @@ class MainController extends Controller
     {
         return Inertia::render('Horoscope/Index', [
             'type' => ucfirst($type),
-            'user' => Auth::user()?->load(['wallet'])
+            'user' => Auth::user()?->load('wallet')
         ]);
     }
 
@@ -174,7 +174,7 @@ class MainController extends Controller
         }
 
         return Inertia::render('Horoscope/View', [
-            'user' => Auth::user->load(['wallet']),
+            'user' => Auth::user->load('wallet'),
             'sign' => ucfirst($sign),
             'type' => ucfirst($type),
             'date' => $formattedDate,

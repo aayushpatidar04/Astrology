@@ -24,7 +24,6 @@ onMounted(async () => {
         try {
             await beamsClient.start();
             await beamsClient.setUserId(String(props.user.id), beamsTokenProvider);
-            console.log('Beams user subscribed:', props.user.id);
         } catch (err) {
             console.error('Beams setup failed', err);
         }

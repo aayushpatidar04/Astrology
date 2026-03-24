@@ -171,8 +171,8 @@ class ProfileController extends Controller
     public function beamAuth(Request $request)
     {
         $beamsClient = new PushNotifications([
-            "instanceId" => env('VITE_PUSHER_BEAMS_INSTANCE_ID'),
-            "secretKey" => env('VITE_PUSHER_BEAMS_SECRET_KEY'),
+            "instanceId" => config('app.VITE_PUSHER_BEAMS_INSTANCE_ID'),
+            "secretKey" => config('app.VITE_PUSHER_BEAMS_SECRET_KEY'),
         ]);
 
         return response()->json(

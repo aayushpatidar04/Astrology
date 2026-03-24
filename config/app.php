@@ -67,6 +67,8 @@ return [
 
     'timezone' => 'Asia/Kolkata',
     'WHATSAPP_API_KEY' => 'b292d4ddbcc34465bca43d299c9a7f89',
+    'VITE_PUSHER_BEAMS_INSTANCE_ID' => '98ffb852-a7fd-41eb-8669-25cb8b4b0692',
+    'VITE_PUSHER_BEAMS_SECRET_KEY' => '4D61ADE9309B25E6B23C4E77D378AF6177FA2B4BBAE0938859DB16B1838918B8',
 
     /*
     |--------------------------------------------------------------------------

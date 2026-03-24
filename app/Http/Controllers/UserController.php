@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Pusher\PushNotifications\PushNotifications;
 
 class UserController extends Controller
 {
@@ -70,7 +71,7 @@ class UserController extends Controller
         $chat = Chat::with(['participants.user.astrologer', 'messages.user'])
             ->findOrFail($id);
 
-        $user = auth()->user()->load(['wallet']);
+        $user = auth()->user()->load('wallet');
         $astrologer = $chat->participants
             ->where('user_id', '!=', $user->id)
             ->first()
@@ -108,6 +109,31 @@ class UserController extends Controller
         ]);
 
         broadcast(new MessageSent($message))->toOthers();
+        $beamsClient = new PushNotifications([
+            "instanceId" => config('app.VITE_PUSHER_BEAMS_INSTANCE_ID'),
+            "secretKey" => config('app.VITE_PUSHER_BEAMS_SECRET_KEY'),
+        ]);
+
+        $recipientId = $chat->participants()
+            ->where('user_id', '!=', Auth::id())
+            ->value('user_id');
+
+        if ($recipientId) {
+            $beamsClient->publishToUsers(
+                [(string) $recipientId],
+                [
+                    "web" => [
+                        "notification" => [
+                            "title" => "New Chat Message!",
+                            "body" => $request->message,
+                            "icon" => "https://myastrosathi.intouchsoftware.co.in/images/logo.png",
+                            "deep_link" => route('astrologer.chats', ['id' => $chat->id]),
+                            "data" => [],
+                        ]
+                    ]
+                ]
+            );
+        }
 
         // Return JSON instead of redirect
         return response()->json([
@@ -116,7 +142,8 @@ class UserController extends Controller
         ]);
     }
 
-    public function chatSessions(){
+    public function chatSessions()
+    {
         $sessions = ChatSession::with(['chat', 'user', 'astrologer'])->where('user_id', auth()->id())->latest()->get();
         return Inertia::render('User/ChatSession', [
             'sessions' => $sessions,
