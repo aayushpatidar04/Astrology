@@ -63,6 +63,7 @@ Route::middleware(['auth', 'verified', 'role:User'])->group(function () {
     Route::get('/user/chat-with-astrologers', [UserController::class, 'chatWithAstrologers'])->name('user.chat-with-astrologers');
     Route::get('/user/chat/start/{astrologer}', [UserController::class, 'startChat'])->name('user.chat.start');
     Route::get('/user/chats/{id}', action: [UserController::class, 'showChat'])->name('user.chat.show');
+    Route::post('/user/chats/{chatId}/start', [UserController::class, 'start'])->name('user.chat.start-notification');
     Route::post('/user/chats/{id}/message', [UserController::class, 'storeMessage'])->name('user.chat.storeMessage');
     Route::get('/user/chat-sessions', [UserController::class, 'chatSessions'])->name('user.chat.sessions');
 });

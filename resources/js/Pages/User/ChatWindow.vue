@@ -93,6 +93,8 @@ const sendMessage = async () => {
     }
 }
 
+const showWaitingModal = ref(false)
+
 onMounted(async () => {
     await nextTick()
     scrollToBottom()
@@ -105,6 +107,7 @@ onMounted(async () => {
             if (users.length === 2) {
                 startCountdown();
                 joined.value = true;
+                showWaitingModal.value = false
             }
         })
         .joining((user) => {
@@ -112,6 +115,7 @@ onMounted(async () => {
             if (currentMembers.length === 2) {
                 startCountdown();
                 joined.value = true;
+                showWaitingModal.value = false
             }
         })
         .leaving((user) => {
@@ -186,12 +190,24 @@ const autoResize = (event) => {
     el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px'
 }
 
+const startChat = async () => {
+    try {
+        showWaitingModal.value = true
+        await axios.post(`/user/chats/${props.chat.id}/start`)
+    } catch (err) {
+        console.error(err)
+        showWaitingModal.value = false
+    }
+}
+
 const showCallScreen = ref(false)
 const callStatus = ref('Waiting for astrologer...')
 const muted = ref(false)
 const remoteAudio = ref(null)
 let pc = null
 let localStream = null
+
+const allowCall = ref(false)
 
 function sendSignal(type, data) {
     axios.post('/call/signal', {
@@ -373,15 +389,19 @@ echo.private(`call.${props.chat.id}`)
                         class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
                         placeholder="Type a message..." rows="1" ref="messageInput" />
 
-                    <button type="submit" :disabled="!astrologerOnline"
+                    <button type="submit" :disabled="!astrologerOnline" v-if="joined"
                         class="ml-2 px-6 py-2 bg-orange-500 text-white rounded-full transition"
                         :class="!astrologerOnline ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600'"
                         :title="!astrologerOnline ? 'Astrologer is offline. You cannot send a message.' : ''">
                         Send
                     </button>
-
+                    <!-- Start Chat Button -->
+                    <button type="button" @click="startChat" v-if="!joined"
+                        class="ml-2 px-6 py-2 bg-blue-500 text-white rounded-full transition hover:bg-blue-600">
+                        Start Chat
+                    </button>
                     <!-- New Call Button -->
-                    <button type="button" @click="startCall"
+                    <button type="button" @click="startCall" v-if="allowCall"
                         class="ml-2 px-6 py-2 bg-blue-500 text-white rounded-full transition hover:bg-blue-600">
                         Call
                     </button>
@@ -427,6 +447,20 @@ echo.private(`call.${props.chat.id}`)
                         class="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">
                         Back to Astrologers
                     </Link>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="showWaitingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg shadow-lg p-6 w-96 text-center">
+                <h3 class="text-lg font-semibold mb-4">Waiting for Astrologer</h3>
+                <p class="text-gray-700">
+                    Please wait, the astrologer has not joined yet...
+                </p>
+                <div class="mt-4">
+                    <button @click="endChat" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+                        Cancel
+                    </button>
                 </div>
             </div>
         </div>

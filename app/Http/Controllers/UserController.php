@@ -94,6 +94,40 @@ class UserController extends Controller
         ]);
     }
 
+    public function start(Request $request, $chatId)
+    {
+        $chat = Chat::findOrFail($chatId);
+        // Notify astrologer via Beams or broadcast
+        $beamsClient = new PushNotifications([
+            "instanceId" => config('app.VITE_PUSHER_BEAMS_INSTANCE_ID'),
+            "secretKey" => config('app.VITE_PUSHER_BEAMS_SECRET_KEY'),
+        ]);
+
+        $recipientId = $chat->participants()
+            ->where('user_id', '!=', Auth::id())
+            ->value('user_id');
+
+        if ($recipientId) {
+            $beamsClient->publishToUsers(
+                [(string) $recipientId],
+                [
+                    "web" => [
+                        "notification" => [
+                            "title" => "New Chat started!",
+                            "body" => "User waiting for you to join, please join!",
+                            "icon" => "https://myastrosathi.intouchsoftware.co.in/images/favicon.png",
+                            "deep_link" => route('astrologer.chats', ['id' => $chat->id]),
+                            "data" => [],
+                        ]
+                    ]
+                ]
+            );
+        }
+
+        return response()->json(['status' => 'pending']);
+    }
+
+
     public function storeMessage(Request $request, $id)
     {
         $request->validate([

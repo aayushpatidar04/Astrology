@@ -26,6 +26,7 @@ class UserController extends Controller
             ->through(function ($astrologer) {
                 return [
                     'id' => $astrologer->id,
+                    'user_id' => $astrologer->user->id,
                     'name' => $astrologer->user->name,
                     'profile_image' => $astrologer->profile_image,
                     'expertise' => $astrologer->expertise,
