@@ -44,7 +44,7 @@ const mobileMenuOpen = ref(false)
                 <template v-if="user">
                     <span class="flex items-center text-gray-700 font-semibold">
                         <div class="flex mr-5">
-                            <Icon icon="mdi:wallet" width="20" height="20" class="mr-1" /> Balance: ₹{{ user.wallet.balance }}
+                            <Icon icon="mdi:wallet" width="20" height="20" class="mr-1" /> Balance: ₹{{ user.wallet?.balance }}
                         </div>
                         <div>
                             <Link href="/logout" method="post" as="button" class="flex text-red-400 hover:text-red-500">
@@ -183,7 +183,7 @@ const mobileMenuOpen = ref(false)
                 <template v-if="user">
                     <span class="flex items-center text-gray-700 font-semibold justify-between">
                         <div class="flex mr-5">
-                            <Icon icon="mdi:wallet" width="20" height="20" class="mr-1" /> Balance: ₹ {{ user.wallet?.balance }}
+                            <Icon icon="mdi:wallet" width="20" height="20" class="mr-1" /> Balance: ₹{{ user.wallet?.balance }}
                         </div>
                         <div>
                             <Link href="/logout" method="post" as="button" class="flex text-red-400 hover:text-red-500">

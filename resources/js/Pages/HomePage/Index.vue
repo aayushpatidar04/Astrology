@@ -11,6 +11,7 @@ import WhyChooseUs from './WhyChooseUs.vue';
 import Footer from '../Layouts/Footer.vue';
 import Blogs from './Blogs.vue';
 import * as PusherPushNotifications from "@pusher/push-notifications-web";
+import { onMounted } from 'vue';
 
 const props = defineProps({
     user: Object,
@@ -22,10 +23,25 @@ const beamsClient = new PusherPushNotifications.Client({
     instanceId: import.meta.env.VITE_PUSHER_BEAMS_INSTANCE_ID,
 });
 
-beamsClient.start()
-    .then(() => beamsClient.addDeviceInterest('NewsLetter'))
-    .then(() => console.log('Successfully registered and subscribed!'))
-    .catch(console.error);
+// beamsClient.start()
+//     .then(() => beamsClient.addDeviceInterest('NewsLetter'))
+//     .then(() => console.log('Successfully registered and subscribed!'))
+//     .catch(console.error);
+
+const beamsTokenProvider = new PusherPushNotifications.TokenProvider({
+    url: '/beams-auth', // your Laravel route
+});
+
+onMounted(async () => {
+    if (props.user?.id) {
+        try {
+            await beamsClient.start();
+            await beamsClient.setUserId(String(props.user.id), beamsTokenProvider);
+        } catch (err) {
+            console.error('Beams setup failed', err);
+        }
+    }
+});
 </script>
 
 <template>

@@ -126,7 +126,8 @@ class UserController extends Controller
                         "notification" => [
                             "title" => "New Chat Message!",
                             "body" => $request->message,
-                            "icon" => "https://myastrosathi.intouchsoftware.co.in/images/logo.png",
+                            // "icon" => "https://myastrosathi.intouchsoftware.co.in/images/favicon.png",
+                            "icon" => asset(Auth::user()->load('details')->details->profile_image),
                             "deep_link" => route('astrologer.chats', ['id' => $chat->id]),
                             "data" => [],
                         ]
