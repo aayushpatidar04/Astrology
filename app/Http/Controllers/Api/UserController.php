@@ -58,12 +58,12 @@ class UserController extends Controller
 
         if (! $chat) {
             $chat = Chat::create([
-                'name' => 'chat_' . $user->id . '_' . $astrologer->user_id,
+                'name' => 'chat_' . $user->id . '_' . $astrologer->id,
             ]);
 
             $chat->participants()->createMany([
                 ['user_id' => $user->id],
-                ['user_id' => $astrologer->user_id],
+                ['user_id' => $astrologer->id],
             ]);
         }
 
