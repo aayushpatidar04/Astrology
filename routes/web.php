@@ -40,6 +40,11 @@ Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {
     Route::delete('/admin/banners/{id}', [AdminController::class, 'deleteBanner'])->name('admin.banners.destroy');
     Route::patch('/admin/banners/{id}', [AdminController::class, 'activeBanner'])->name('admin.banners.toggle');
 
+    Route::get('/admin/recharge-packages', [AdminController::class, 'rechargePackages'])->name('admin.recharge-packages');
+    Route::post('/admin/recharge-packages', [AdminController::class, 'rechargePackageStore'])->name('admin.recharge-packages.store');
+    Route::post('/admin/recharge-packages/{id}', [AdminController::class, 'updateRechargePackage'])->name('admin.recharge-packages.edit');
+    Route::delete('/admin/recharge-packages/{id}', [AdminController::class, 'deleteRechargePackage'])->name('admin.recharge-packages.destroy');
+
     Route::get('/astrologers', [AdminController::class, 'astrologers'])->name('admin.astrologers');
     Route::post('/astrologers/{astrologer}/status', [AdminController::class, 'updateStatus'])->name('admin.astrologers.updateStatus');
     Route::post('/astrologers/{astrologer}/pricing', [AdminController::class, 'updatePricing'])->name('admin.astrologers.updatePricing');
@@ -66,6 +71,7 @@ Route::middleware(['auth', 'verified', 'role:User'])->group(function () {
     Route::post('/user/chats/{chatId}/start', [UserController::class, 'start'])->name('user.chat.start-notification');
     Route::post('/user/chats/{id}/message', [UserController::class, 'storeMessage'])->name('user.chat.storeMessage');
     Route::get('/user/chat-sessions', [UserController::class, 'chatSessions'])->name('user.chat.sessions');
+    Route::get('/user/recharge', [UserController::class, 'recharge'])->name('user.recharge');
 });
 
 Route::middleware('auth')->group(function () {
@@ -80,6 +86,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/user/chats/{id}/end', [ProfileController::class, 'chatEnd'])->name('user.chat.end');
 
     Route::get('/beams-auth', [ProfileController::class, 'beamAuth'])->name('beam.auth');
+
+    Route::post('/astrologers/{id}/busy', [ProfileController::class, 'setBusy'])->name('astrologers.set-busy');
 });
 
 

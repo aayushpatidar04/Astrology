@@ -22,6 +22,7 @@ const beamsTokenProvider = new PusherPushNotifications.TokenProvider({
 onMounted(async () => {
     if (props.user?.id) {
         try {
+            await beamsClient.clearAllState();
             await beamsClient.start();
             await beamsClient.setUserId(String(props.user.id), beamsTokenProvider);
         } catch (err) {

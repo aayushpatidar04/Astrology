@@ -81,11 +81,17 @@ onMounted(async () => {
       canSend.value = currentMembers.length === 2
       if (users.length === 2) {
         chatStartTime.value = Date.now()
+        if (currentMembers.length === 2) {
+          axios.post(`/astrologers/${props.user.id}/busy`, { busy: true })
+        }
       }
     })
     .joining((user) => {
       currentMembers.push(user)
       canSend.value = currentMembers.length === 2
+      if (currentMembers.length === 2) {
+        axios.post(`/astrologers/${props.user.id}/busy`, { busy: true })
+      }
       if (currentMembers.length === 2) {
         chatStartTime.value = Date.now()
       }
@@ -93,6 +99,7 @@ onMounted(async () => {
     .leaving((user) => {
       currentMembers = currentMembers.filter(u => u.id !== user.id)
       canSend.value = currentMembers.length === 2
+      axios.post(`/astrologers/${props.user.id}/busy`, { busy: false })
       if (chatStartTime.value) {
         const elapsedSeconds = Math.floor((Date.now() - chatStartTime.value) / 1000)
         endChat(elapsedSeconds, 'user') // reason: user left
@@ -142,15 +149,14 @@ const acceptCall = async () => {
 
   pc = new RTCPeerConnection({
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
       {
         urls: [
-          'turn:openrelay.metered.ca:80',
-          'turn:openrelay.metered.ca:443',
-          'turn:openrelay.metered.ca:443?transport=tcp'
+          "stun:52.66.24.208:3478",
+          "turn:52.66.24.208:3478?transport=udp",
+          "turn:52.66.24.208:3478?transport=tcp"
         ],
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
+        username: 'myastrosathi',
+        credential: 'myastrosathi'
       }
     ]
   })

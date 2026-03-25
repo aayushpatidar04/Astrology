@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\AstrologerStatusUpdated;
 use App\Events\CallSignal;
 use App\Events\TypingEvent;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\Chat;
 use App\Models\ChatSession;
+use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -178,5 +180,16 @@ class ProfileController extends Controller
         return response()->json(
             $beamsClient->generateToken((string) $request->user()->id)
         );
+    }
+
+    public function setBusy(Request $request, $id)
+    {
+        $astrologer = User::findOrFail($id);
+        $astrologer->is_busy = $request->busy ? 1 : 0;
+        $astrologer->save();
+
+        broadcast(new AstrologerStatusUpdated($astrologer->astrologer->id, $astrologer->is_busy));
+
+        return response()->json(['is_busy' => $astrologer->is_busy]);
     }
 }

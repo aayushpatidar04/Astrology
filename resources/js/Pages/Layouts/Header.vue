@@ -1,13 +1,40 @@
 <script setup>
 import { Link } from '@inertiajs/vue3'
 import { Icon } from '@iconify/vue';
-import { ref } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 
 const props = defineProps({
     user: Object
 })
 
 const mobileMenuOpen = ref(false)
+
+
+const showDropdown = ref(false)
+
+function toggleDropdown() {
+    showDropdown.value = !showDropdown.value
+}
+
+function closeDropdown() {
+    showDropdown.value = false
+}
+
+// click‑outside handler
+function handleClickOutside(event) {
+    const dropdown = document.getElementById('horoscope-dropdown')
+    if (dropdown && !dropdown.contains(event.target)) {
+        closeDropdown()
+    }
+}
+
+onMounted(() => {
+    document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+    document.removeEventListener('click', handleClickOutside)
+})
 </script>
 
 <style scoped>
@@ -43,9 +70,10 @@ const mobileMenuOpen = ref(false)
             <div class="hidden md:block mt-2 md:mt-0">
                 <template v-if="user">
                     <span class="flex items-center text-gray-700 font-semibold">
-                        <div class="flex mr-5">
-                            <Icon icon="mdi:wallet" width="20" height="20" class="mr-1" /> Balance: ₹{{ user.wallet?.balance }}
-                        </div>
+                        <Link :href="route('user.recharge')" class="flex mr-5">
+                            <Icon icon="mdi:wallet" width="20" height="20" class="mr-1" /> Balance: ₹{{
+                            user.wallet?.balance }}
+                        </Link>
                         <div>
                             <Link href="/logout" method="post" as="button" class="flex text-red-400 hover:text-red-500">
                                 <Icon icon="mdi:logout" width="20" height="20" class="mr-1" />Logout
@@ -101,8 +129,8 @@ const mobileMenuOpen = ref(false)
                         Blogs
                     </Link>
                 </li>
-                <li class="relative group">
-                    <div class="flex items-center cursor-pointer">
+                <li id="horoscope-dropdown" class="relative">
+                    <div class="flex items-center cursor-pointer" @click="toggleDropdown">
                         <span href="#" class="flex"
                             :class="route().current('horoscope') || route().current('horoscope-type') ? 'text-primary font-bold' : 'hover:text-orange-500'">
                             <template v-if="route().current('horoscope') || route().current('horoscope-type')">
@@ -111,15 +139,15 @@ const mobileMenuOpen = ref(false)
                             Horoscopes
                         </span>
                         <!-- Dropdown arrow -->
-                        <svg class="w-4 h-4 ml-1 text-gray-500 group-hover:text-orange-500" fill="none"
+                        <svg class="w-4 h-4 ml-1 text-gray-500 hover:text-orange-500" fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </div>
 
                     <!-- Dropdown menu -->
-                    <ul
-                        class="absolute left-0 mt-2 w-48 bg-white border rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
+                    <ul v-if="showDropdown"
+                        class="absolute left-0 mt-2 w-48 bg-white border rounded shadow-lg z-50">
                         <li>
                             <Link :href="route('horoscope-type', { type: 'daily' })"
                                 class="block px-4 py-2 hover:bg-orange-100">Today Horoscope</Link>
@@ -180,11 +208,12 @@ const mobileMenuOpen = ref(false)
             </div>
             <!-- Auth / Balance -->
             <div class="md:hidden mt-2 md:mt-0">
-                <template v-if="user">
+                <template v-if="user && user.roles[0].name === 'User'">
                     <span class="flex items-center text-gray-700 font-semibold justify-between">
-                        <div class="flex mr-5">
-                            <Icon icon="mdi:wallet" width="20" height="20" class="mr-1" /> Balance: ₹{{ user.wallet?.balance }}
-                        </div>
+                        <Link :href="route('user.recharge')" class="flex mr-5">
+                            <Icon icon="mdi:wallet" width="20" height="20" class="mr-1" /> Balance: ₹{{
+                            user.wallet?.balance }}
+                        </Link>
                         <div>
                             <Link href="/logout" method="post" as="button" class="flex text-red-400 hover:text-red-500">
                                 <Icon icon="mdi:logout" width="20" height="20" class="mr-1" />Logout

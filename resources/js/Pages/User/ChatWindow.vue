@@ -99,6 +99,9 @@ onMounted(async () => {
     await nextTick()
     scrollToBottom()
 
+    // listen for astrologer status changes
+    const astrologerId = props.chat.participants.find(p => p.user_id !== props.auth.user.id)?.user.id
+
     let currentMembers = []
 
     echo.join(`chat.${props.chat.id}`)
@@ -106,6 +109,7 @@ onMounted(async () => {
             currentMembers = users
             if (users.length === 2) {
                 startCountdown();
+                axios.post(`/astrologers/${astrologerId}/busy`, { busy: true })
                 joined.value = true;
                 showWaitingModal.value = false
             }
@@ -114,6 +118,7 @@ onMounted(async () => {
             currentMembers.push(user);
             if (currentMembers.length === 2) {
                 startCountdown();
+                axios.post(`/astrologers/${astrologerId}/busy`, { busy: true })
                 joined.value = true;
                 showWaitingModal.value = false
             }
@@ -124,6 +129,7 @@ onMounted(async () => {
                 chatEndReason.value = 'user'
             } else {
                 chatEndReason.value = 'astrologer'
+                axios.post(`/astrologers/${astrologerId}/busy`, { busy: false })
             }
             clearInterval(countdown.value);
             endChat();
@@ -138,8 +144,7 @@ onMounted(async () => {
             typingUser.value = e.typing ? e.userId : null;
         });
 
-    // listen for astrologer status changes
-    const astrologerId = props.chat.participants.find(p => p.user_id !== props.auth.user.id)?.user.id
+
     echo.private(`astrologer.${astrologerId}`)
         .listen('AstrologerStatusChanged', (e) => {
             astrologerOnline.value = e.online
@@ -207,7 +212,7 @@ const remoteAudio = ref(null)
 let pc = null
 let localStream = null
 
-const allowCall = ref(false)
+const allowCall = ref(true)
 
 function sendSignal(type, data) {
     axios.post('/call/signal', {
@@ -226,15 +231,14 @@ const startCall = async () => {
 
         pc = new RTCPeerConnection({
             iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
                 {
                     urls: [
-                        'turn:openrelay.metered.ca:80',
-                        'turn:openrelay.metered.ca:443',
-                        'turn:openrelay.metered.ca:443?transport=tcp'
+                        "stun:52.66.24.208:3478",
+                        "turn:52.66.24.208:3478?transport=udp",
+                        "turn:52.66.24.208:3478?transport=tcp"
                     ],
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
+                    username: 'myastrosathi',
+                    credential: 'myastrosathi'
                 }
             ]
         })
@@ -458,13 +462,12 @@ echo.private(`call.${props.chat.id}`)
                     Please wait, the astrologer has not joined yet...
                 </p>
                 <div class="mt-4">
-                    <button @click="endChat" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+                    <Link :href="route('user.chat-with-astrologers')"
+                        class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
                         Cancel
-                    </button>
+                    </Link>
                 </div>
             </div>
         </div>
-
-
     </UserLayout>
 </template>

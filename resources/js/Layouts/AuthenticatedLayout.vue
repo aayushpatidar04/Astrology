@@ -75,6 +75,12 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Users
                                 </NavLink>
+                                <NavLink
+                                    :href="route('admin.recharge-packages')"
+                                    :active="route().current('admin.recharge-packages')"
+                                >
+                                    Packages
+                                </NavLink>
                             </div>
                         </div>
 

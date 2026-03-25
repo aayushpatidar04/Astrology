@@ -7,6 +7,7 @@ use App\Models\Astrologer;
 use App\Models\Chat;
 use App\Models\ChatMessage;
 use App\Models\ChatSession;
+use App\Models\RechargePackage;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -182,6 +183,27 @@ class UserController extends Controller
         $sessions = ChatSession::with(['chat', 'user', 'astrologer'])->where('user_id', auth()->id())->latest()->get();
         return Inertia::render('User/ChatSession', [
             'sessions' => $sessions,
+        ]);
+    }
+
+    public function recharge()
+    {
+        $user = auth()->user()->load('wallet');
+
+        $firstTimeOffers = collect();
+
+        // if ($user && !$user->orders()->exists()) {
+            // }
+                $firstTimeOffers = RechargePackage::where('type', 'first_time')->get();
+        
+        $regularOffers   = RechargePackage::where('type', 'regular')->get();
+        $specialOffers   = RechargePackage::where('type', 'special')->get();
+
+        return Inertia::render('User/Recharge', [
+            'firstTimeOffers' => $firstTimeOffers,
+            'regularOffers'   => $regularOffers,
+            'specialOffers'   => $specialOffers,
+            'walletBalance' => $user->wallet->balance,
         ]);
     }
 }

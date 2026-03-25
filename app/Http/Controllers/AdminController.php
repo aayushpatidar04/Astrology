@@ -7,6 +7,7 @@ use App\Models\Banner;
 use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\Horoscope;
+use App\Models\RechargePackage;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -268,7 +269,8 @@ class AdminController extends Controller
         return redirect()->back();
     }
 
-    public function deleteBanner($id){
+    public function deleteBanner($id)
+    {
         $banner = Banner::findOrFail($id);
 
         $path = public_path($banner->image);
@@ -292,6 +294,65 @@ class AdminController extends Controller
             'message' => 'Banner status updated!',
             'active'  => $banner->active,
         ]);
+    }
+
+    public function rechargePackages()
+    {
+        $packages = RechargePackage::all();
+        return Inertia::render('Dashboard/Admin/RechargePackage/Index', [
+            'packages' => $packages
+        ]);
+    }
+
+    public function rechargePackageStore(Request $request)
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric',
+            'bonus_amount' => 'nullable|numeric',
+            'label' => 'nullable',
+            'type' => 'required|in:first_time,regular,special',
+            'recommended' => 'nullable',
+        ]);
+
+        if ($request->recommended && $request->recommended != "0") {
+            $validated['recommended'] = 1;
+        } else {
+            $validated['recommended'] = 0;
+        }
+
+        $package = RechargePackage::create($validated);
+
+        return redirect()->back();
+    }
+
+    public function updateRechargePackage(Request $request, $id){
+        $validated = $request->validate([
+            'amount' => 'required|numeric',
+            'bonus_amount' => 'nullable|numeric',
+            'label' => 'nullable',
+            'type' => 'required|in:first_time,regular,special',
+            'recommended' => 'nullable',
+        ]);
+
+        if ($request->recommended && $request->recommended != "0") {
+            $validated['recommended'] = 1;
+        } else {
+            $validated['recommended'] = 0;
+        }
+
+        $package = RechargePackage::findOrFail($id);
+
+        $package->update($validated);
+
+        return redirect()->back();
+    }
+
+    public function deleteRechargePackage($id){
+        $package = RechargePackage::findOrFail($id);
+
+        $package->delete();
+
+        return redirect()->back();
     }
 
     public function astrologers()
