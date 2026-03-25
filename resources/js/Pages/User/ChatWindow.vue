@@ -235,7 +235,8 @@ const startCall = async () => {
                     urls: [
                         "stun:52.66.24.208:3478",
                         "turn:52.66.24.208:3478?transport=udp",
-                        "turn:52.66.24.208:3478?transport=tcp"
+                        "turn:52.66.24.208:3478?transport=tcp",
+                        "turn:52.66.24.208:443?transport=tcp",
                     ],
                     username: 'myastrosathi',
                     credential: 'myastrosathi'
