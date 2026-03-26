@@ -6,9 +6,15 @@ use App\Models\Astrologer;
 use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\Horoscope;
+use App\Models\Order;
+use App\Models\TempOrder;
+use App\Models\User;
+use App\Models\UserWallet;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 
 class MainController extends Controller
@@ -99,7 +105,7 @@ class MainController extends Controller
                     ->where('sign', $sign)
                     ->whereDate('date', $key)
                     ->firstOrFail();
-    
+
                 $formattedDate = $date->format('d M, Y');
             } elseif ($type === 'weekly') {
                 $horoscope = Horoscope::where('type', 'weekly')
@@ -123,7 +129,7 @@ class MainController extends Controller
                     ->where('sign', $sign)
                     ->whereDate('date', $today)
                     ->firstOrFail();
-    
+
                 $formattedDate = $today->format('d M, Y');
             } elseif ($type === 'yesterday') {
                 $yesterday = Carbon::yesterday();
@@ -131,7 +137,7 @@ class MainController extends Controller
                     ->where('sign', $sign)
                     ->whereDate('date', $yesterday)
                     ->firstOrFail();
-    
+
                 $formattedDate = $yesterday->format('d M, Y');
             } elseif ($type === 'tomorrow') {
                 $tomorrow = Carbon::tomorrow();
@@ -139,18 +145,18 @@ class MainController extends Controller
                     ->where('sign', $sign)
                     ->whereDate('date', $tomorrow)
                     ->firstOrFail();
-    
+
                 $formattedDate = $tomorrow->format('d M, Y');
             } elseif ($type === 'weekly') {
                 $year = $today->year;
                 $week = $today->weekOfYear;
-    
+
                 $weekKey = $year . '-' . $week;
                 $horoscope = Horoscope::where('type', 'weekly')
                     ->where('sign', $sign)
                     ->where('week_key', $weekKey)
                     ->firstOrFail();
-    
+
                 $startOfWeek = Carbon::now()->setISODate($year, $week)->startOfWeek();
                 $endOfWeek   = Carbon::now()->setISODate($year, $week)->endOfWeek();
                 $formattedDate = $startOfWeek->format('d M, Y') . ' - ' . $endOfWeek->format('d M, Y');
@@ -160,7 +166,7 @@ class MainController extends Controller
                     ->where('sign', $sign)
                     ->where('month_key', $monthKey)
                     ->firstOrFail();
-    
+
                 $formattedDate = Carbon::createFromFormat('Y-m', $monthKey)->format('F, Y');
             } elseif ($type === 'yearly') {
                 $yearKey = $today->year;
@@ -168,7 +174,7 @@ class MainController extends Controller
                     ->where('sign', $sign)
                     ->where('year_key', $yearKey)
                     ->firstOrFail();
-    
+
                 $formattedDate = $yearKey;
             }
         }
@@ -194,5 +200,82 @@ class MainController extends Controller
             ],
         ]);
     }
-    
+
+    public function phonePeResponse(Request $request, $id)
+    {
+        $tempOrder = TempOrder::findOrFail($id);
+        $user = User::findOrFail($tempOrder->user_id);
+
+        $input = $request->all();
+
+        $saltKey   = '96434309-7796-489d-8924-ab56988a6076';
+        $saltIndex = 1;
+
+        // Build the verification header
+        $string = '/pg/v1/status/' . $input['merchantId'] . '/' . $input['transactionId'] . $saltKey;
+        $sha256 = hash('sha256', $string);
+        $finalXHeader = $sha256 . '###' . $saltIndex;
+
+        // PhonePe sandbox status URL
+        $url = "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/status/{$input['merchantId']}/{$input['transactionId']}";
+
+        // Send request using Laravel Http client
+        $response = Http::withHeaders([
+            'Content-Type'   => 'application/json',
+            'accept'         => 'application/json',
+            'X-VERIFY'       => $finalXHeader,
+            'X-MERCHANT-ID'  => $input['transactionId'],
+        ])->get($url);
+
+        Auth::login($user);
+
+        // Decode JSON response
+        $rData = $response->json();
+        // For debugging
+
+        if (($rData['success'] ?? false) && ($rData['code'] ?? '') === 'PAYMENT_SUCCESS') {
+            DB::beginTransaction();
+            try {
+                $tempOrder->status = 'success';
+                $tempOrder->save();
+
+                // Create permanent order
+                $order = Order::create([
+                    'user_id'        => $user->id,
+                    'phone'        => $user->phone,
+                    'recharge_package_id'     => $tempOrder->recharge_package_id,
+                    'amount'         => $tempOrder->amount,
+                    'bonus_amount'   => $tempOrder->bonus_amount ?? 0,
+                    'payable_amount'   => $tempOrder->payable_amount ?? 0,
+                    'payment_gateway' => 'phonepe',
+                    'transaction_ref' => $tempOrder->transaction_ref,
+                ]);
+
+                // Credit wallet
+                $wallet = UserWallet::where('user_id', $user->id)->first();
+                if ($wallet) {
+                    $wallet->balance += $tempOrder->amount + $tempOrder->bonus_amount;
+                    $wallet->save();
+                }
+
+                DB::commit();
+
+                return redirect()->route('user.chat-with-astrologers')->with('success', 'Payment successful! Wallet credited.');
+            } catch (\Exception $e) {
+                // Rollback on error
+                DB::rollBack();
+
+                // Optionally log the error
+                \Log::error('Payment success flow failed: ' . $e->getMessage());
+
+                return redirect()->route('user.chat-with-astrologers')
+                    ->with('error', 'Something went wrong. Please contact support.');
+            }
+        } elseif (($rData['code'] ?? '') === 'PAYMENT_ERROR') {
+            $tempOrder->status = 'failed';
+            $tempOrder->save();
+            return redirect()->route('user.chat-with-astrologers')->with('error', 'Payment failed. Please try again.');
+        }
+        return redirect()->route('user.chat-with-astrologers');
+    }
 }

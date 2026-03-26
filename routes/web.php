@@ -72,7 +72,9 @@ Route::middleware(['auth', 'verified', 'role:User'])->group(function () {
     Route::post('/user/chats/{id}/message', [UserController::class, 'storeMessage'])->name('user.chat.storeMessage');
     Route::get('/user/chat-sessions', [UserController::class, 'chatSessions'])->name('user.chat.sessions');
     Route::get('/user/recharge', [UserController::class, 'recharge'])->name('user.recharge');
+    Route::post('/user/phonepe', [UserController::class, 'phonePe'])->name('user.phonePe');
 });
+Route::post('user/response/{id}', [MainController::class, 'phonePeResponse'])->name('user.response');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

@@ -1,13 +1,13 @@
 <script setup>
 import UserLayout from '@/Layouts/UserLayout.vue'
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue'
 
 const props = defineProps({
     firstTimeOffers: Object,
     regularOffers: Object,
     specialOffers: Object,
-    walletBalance: Number
+    walletBalance: String
 })
 
 const selectedPack = ref(null)
@@ -26,6 +26,23 @@ function applyCoupon() {
     } else {
         couponError.value = `Invalid Coupon code ${couponCode.value}`
     }
+}
+
+function proceedToPay() {
+    axios.post(route('user.phonePe'), {
+        package_id: selectedPack.value?.id ?? null,
+        amount: Number(selectedPack.value?.amount ?? 0),
+        bonus_amount: Number(selectedPack.value?.bonus_amount ?? 0),
+        gst: Number(gst.value),
+        total_payable: Number(totalPayable.value),
+        coupon_code: couponCode.value || null,
+    })
+        .then(res => {
+            window.location.href = res.data.redirect_url; // redirect to PhonePe
+        })
+        .catch(() => {
+            alert('❌ Payment request failed.');
+        });
 }
 
 const gst = computed(() => selectedPack.value ? (selectedPack.value.amount * 0.18).toFixed(2) : '0.00')
@@ -127,7 +144,7 @@ const totalPayable = computed(() => selectedPack.value ? (selectedPack.value.amo
                 <!-- Proceed Button -->
                 <button
                     class="w-full mt-6 bg-green-500 text-white py-2 rounded hover:bg-green-600 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
-                    :disabled="!selectedPack">
+                    :disabled="!selectedPack" @click="proceedToPay">
                     PROCEED NOW
                 </button>
 

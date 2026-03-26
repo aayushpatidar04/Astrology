@@ -2,9 +2,12 @@
 import { Link } from '@inertiajs/vue3'
 import { Icon } from '@iconify/vue';
 import { ref, onMounted, onBeforeUnmount } from 'vue';
+import Notification from '@/Components/Notification.vue';
+
 
 const props = defineProps({
-    user: Object
+    user: Object,
+    flash: Object,
 })
 
 const mobileMenuOpen = ref(false)
@@ -44,6 +47,7 @@ onBeforeUnmount(() => {
 </style>
 
 <template>
+    <Notification :flash="props.flash" />
     <header class="bg-white shadow">
         <!-- Top Bar -->
         <div class="flex flex-col md:flex-row md:justify-between md:items-center px-4 md:px-6 py-2 text-sm bg-gray-100">

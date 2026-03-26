@@ -1,16 +1,41 @@
 <script setup>
-import { Link, Head } from '@inertiajs/vue3';
+import { Link, Head, usePage } from '@inertiajs/vue3';
 import Header from '@/Pages/Layouts/Header.vue';
 import Footer from '../Layouts/Footer.vue';
 import Pagination from '@/Components/Pagination.vue';
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
+import { ref, onMounted, watch } from 'vue';
 import echo from '@/echo'
 
 const props = defineProps({
     user: Object,
     astrologers: Object,
 })
+
+const page = usePage()
+const flash = page.props.flash
+
+const show = ref(false)
+const message = ref('')
+const type = ref('success')
+
+// Watch for changes in flash messages
+watch(
+    () => [flash.success, flash.error],
+    ([success, error]) => {
+        if (success) {
+            message.value = success
+            type.value = 'success'
+            show.value = true
+            setTimeout(() => (show.value = false), 5000)
+        } else if (error) {
+            message.value = error
+            type.value = 'error'
+            show.value = true
+            setTimeout(() => (show.value = false), 5000)
+        }
+    },
+    { immediate: true }
+)
 
 const astrologers = ref(props.astrologers.data)
 
@@ -49,7 +74,7 @@ onMounted(() => {
 
     <Head title="Chat with Astrologers" />
 
-    <Header :user="user" />
+    <Header :user="user" :flash="flash" />
 
     <section class="py-12 bg-gray-50">
         <div class="max-w-7xl mx-auto px-4">
@@ -126,3 +151,15 @@ onMounted(() => {
 
     <Footer />
 </template>
+
+<style>
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.5s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+</style>

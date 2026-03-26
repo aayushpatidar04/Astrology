@@ -8,9 +8,11 @@ use App\Models\Chat;
 use App\Models\ChatMessage;
 use App\Models\ChatSession;
 use App\Models\RechargePackage;
+use App\Models\TempOrder;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 use Pusher\PushNotifications\PushNotifications;
 
@@ -191,19 +193,94 @@ class UserController extends Controller
         $user = auth()->user()->load('wallet');
 
         $firstTimeOffers = collect();
+        $regularOffers   = collect();
+        $specialOffers   = collect();
 
-        // if ($user && !$user->orders()->exists()) {
-            // }
+        if ($user) {
+            if (!$user->orders()->exists()) {
                 $firstTimeOffers = RechargePackage::where('type', 'first_time')->get();
-        
-        $regularOffers   = RechargePackage::where('type', 'regular')->get();
-        $specialOffers   = RechargePackage::where('type', 'special')->get();
+                $specialOffers   = RechargePackage::where('type', 'special')->get();
+            } else {
+                $regularOffers   = RechargePackage::where('type', 'regular')->get();
+                $specialOffers   = RechargePackage::where('type', 'special')->get();
+            }
+        }
 
         return Inertia::render('User/Recharge', [
             'firstTimeOffers' => $firstTimeOffers,
             'regularOffers'   => $regularOffers,
             'specialOffers'   => $specialOffers,
-            'walletBalance' => $user->wallet->balance,
+            'walletBalance'   => $user->wallet->balance,
         ]);
     }
+
+    public function phonePe(Request $request)
+    {
+        $validated = $request->validate([
+            'package_id' => 'required|exists:recharge_packages,id',
+            'amount' => 'required|numeric',
+            'bonus_amount' => 'nullable|numeric',
+            'gst' => 'required|numeric',
+            'total_payable' => 'required|numeric',
+            'coupon_code' => 'nullable',
+        ]);
+        $user = auth()->user();
+
+        $tempOrder = TempOrder::create([
+            'user_id'        => $user->id,
+            'phone'        => $user->phone,
+            'recharge_package_id'     => $request->package_id,
+            'amount'         => $request->amount,
+            'bonus_amount'   => $request->bonus_amount ?? 0,
+            'payable_amount'   => $request->total_payable ?? 0,
+            'status'         => 'pending',
+            'payment_gateway'=> 'phonepe',
+            'transaction_ref'=> uniqid('txn_'),
+        ]);
+        $data = [
+            'merchantId' => 'PGTESTPAYUAT86',
+            'merchantTransactionId' => $tempOrder->transaction_ref,
+            'merchantUserId' => 'MUID' . $user->id,
+            'amount' => intval($request->total_payable * 100),
+            'redirectUrl' => route('user.response', ['id' => $tempOrder->id]),
+            'redirectMode' => 'GET',
+            'callbackUrl' => route('user.response', ['id' => $tempOrder->id]),
+            'mobileNumber' => $user->phone ?? '9999999999',
+            'paymentInstrument' => [
+                'type' => 'PAY_PAGE',
+            ],
+        ];
+
+        // Encode request
+        $encode = base64_encode(json_encode($data));
+
+        // Salt key and index from PhonePe sandbox
+        $saltKey   = '96434309-7796-489d-8924-ab56988a6076';
+        $saltIndex = 1;
+
+        // Create string to hash
+        $string = $encode . '/pg/v1/pay' . $saltKey;
+        $sha256 = hash('sha256', $string);
+
+        // Final header
+        $finalXHeader = $sha256 . '###' . $saltIndex;
+
+        // Sandbox URL
+        $url = "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay";
+
+        // Send request using Laravel HTTP client
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'X-VERIFY'     => $finalXHeader,
+        ])->post($url, [
+            'request' => $encode,
+        ]);
+
+        $rData = $response->json();
+
+        return response()->json([
+            'redirect_url' => $rData['data']['instrumentResponse']['redirectInfo']['url'],
+        ]);
+    }
+
 }
