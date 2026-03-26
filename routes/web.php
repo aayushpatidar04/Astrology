@@ -10,6 +10,7 @@ use App\Http\Controllers\WebRTCController;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -91,6 +92,10 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/astrologers/{id}/busy', [ProfileController::class, 'setBusy'])->name('astrologers.set-busy');
 });
+
+// routes/web.php
+Broadcast::routes(['middleware' => ['auth']]);
+
 
 
 require __DIR__ . '/auth.php';

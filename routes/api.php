@@ -5,7 +5,10 @@ use App\Http\Controllers\Api\Controller as ApiController;
 use App\Http\Controllers\Api\MainController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
+
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 Route::post('sendOtp', [AuthController::class, 'sendOtp']);
 Route::post('verifyOtp', [AuthController::class, 'verifyOtp']);
