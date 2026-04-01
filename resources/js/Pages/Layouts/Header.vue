@@ -194,6 +194,9 @@ onBeforeUnmount(() => {
                 <li v-if="user && user.roles[0].name === 'User'">
                     <Link href="/user/chat-sessions">Chat Sessions</Link>
                 </li>
+                <li v-if="user && user.roles[0].name === 'User'">
+                    <Link href="/user/call-history">Call History</Link>
+                </li>
             </ul>
 
             <!-- Action Buttons -->
@@ -203,11 +206,11 @@ onBeforeUnmount(() => {
                         class="flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 mb-2 md:mb-0">
                         <Icon icon="mdi:wechat" width="20" height="20" class="mr-1" /> Chat With Astrologer
                     </Link>
-                    <button
+                    <Link :href="route('user.talk-to-astrologers')"
                         class="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
                         <Icon icon="mdi:phone-in-talk-outline" width="20" height="20" class="mr-1" /> Talk To
                         Astrologer
-                    </button>
+                    </Link>
                 </div>
             </div>
             <!-- Auth / Balance -->

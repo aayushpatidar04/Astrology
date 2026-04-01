@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Astrologer;
 use App\Models\Chat;
+use App\Models\RechargePackage;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -164,6 +165,31 @@ class UserController extends Controller
             'message' => 'Messages fetched successfully!',
             'chat_id' => $chat->id,
             'messages' => $messagesData,
+        ]);
+    }
+
+    public function recharge(){
+        $user = auth()->user()->load('wallet');
+
+        $firstTimeOffers = collect();
+        $regularOffers   = collect();
+        $specialOffers   = collect();
+
+        if ($user) {
+            if (!$user->orders()->exists()) {
+                $firstTimeOffers = RechargePackage::where('type', 'first_time')->get();
+                $specialOffers   = RechargePackage::where('type', 'special')->get();
+            } else {
+                $regularOffers   = RechargePackage::where('type', 'regular')->get();
+                $specialOffers   = RechargePackage::where('type', 'special')->get();
+            }
+        }
+
+        return response()->json([
+            'firstTimeOffers' => $firstTimeOffers,
+            'regularOffers'   => $regularOffers,
+            'specialOffers'   => $specialOffers,
+            'walletBalance'   => $user->wallet->balance,
         ]);
     }
 

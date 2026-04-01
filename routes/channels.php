@@ -34,5 +34,20 @@ Broadcast::channel('astrologer.{userId}', function ($user, $userId) {
 
 
 Broadcast::channel('call.{roomId}', function ($user, $roomId) {
-    return $user !== null;
+    // return $user !== null;
+    $chat = Chat::where('id', $roomId)
+        ->whereHas('participants', function ($q) use ($user) {
+            $q->where('user_id', $user->id);
+        })
+        ->first();
+
+    if ($chat) {
+        return [
+            'id'   => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+        ];
+    }
+
+    return false;
 });

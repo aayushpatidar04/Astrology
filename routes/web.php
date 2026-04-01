@@ -63,6 +63,8 @@ Route::middleware(['auth', 'verified', 'role:Astrologer'])->group(function () {
     Route::patch('/astrologer/profile', [AstrologerController::class, 'update'])->name('astrologer.profile.update');
     Route::post('/astrologer/astrologer', [AstrologerController::class, 'updateAstrologer'])->name('astrologer.astrologer.update');
     Route::delete('/astrologer/profile', [AstrologerController::class, 'destroy'])->name('astrologer.profile.destroy');
+
+    Route::get('/astrologer/call/{id}', [AstrologerController::class, 'showCall'])->name('astrologer.call.show');
 });
 
 Route::middleware(['auth', 'verified', 'role:User'])->group(function () {
@@ -74,6 +76,12 @@ Route::middleware(['auth', 'verified', 'role:User'])->group(function () {
     Route::get('/user/chat-sessions', [UserController::class, 'chatSessions'])->name('user.chat.sessions');
     Route::get('/user/recharge', [UserController::class, 'recharge'])->name('user.recharge');
     Route::post('/user/phonepe', [UserController::class, 'phonePe'])->name('user.phonePe');
+
+    Route::get('/user/talk-to-astrologers', [UserController::class, 'talkToAstrologers'])->name('user.talk-to-astrologers');
+    Route::get('/user/call/{id}', [UserController::class, 'showCall'])->name('user.call.show');
+    Route::get('/user/call-history', [UserController::class, 'callHistory'])->name('user.call.history');
+    Route::get('/user/transactions', [UserController::class, 'transactions'])->name('user.transactions');
+
 });
 Route::post('user/response/{id}', [MainController::class, 'phonePeResponse'])->name('user.response');
 

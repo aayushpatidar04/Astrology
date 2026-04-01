@@ -37,7 +37,7 @@ class CallSignal implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('call.' . $this->roomId),
+            new PresenceChannel('call.' . $this->roomId),
         ];
     }
 }

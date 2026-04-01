@@ -18,6 +18,8 @@ const mobileMenuOpen = ref(false)
                     <Link href="/" class="text-gray-600 hover:text-gray-900">Home</Link>
                     <Link href="/user/chat-with-astrologers" class="text-gray-600 hover:text-gray-900">Chat</Link>
                     <Link href="/user/chat-sessions" class="text-gray-600 hover:text-gray-900">Chat Sessions</Link>
+                    <Link href="/user/call-history" class="text-gray-600 hover:text-gray-900">Call History</Link>
+                    <Link href="/user/transactions" class="text-gray-600 hover:text-gray-900">Transactions</Link>
                     <Link href="/profile" class="text-gray-600 hover:text-gray-900">Profile</Link>
                     <Link href="/logout" method="post" as="button" class="text-red-500 hover:text-red-700">Logout</Link>
                 </nav>
@@ -39,8 +41,9 @@ const mobileMenuOpen = ref(false)
                 <nav class="px-4 py-4 space-y-2">
                     <Link href="/" class="block text-gray-600 hover:text-gray-900">Home</Link>
                     <Link href="/user/chat-with-astrologers" class="block text-gray-600 hover:text-gray-900">Chat</Link>
-                    <Link href="/user/chat-sessions" class="block text-gray-600 hover:text-gray-900">Chat Sessions
-                    </Link>
+                    <Link href="/user/chat-sessions" class="block text-gray-600 hover:text-gray-900">Chat Sessions</Link>
+                    <Link href="/user/call-history" class="block text-gray-600 hover:text-gray-900">Call History</Link>
+                    <Link href="/user/transactions" class="block text-gray-600 hover:text-gray-900">Transactions</Link>
                     <Link href="/profile" class="block text-gray-600 hover:text-gray-900">Profile</Link>
                     <Link href="/logout" method="post" as="button" class="block text-red-500 hover:text-red-700">Logout
                     </Link>

@@ -40,6 +40,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/chats', [UserController::class, 'chats']);
         Route::get('/chats/{chatId}/messages', [UserController::class, 'messages']);
 
+        Route::get('/recharge', [UserController::class, 'recharge']);
+
     });
 
 });

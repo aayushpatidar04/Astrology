@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Events\MessageSent;
 use App\Models\Astrologer;
+use App\Models\CallHistory;
 use App\Models\Chat;
 use App\Models\ChatMessage;
 use App\Models\ChatSession;
+use App\Models\Order;
 use App\Models\RechargePackage;
 use App\Models\TempOrder;
 use App\Models\User;
@@ -68,7 +70,6 @@ class UserController extends Controller
         return redirect()->route('user.chat.show', $chat->id);
     }
 
-
     public function showChat($id)
     {
         $chat = Chat::with(['participants.user.astrologer', 'messages.user'])
@@ -129,7 +130,6 @@ class UserController extends Controller
 
         return response()->json(['status' => 'pending']);
     }
-
 
     public function storeMessage(Request $request, $id)
     {
@@ -234,8 +234,8 @@ class UserController extends Controller
             'bonus_amount'   => $request->bonus_amount ?? 0,
             'payable_amount'   => $request->total_payable ?? 0,
             'status'         => 'pending',
-            'payment_gateway'=> 'phonepe',
-            'transaction_ref'=> uniqid('txn_'),
+            'payment_gateway' => 'phonepe',
+            'transaction_ref' => uniqid('txn_'),
         ]);
         $data = [
             'merchantId' => 'PGTESTPAYUAT86',
@@ -283,4 +283,57 @@ class UserController extends Controller
         ]);
     }
 
+    public function talkToAstrologers()
+    {
+        $astrologers = Astrologer::with('user')->where('online', 1)->paginate(20);
+        return Inertia::render('Astrologers/Index2', [
+            'user' => Auth::user()?->load(['details', 'wallet']),
+            'astrologers' => $astrologers,
+        ]);
+    }
+
+    public function showCall($id)
+    {
+        $user = auth()->user()->load('wallet');
+        $astrologer = Astrologer::with('user')->findOrFail($id);
+
+        $chat = Chat::whereHas('participants', function ($q) use ($user) {
+            $q->where('user_id', $user->id);
+        })
+            ->whereHas('participants', function ($q) use ($astrologer) {
+                $q->where('user_id', $astrologer->user->id);
+            })
+            ->first();
+
+        $ratePerMinute = $astrologer->charged_call_price;
+        $minRequiredBalance = $ratePerMinute * 4; // 4 minutes minimum
+
+        if ($user->wallet->balance < $minRequiredBalance) {
+            // Redirect to recharge page or show a message
+            return redirect()->route('user.chat-with-astrologers')
+                ->with('error', 'You need at least 4 minutes balance to start a call.');
+        }
+        $history = CallHistory::where('user_id', $user->id)->where('astrologer_id', $astrologer->user_id)->get();
+        return Inertia::render('User/CallWindow', [
+            'auth'     => ['user' => $user],
+            'chat' => $chat,
+            'history'     => $history,
+            'astrologer' => $astrologer,
+        ]);
+    }
+
+    public function callHistory()
+    {
+        $history = CallHistory::with(['user', 'astrologer'])->where('user_id', auth()->id())->latest()->get();
+        return Inertia::render('User/CallHistory', [
+            'history' => $history,
+        ]);
+    }
+
+    public function transactions(){
+        $transactions = Order::where('user_id', Auth::id())->latest()->get();
+        return Inertia::render('User/Transactions', [
+            'transactions' => $transactions
+        ]);
+    }
 }

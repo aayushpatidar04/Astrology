@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Events\AstrologerStatusChanged;
 use App\Events\MessageSent;
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\CallHistory;
 use App\Models\Chat;
 use App\Models\ChatMessage;
+use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -238,5 +240,27 @@ class AstrologerController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    public function showCall($id)
+    {
+        $user = User::findOrFail($id);
+        $astrologer = auth()->user()->load('astrologer');
+
+        $chat = Chat::whereHas('participants', function ($q) use ($user) {
+            $q->where('user_id', $user->id);
+        })
+            ->whereHas('participants', function ($q) use ($astrologer) {
+                $q->where('user_id', $astrologer->id);
+            })
+            ->first();
+
+        $history = CallHistory::where('user_id', $user->id)->where('astrologer_id', $astrologer->id)->get();
+        return Inertia::render('Dashboard/Astrologer/CallWindow', [
+            'user' => $user,
+            'chat' => $chat,
+            'history'     => $history,
+            'astrologer' => $astrologer,
+        ]);
     }
 }

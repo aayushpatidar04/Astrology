@@ -1,12 +1,9 @@
 <script setup>
 import UserLayout from '@/Layouts/UserLayout.vue'
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import { VueGoodTable } from "vue-good-table-next";
 import "vue-good-table-next/dist/vue-good-table-next.css";
 import dayjs from 'dayjs'
-import echo from '@/echo'
-import axios from 'axios'
 
 const props = defineProps({
     sessions: Object,

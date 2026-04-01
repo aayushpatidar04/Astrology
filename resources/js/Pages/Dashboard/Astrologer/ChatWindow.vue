@@ -35,25 +35,6 @@ const sendMessage = async () => {
   }
 }
 
-const showIncomingCall = ref(false)
-const showCallScreen = ref(false)
-const callStatus = ref('')
-const muted = ref(false)
-const remoteAudio = ref(null)
-
-let pc = null
-let localStream = null
-let offerData = null
-
-function sendSignal(type, data) {
-
-  axios.post('/call/signal', {
-    roomId: props.chat.id,
-    type,
-    data
-  })
-}
-
 async function endChat(elapsedSeconds, reason) {
   try {
     await axios.post(route('user.chat.end', props.chat.id), {
@@ -114,119 +95,11 @@ onMounted(async () => {
     .listen('TypingEvent', (e) => {
       typingUser.value = e.typing ? e.userId : null
     })
-
-  echo.private(`call.${props.chat.id}`)
-    .listen('CallSignal', async (e) => {
-      if (e.type === 'call_started') {
-        showIncomingCall.value = true
-        callStatus.value = 'Incoming call...'
-      } else if (e.type === 'offer') {
-        offerData = e.data
-      } else if (e.type === 'candidate') {
-        if (pc && pc.remoteDescription) {
-          console.log('Adding remote candidate:', e.data);
-          await pc.addIceCandidate(new RTCIceCandidate(e.data))
-        }
-      } else if (e.type === 'call_ended') {
-        endCall(false)
-      }
-    })
 })
 
 onUnmounted(() => {
   echo.leave(`chat.${props.chat.id}`)
 })
-
-const acceptCall = async () => {
-  if (!offerData) {
-    return
-  }
-  showIncomingCall.value = false
-  showCallScreen.value = true
-  callStatus.value = 'Connecting...'
-
-  localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-
-  pc = new RTCPeerConnection({
-    iceServers: [
-      {
-        urls: [
-          "stun:52.66.24.208:3478",
-          "turn:52.66.24.208:3478?transport=udp",
-          "turn:52.66.24.208:3478?transport=tcp",
-          "turn:52.66.24.208:443?transport=tcp",
-        ],
-        username: 'myastrosathi',
-        credential: 'myastrosathi'
-      }
-    ]
-  })
-
-
-  localStream.getTracks().forEach(track => {
-    pc.addTrack(track, localStream)
-  })
-
-
-  pc.ontrack = event => {
-    remoteAudio.value.srcObject = event.streams[0];
-    remoteAudio.value.play().catch(err => console.error('Play failed:', err));
-  }
-
-  pc.onicecandidate = event => {
-    if (event.candidate) {
-      console.log('Candidate type:', event.candidate.type, event.candidate);
-      sendSignal('candidate', event.candidate.toJSON())
-    }
-  }
-
-
-
-  if (!offerData.sdp.endsWith('\r\n')) {
-    offerData.sdp += '\r\n';
-  }
-
-  await pc.setRemoteDescription(offerData)
-
-
-  const answer = await pc.createAnswer()
-
-  await pc.setLocalDescription(answer)
-
-  sendSignal('answer', { type: answer.type, sdp: answer.sdp })
-
-  sendSignal('call_joined', { joined: true })
-  callStatus.value = 'In call with user'
-}
-
-const toggleMute = () => {
-  muted.value = !muted.value
-  localStream.getAudioTracks()[0].enabled = !muted.value
-}
-
-const endCall = (send = true) => {
-  if (pc) {
-    pc.close()
-    pc = null
-  }
-  if (localStream) {
-    localStream.getTracks().forEach(track => track.stop())
-    localStream = null
-  }
-  if (remoteAudio.value) {
-    remoteAudio.value.srcObject = null
-  }
-  showCallScreen.value = false
-  showIncomingCall.value = false
-  callStatus.value = 'Call ended'
-  muted.value = false
-
-  // Only send signal if this side initiated the end
-  if (send) {
-    sendSignal('call_ended', { ended: true })
-    send = false
-  }
-}
 
 
 const scrollToBottom = () => {
@@ -310,37 +183,6 @@ const autoResize = (event) => {
         :class="!canSend ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600'"
         class="ml-2 px-6 py-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition">Send</button>
     </form>
-  </div>
-
-  <!-- Incoming Call Popup -->
-  <div v-if="showIncomingCall" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-lg p-6 w-96 text-center">
-      <h3 class="text-lg font-semibold mb-4">Incoming Call</h3>
-      <p class="mb-4">{{ callStatus }}</p>
-      <button @click="acceptCall" class="px-6 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 mr-4">
-        Accept Call
-      </button>
-      <button @click="endCall(true)" class="px-4 py-2 rounded-full bg-red-500 text-white">
-        End Call
-      </button>
-    </div>
-  </div>
-
-  <!-- Call Screen -->
-  <div v-if="showCallScreen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-lg p-6 w-96 text-center">
-      <h3 class="text-lg font-semibold mb-4">Audio Call</h3>
-      <p class="mb-2">{{ callStatus }}</p>
-      <audio ref="remoteAudio" autoplay></audio>
-      <div class="mt-4 flex justify-center space-x-4">
-        <button @click="toggleMute" class="px-4 py-2 rounded bg-gray-200">
-          {{ muted ? 'Unmute' : 'Mute' }}
-        </button>
-        <button @click="endCall(true)" class="px-4 py-2 rounded bg-red-500 text-white">
-          End Call
-        </button>
-      </div>
-    </div>
   </div>
 
 </template>

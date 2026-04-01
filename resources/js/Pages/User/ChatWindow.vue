@@ -205,139 +205,6 @@ const startChat = async () => {
     }
 }
 
-const showCallScreen = ref(false)
-const callStatus = ref('Waiting for astrologer...')
-const muted = ref(false)
-const remoteAudio = ref(null)
-let pc = null
-let localStream = null
-
-const allowCall = ref(true)
-
-function sendSignal(type, data) {
-    axios.post('/call/signal', {
-        roomId: props.chat.id,
-        type,
-        data
-    })
-}
-
-const startCall = async () => {
-    try {
-        await axios.post('/call/start', { roomId: props.chat.id })
-
-        // Setup WebRTC
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-
-        pc = new RTCPeerConnection({
-            iceServers: [
-                {
-                    urls: [
-                        "stun:52.66.24.208:3478",
-                        "turn:52.66.24.208:3478?transport=udp",
-                        "turn:52.66.24.208:3478?transport=tcp",
-                        "turn:52.66.24.208:443?transport=tcp",
-                    ],
-                    username: 'myastrosathi',
-                    credential: 'myastrosathi'
-                }
-            ]
-        })
-
-        localStream.getTracks().forEach(track => {
-            pc.addTrack(track, localStream)
-        })
-
-
-        pc.ontrack = event => {
-            remoteAudio.value.srcObject = event.streams[0];
-            remoteAudio.value.play().catch(err => console.error('Play failed:', err));
-        }
-
-        pc.onicecandidate = event => {
-            if (event.candidate) {
-                console.log('Local candidate:', event.candidate.candidate);
-                console.log('Candidate type:', event.candidate.type, event.candidate);
-                axios.post('/call/signal', {
-                    roomId: props.chat.id,
-                    type: 'candidate',
-                    data: event.candidate.toJSON()
-                })
-            } else {
-                console.log('All candidates sent');
-            }
-        }
-
-        pc.oniceconnectionstatechange = () => {
-            console.log('Callee ICE state:', pc.iceConnectionState);
-        };
-
-
-        const offer = await pc.createOffer()
-        await pc.setLocalDescription(offer)
-
-        axios.post('/call/signal', {
-            roomId: props.chat.id,
-            type: 'offer',
-            data: { type: offer.type, sdp: offer.sdp }
-        })
-
-
-        showCallScreen.value = true
-    } catch (error) {
-        console.error('[USER:startCall] Failed to start call:', error)
-    }
-}
-
-const toggleMute = () => {
-    muted.value = !muted.value
-    localStream.getAudioTracks()[0].enabled = !muted.value
-}
-
-const endCall = (send = false) => {
-    if (pc) {
-        pc.close()
-        pc = null
-    }
-    if (localStream) {
-        localStream.getTracks().forEach(track => track.stop())
-        localStream = null
-    }
-    if (remoteAudio.value) {
-        remoteAudio.value.srcObject = null
-    }
-    showCallScreen.value = false
-    callStatus.value = 'Call ended'
-    muted.value = false
-
-    // Only send signal if this side initiated the end
-    if (send) {
-        sendSignal('call_ended', { ended: true })
-        send = false
-    }
-}
-
-
-// Listen for astrologer joining
-echo.private(`call.${props.chat.id}`)
-    .listen('CallSignal', async (e) => {
-        if (e.type === 'call_joined') {
-            callStatus.value = 'Astrologer joined the call'
-        } else if (e.type === 'answer') {
-            if (!e.data.sdp.endsWith('\r\n')) {
-                e.data.sdp += '\r\n';
-            }
-            await pc.setRemoteDescription(e.data)
-        } else if (e.type === 'candidate') {
-            if (pc && pc.remoteDescription) {
-                await pc.addIceCandidate(new RTCIceCandidate(e.data))
-            }
-        } else if (e.type === 'call_ended') {
-            endCall(false)
-        }
-    })
-
-
 </script>
 
 <template>
@@ -405,33 +272,12 @@ echo.private(`call.${props.chat.id}`)
                         class="ml-2 px-6 py-2 bg-blue-500 text-white rounded-full transition hover:bg-blue-600">
                         Start Chat
                     </button>
-                    <!-- New Call Button -->
-                    <button type="button" @click="startCall" v-if="allowCall"
-                        class="ml-2 px-6 py-2 bg-blue-500 text-white rounded-full transition hover:bg-blue-600">
-                        Call
-                    </button>
                 </form>
 
                 <div v-if="!astrologerOnline" class="text-sm text-red-500 my-2 px-5">
                     Astrologer is offline. You cannot send a message.
                 </div>
 
-            </div>
-        </div>
-        <!-- Call Screen Popup -->
-        <div v-if="showCallScreen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div class="bg-white rounded-lg shadow-lg p-6 w-96 text-center">
-                <h3 class="text-lg font-semibold mb-4">Audio Call</h3>
-                <p class="mb-2">{{ callStatus }}</p>
-                <audio ref="remoteAudio" autoplay></audio>
-                <div class="mt-4 flex justify-center space-x-4">
-                    <button @click="toggleMute" class="px-4 py-2 rounded bg-gray-200">
-                        {{ muted ? 'Unmute' : 'Mute' }}
-                    </button>
-                    <button @click="endCall(true)" class="px-4 py-2 rounded bg-red-500 text-white">
-                        End Call
-                    </button>
-                </div>
             </div>
         </div>
 
