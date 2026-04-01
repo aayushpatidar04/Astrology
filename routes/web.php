@@ -81,6 +81,7 @@ Route::middleware(['auth', 'verified', 'role:User'])->group(function () {
     Route::get('/user/call/{id}', [UserController::class, 'showCall'])->name('user.call.show');
     Route::get('/user/call-history', [UserController::class, 'callHistory'])->name('user.call.history');
     Route::get('/user/transactions', [UserController::class, 'transactions'])->name('user.transactions');
+    Route::post('/call/start', [UserController::class, 'start'])->name('call');
 
 });
 Route::post('user/response/{id}', [MainController::class, 'phonePeResponse'])->name('user.response');
@@ -92,9 +93,10 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/chat/{chat}/typing', [ProfileController::class, 'typing'])->name('chat.typing');
 
-    Route::post('/call/start', [ProfileController::class, 'start'])->name('call');
     Route::post('/call/signal', [ProfileController::class, 'signal'])->name('signal');
     Route::post('/user/chats/{id}/end', [ProfileController::class, 'chatEnd'])->name('user.chat.end');
+    Route::post('/user/calls/{id}/end', [ProfileController::class, 'callEnd'])->name('user.call.end');
+    Route::post('/call/update-status', [ProfileController::class, 'updateCallStatus'])->name('call.update-status');
 
     Route::get('/beams-auth', [ProfileController::class, 'beamAuth'])->name('beam.auth');
 

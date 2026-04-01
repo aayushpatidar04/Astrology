@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\CallSignal;
 use App\Events\MessageSent;
 use App\Models\Astrologer;
 use App\Models\CallHistory;
@@ -98,37 +99,62 @@ class UserController extends Controller
         ]);
     }
 
-    public function start(Request $request, $chatId)
+    public function start(Request $request)
     {
-        $chat = Chat::findOrFail($chatId);
-        // Notify astrologer via Beams or broadcast
-        $beamsClient = new PushNotifications([
-            "instanceId" => config('app.VITE_PUSHER_BEAMS_INSTANCE_ID'),
-            "secretKey" => config('app.VITE_PUSHER_BEAMS_SECRET_KEY'),
-        ]);
+        $roomId = (int)$request->roomId;
 
-        $recipientId = $chat->participants()
-            ->where('user_id', '!=', Auth::id())
-            ->value('user_id');
+        // Broadcast signal for real-time channel updates
+        broadcast(new CallSignal(
+            $roomId,
+            'call_started',
+            null,
+            Auth::id()
+        ))->toOthers();
 
-        if ($recipientId) {
-            $beamsClient->publishToUsers(
-                [(string) $recipientId],
-                [
-                    "web" => [
-                        "notification" => [
-                            "title" => "New Chat started!",
-                            "body" => "User waiting for you to join, please join!",
-                            "icon" => "https://myastrosathi.intouchsoftware.co.in/images/favicon.png",
-                            "deep_link" => route('astrologer.chats', ['id' => $chat->id]),
-                            "data" => [],
-                        ]
+        // Create call history record
+        $chat = Chat::find($roomId);
+        if ($chat) {
+            $recipientId = $chat->participants()
+                ->where('user_id', '!=', Auth::id())
+                ->value('user_id');
+
+            if ($recipientId) {
+                $callHistory = CallHistory::create([
+                    'user_id' => Auth::id(),
+                    'astrologer_id' => $recipientId,
+                    'call_type' => 'voice',
+                    'status' => 'ringing',
+                    'started_at' => now(),
+                ]);
+
+                // Send Beams push to astrologer from this chat room
+                $beamsClient = new PushNotifications([
+                    'instanceId' => config('app.VITE_PUSHER_BEAMS_INSTANCE_ID'),
+                    'secretKey' => config('app.VITE_PUSHER_BEAMS_SECRET_KEY'),
+                ]);
+
+                $beamsClient->publishToUsers(
+                    [(string) $recipientId],
+                    [
+                        'web' => [
+                            'notification' => [
+                                'title' => 'Incoming Call',
+                                'body' => 'A user has started a call. Tap to join.',
+                                'icon' => asset(Auth::user()?->details?->profile_image ?: '/images/favicon.png'),
+                                'deep_link' => route('astrologer.call.show', ['id' => Auth::id()]),
+                                'data' => [
+                                    'type' => 'incoming_call',
+                                    'chatId' => $chat->id,
+                                    'callerId' => Auth::id(),
+                                ],
+                            ],
+                        ],
                     ]
-                ]
-            );
+                );
+            }
         }
 
-        return response()->json(['status' => 'pending']);
+        return response()->json(['status' => 'ok', 'call_history' => $callHistory ?? null]);
     }
 
     public function storeMessage(Request $request, $id)
@@ -330,7 +356,8 @@ class UserController extends Controller
         ]);
     }
 
-    public function transactions(){
+    public function transactions()
+    {
         $transactions = Order::where('user_id', Auth::id())->latest()->get();
         return Inertia::render('User/Transactions', [
             'transactions' => $transactions

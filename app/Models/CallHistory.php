@@ -20,6 +20,10 @@ class CallHistory extends Model
         'notes',
     ];
 
+    protected $casts = [
+        'cost' => 'decimal:2',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');

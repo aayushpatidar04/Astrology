@@ -6,6 +6,7 @@ use App\Events\AstrologerStatusUpdated;
 use App\Events\CallSignal;
 use App\Events\TypingEvent;
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\CallHistory;
 use App\Models\Chat;
 use App\Models\ChatSession;
 use App\Models\User;
@@ -84,18 +85,6 @@ class ProfileController extends Controller
         return response()->json(['success' => true]);
     }
 
-    public function start(Request $request)
-    {
-        broadcast(new CallSignal(
-            (int)$request->roomId,
-            'call_started',
-            null,
-            auth()->id()
-        ))->toOthers();
-
-        return response()->json(['status' => 'ok']);
-    }
-
     public function signal(Request $request)
     {
         // Carry actual SDP or ICE candidate
@@ -103,7 +92,7 @@ class ProfileController extends Controller
             (int)$request->roomId,
             $request->type,
             $request->data,
-            auth()->id()
+            Auth::id()
         ))->toOthers();
 
         return response()->json(['status' => 'ok']);
@@ -115,9 +104,14 @@ class ProfileController extends Controller
 
         // Find the paying participant (role: User)
         $userParticipant = $chat->participants
-            ->first(fn($p) => $p->user->hasRole('User'));
+            ->filter(function ($p) {
+                return $p->user->hasRole('User');
+            })->first();
+
         $astrologerParticipant = $chat->participants
-            ->first(fn($p) => $p->user->hasRole('Astrologer'));
+            ->filter(function ($p) {
+                return $p->user->hasRole('Astrologer');
+            })->first();
 
         if (! $userParticipant || ! $astrologerParticipant) {
             return response()->json(['error' => 'Participants missing'], 404);
@@ -167,6 +161,117 @@ class ProfileController extends Controller
         return response()->json([
             'success'   => true,
             'deduction' => $deduction,
+        ]);
+    }
+
+    public function callEnd(Request $request, $chatId)
+    {
+        $chat = Chat::with('participants.user.roles')->findOrFail($chatId);
+
+        // Find the paying participant (role: User)
+        $userParticipant = $chat->participants
+            ->filter(function ($p) {
+                return $p->user->hasRole('User');
+            })->first();
+
+        $astrologerParticipant = $chat->participants
+            ->filter(function ($p) {
+                return $p->user->hasRole('Astrologer');
+            })->first();
+
+        if (! $userParticipant || ! $astrologerParticipant) {
+            return response()->json(['error' => 'Participants missing'], 404);
+        }
+
+        $user = $userParticipant->user->load('wallet');
+        $astrologer = $astrologerParticipant->user->astrologer;
+
+        $deduction = 0;
+        $elapsedSeconds = 0;
+
+        // Case 1: Deduction provided directly
+        if ($request->filled('deduction')) {
+            $deduction = (float) $request->input('deduction', 0);
+            $ratePerMinute = $astrologer?->charged_call_price ?? 0;
+            if ($ratePerMinute > 0) {
+                $elapsedSeconds = (int) round(($deduction / $ratePerMinute) * 60);
+            }
+        }
+        // Case 2: Elapsed seconds provided (fallback, though we expect deduction)
+        elseif ($request->filled('elapsed_seconds')) {
+            $elapsedSeconds = (int) $request->input('elapsed_seconds', 0);
+            $ratePerMinute = $astrologer?->charged_call_price ?? 0;
+            $deduction = ($elapsedSeconds / 60) * $ratePerMinute;
+        }
+
+        // Deduct from wallet if positive
+        if ($deduction > 0) {
+            $currentBalance = $user->wallet->balance;
+            $finalDeduction = min($deduction, $currentBalance); // cap deduction at current balance
+
+            if ($finalDeduction > 0) {
+                $user->wallet->decrement('balance', $finalDeduction);
+            }
+        }
+
+        // Find the latest call history record
+        $callHistory = CallHistory::where('user_id', $user->id)
+            ->where('astrologer_id', $astrologerParticipant->user->id)
+            ->whereNull('ended_at')
+            ->latest()
+            ->first();
+
+        if ($callHistory) {
+            $callHistory->update([
+                'ended_at' => now(),
+                'duration' => $elapsedSeconds,
+                'cost' => $deduction,
+                'status' => $request->status,
+                'notes' => $request->input('reason'),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'deduction' => $deduction,
+        ]);
+    }
+
+    public function updateCallStatus(Request $request)
+    {
+        $chat = Chat::with('participants.user.roles')->findOrFail($request->chatId);
+
+        $userParticipant = $chat->participants
+            ->filter(function ($p) {
+                return $p->user->hasRole('User');
+            })->first();
+
+        $astrologerParticipant = $chat->participants
+            ->filter(function ($p) {
+                return $p->user->hasRole('Astrologer');
+            })->first();
+
+        $callHistory = CallHistory::where('user_id', $userParticipant->user->id)
+            ->where('astrologer_id', $astrologerParticipant->user->id)
+            ->latest()
+            ->first();
+
+        if ($callHistory) {
+            $updateData = ['status' => $request->status];
+
+            if (in_array($request->status, ['ended', 'failed'])) {
+                $updateData['ended_at'] = now();
+                $updateData['duration'] = 0;
+                $updateData['cost'] = 0;
+            }
+
+            $callHistory->update($updateData);
+            $callHistory->refresh();
+        }
+
+        return response()->json([
+            'success' => true,
+            'call_history' => $callHistory ? $callHistory->toArray() : null,
         ]);
     }
 

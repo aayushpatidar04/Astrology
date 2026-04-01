@@ -52,27 +52,10 @@ function startCountdown() {
         } else {
             callEndReason.value = 'balance'
             clearInterval(countdown.value)
-            endCall()
+            endCall(true)
         }
     }, 1000)
 }
-
-// // End chat when time runs out or either leaves
-// async function endCall() {
-//     try {
-//         const usedSeconds = totalSeconds - remainingSeconds.value
-//         const usedMinutes = usedSeconds / 60
-//         const deduction = usedMinutes * astrologerRate
-
-//         // await axios.post(route('user.chat.end', props.chat.id), {
-//         //     reason: callEndReason.value,   // 'user', 'astrologer', 'balance'
-//         //     deduction: deduction           // exact fractional deduction
-//         // })
-//     } catch (e) {
-//         console.error('Error ending chat:', e)
-//     }
-//     showEndModal.value = true
-// }
 
 onMounted(async () => {
     await nextTick()
@@ -87,16 +70,12 @@ onMounted(async () => {
         .here((users) => {
             currentMembers = users
             if (users.length === 2) {
-                startCountdown();
-                axios.post(`/astrologers/${astrologerId}/busy`, { busy: true })
                 joined.value = true;
             }
         })
         .joining((user) => {
             currentMembers.push(user);
             if (currentMembers.length === 2) {
-                startCountdown();
-                axios.post(`/astrologers/${astrologerId}/busy`, { busy: true })
                 joined.value = true;
             }
         })
@@ -106,11 +85,11 @@ onMounted(async () => {
                 callEndReason.value = 'user'
             } else {
                 callEndReason.value = 'astrologer'
-                axios.post(`/astrologers/${astrologerId}/busy`, { busy: false })
             }
             clearInterval(countdown.value);
             joined.value = false;
-            endCall();
+            endCall(user.id === props.auth.user.id);
+            axios.post(`/astrologers/${astrologerId}/busy`, { busy: false })
         });
 
 
@@ -141,8 +120,19 @@ const showCallScreen = ref(false)
 const callStatus = ref('ringing...')
 const muted = ref(false)
 const remoteAudio = ref(null)
+const localConnected = ref(false)
+const remoteConnected = ref(false)
+const timerStarted = ref(false)
+const pendingRemoteCandidates = ref([])
+const localTimestamp = ref(null)
+const remoteTimestamp = ref(null)
+const startTime = ref(null)
+const callStartedAt = ref(null)
 let pc = null
 let localStream = null
+let callTimeoutTimer = null
+
+const speakerOn = ref(true)
 
 function sendSignal(type, data) {
     axios.post('/call/signal', {
@@ -156,7 +146,9 @@ const callDuration = ref(0)
 let durationInterval = null
 
 const startDurationTimer = () => {
-    callDuration.value = 0
+    if (timerStarted.value) return
+    timerStarted.value = true
+    callDuration.value = Math.floor((Date.now() - startTime.value) / 1000)
     if (durationInterval) clearInterval(durationInterval)
     durationInterval = setInterval(() => {
         callDuration.value++
@@ -177,42 +169,64 @@ const formatDuration = (seconds) => {
 
 const startCall = async () => {
     try {
-        await axios.post('/call/start', { roomId: props.chat.id })
-
         let currentMembers = []
         // Listen for astrologer joining
         echo.join(`call.${props.chat.id}`)
-            .here((users) => {
+            .here(async (users) => {
                 currentMembers = users
                 if (users.length === 2) {
-                    callStatus.value = 'connected'
-                    startDurationTimer()
+                    callStatus.value = 'connecting...'
+                    const response = await axios.post('/call/start', { roomId: props.chat.id })
+                    if (response.data?.call_history) {
+                        liveMessages.value.push(response.data.call_history)
+                    }
                 }
             })
-            .joining((user) => {
+            .joining(async (user) => {
                 currentMembers.push(user)
                 if (currentMembers.length === 2) {
-                    callStatus.value = 'connected'
-                    startDurationTimer()
+                    callStatus.value = 'connecting...'
+                    const response = await axios.post('/call/start', { roomId: props.chat.id })
+                    if (response.data?.call_history) {
+                        liveMessages.value.push(response.data.call_history)
+                    }
                 }
             })
             .leaving((user) => {
                 currentMembers = currentMembers.filter(u => u.id !== user.id)
                 stopDurationTimer()
-                endCall(false)
             })
             .listen('CallSignal', async (e) => {
-                if (e.type === 'call_joined') {
-                    callStatus.value = 'connected'
-                    startDurationTimer()
-                } else if (e.type === 'answer') {
+                if (e.type === 'answer') {
                     if (!e.data.sdp.endsWith('\r\n')) {
                         e.data.sdp += '\r\n'
                     }
                     await pc.setRemoteDescription(e.data)
+                    // Drain queued candidates after remote description is available
+                    while (pendingRemoteCandidates.value.length > 0) {
+                        const remoteCandidate = pendingRemoteCandidates.value.shift()
+                        await pc.addIceCandidate(new RTCIceCandidate(remoteCandidate))
+                    }
                 } else if (e.type === 'candidate') {
                     if (pc && pc.remoteDescription) {
                         await pc.addIceCandidate(new RTCIceCandidate(e.data))
+                    } else {
+                        pendingRemoteCandidates.value.push(e.data)
+                    }
+                } else if (e.type === 'call_joined') {
+                    // Astrologer has joined and accepted, now send offer
+                    const offer = await pc.createOffer()
+                    await pc.setLocalDescription(offer)
+                    sendSignal('offer', { type: offer.type, sdp: offer.sdp })
+                    callStatus.value = 'connecting...'
+                } else if (e.type === 'ice_connected') {
+                    remoteConnected.value = true
+                    remoteTimestamp.value = e.data.timestamp
+                    if (localConnected.value) {
+                        startTime.value = Date.now()
+                        callStatus.value = 'connected'
+                        startDurationTimer()
+                        startCountdown()
                     }
                 } else if (e.type === 'call_ended') {
                     stopDurationTimer()
@@ -227,7 +241,16 @@ const startCall = async () => {
 
         pc = new RTCPeerConnection({
             iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
+                {
+                    urls: [
+                        "stun:52.66.24.208:3478",
+                        "turn:52.66.24.208:3478?transport=udp",
+                        "turn:52.66.24.208:3478?transport=tcp",
+                        "turn:52.66.24.208:443?transport=tcp",
+                    ],
+                    username: 'myastrosathi',
+                    credential: 'myastrosathi'
+                }
             ]
         })
 
@@ -243,32 +266,29 @@ const startCall = async () => {
 
         pc.onicecandidate = event => {
             if (event.candidate) {
-                axios.post('/call/signal', {
-                    roomId: props.chat.id,
-                    type: 'candidate',
-                    data: event.candidate.toJSON()
-                })
-            } else {
-                console.log('All candidates sent');
+                sendSignal('candidate', event.candidate.toJSON())
             }
         }
 
         pc.oniceconnectionstatechange = () => {
-            console.log('Callee ICE state:', pc.iceConnectionState);
+            if (pc.iceConnectionState === 'connected') {
+                localConnected.value = true
+                localTimestamp.value = Date.now()
+                sendSignal('ice_connected', { timestamp: localTimestamp.value })
+            }
         };
 
-
-        const offer = await pc.createOffer()
-        await pc.setLocalDescription(offer)
-
-        axios.post('/call/signal', {
-            roomId: props.chat.id,
-            type: 'offer',
-            data: { type: offer.type, sdp: offer.sdp }
-        })
-
-        callStatus.value = 'ringing...'
+        callStatus.value = 'waiting for astrologer...'
         showCallScreen.value = true
+        callStartedAt.value = Date.now()
+
+        // Set 60-second timeout for auto-disconnect if no response
+        callTimeoutTimer = setTimeout(() => {
+            if (callStatus.value !== 'connected') {
+                callEndReason.value = 'no_response'
+                endCall() //done
+            }
+        }, 60000)
     } catch (error) {
         console.error('[USER:startCall] Failed to start call:', error)
     }
@@ -279,7 +299,18 @@ const toggleMute = () => {
     localStream.getAudioTracks()[0].enabled = !muted.value
 }
 
-const endCall = (send = false) => {
+const toggleSpeaker = () => {
+    speakerOn.value = !speakerOn.value
+    // Note: Actual speaker toggle may require additional implementation
+}
+
+const endCall = async (send = false) => {
+    // Clear timeout timer if set
+    if (callTimeoutTimer) {
+        clearTimeout(callTimeoutTimer)
+        callTimeoutTimer = null
+    }
+
     // Close peer connection
     if (pc) {
         pc.close()
@@ -301,16 +332,51 @@ const endCall = (send = false) => {
     showCallScreen.value = false
     callStatus.value = 'Call ended'
     muted.value = false
+    localConnected.value = false
+    remoteConnected.value = false
+    timerStarted.value = false
+    pendingRemoteCandidates.value = []
+    localTimestamp.value = null
+    remoteTimestamp.value = null
+    callStartedAt.value = null
 
     // Stop any timers
     stopDurationTimer()
+    if (send) {
+        callEndReason.value = 'user'
+    }else{
+        callEndReason.value = 'astrologer'
+    }
+    // Record call end if started
+    if (callEndReason.value) {
+        let elapsedSeconds = 0
+        let status = 'ended'
+
+        if (startTime.value) {
+            elapsedSeconds = Math.floor((Date.now() - startTime.value) / 1000)
+            status = elapsedSeconds > 0 ? 'answered' : 'ended'
+        }
+        if(callEndReason.value === 'no_response'){
+            status = 'missed'
+        }
+        if(callEndReason.value === 'astrologer' && elapsedSeconds === 0){
+            status = 'rejected'
+        }
+
+        try {
+            await axios.post(route('user.call.end', props.chat.id), {
+                reason: callEndReason.value,
+                elapsed_seconds: elapsedSeconds,
+                status: status
+            })
+        } catch (e) {
+            console.error('Error ending call:', e)
+        }
+    }
 
     // If this side initiated the end
     if (send) {
-        // Broadcast to backend so other side’s .listen('CallSignal') can catch it
-        sendSignal('call_ended', { ended: true })
-
-        // Leave presence channel so other side sees membership drop immediately
+        sendSignal('call_ended', { ended: true, reason: callEndReason.value })
         echo.leave(`call.${props.chat.id}`)
     }
 }
@@ -354,15 +420,15 @@ const endCall = (send = false) => {
                                     <div>Type: <span class="font-medium">{{ msg.call_type }}</span></div>
                                     <div>Status:
                                         <span :class="{
-                                            'text-green-600': msg.status === 'ended',
-                                            'text-red-600': msg.status === 'failed' || msg.status === 'missed',
-                                            'text-yellow-600': msg.status === 'answered'
+                                            'text-green-600': msg.status === 'answered',
+                                            'text-red-600': msg.status === 'failed' || msg.status === 'missed' || msg.status === 'ended' || msg.status === 'rejected',
+                                            'text-yellow-600': msg.status === 'ringing'
                                         }">
                                             {{ msg.status }}
                                         </span>
                                     </div>
                                     <div v-if="msg.duration">Duration: {{ msg.duration }} sec</div>
-                                    <div v-if="msg.cost">Cost: ₹{{ msg.cost }}</div>
+                                    <div v-if="msg.cost != 0">Cost: ₹{{ msg.cost }}</div>
                                 </div>
                                 <span class="text-xs text-gray-500">
                                     {{ dayjs(msg.started_at).format('MMM D, h:mm A') }}
@@ -424,7 +490,7 @@ const endCall = (send = false) => {
                                         height="24" :class="speakerOn ? 'text-blue-600' : 'text-gray-700'" />
                                 </button>
 
-                                <!-- End Call -->
+                                <!-- End/Reject Call -->
                                 <button @click="endCall(true)"
                                     class="w-12 h-12 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600">
                                     <Icon icon="mdi-phone-hangup" width="24" height="24" class="text-white" />

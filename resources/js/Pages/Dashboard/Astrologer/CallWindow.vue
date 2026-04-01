@@ -24,10 +24,20 @@ const showCallScreen = ref(false)
 const callStatus = ref('')
 const muted = ref(false)
 const remoteAudio = ref(null)
+const callStartTime = ref(null)
+const localConnected = ref(false)
+const remoteConnected = ref(false)
+const timerStarted = ref(false)
+const pendingRemoteCandidates = ref([])
+const localTimestamp = ref(null)
+const remoteTimestamp = ref(null)
+const startTime = ref(null)
 
 let pc = null
 let localStream = null
 let offerData = null
+
+const speakerOn = ref(true)
 
 function sendSignal(type, data) {
 
@@ -38,17 +48,16 @@ function sendSignal(type, data) {
     })
 }
 
-// async function endChat(elapsedSeconds, reason) {
-//   try {
-//     await axios.post(route('user.chat.end', props.chat.id), {
-//       reason: reason,
-//       elapsed_seconds: elapsedSeconds
-//     })
-//   } catch (e) {
-//     console.error('Error ending chat:', e)
-//   }
-// }
+function upsertLiveMessage(callHistory) {
+    if (!callHistory) return
 
+    const existingIndex = liveMessages.value.findIndex(msg => msg.id === callHistory.id)
+    if (existingIndex >= 0) {
+        liveMessages.value[existingIndex] = callHistory
+    } else {
+        liveMessages.value.push(callHistory)
+    }
+}
 
 onMounted(async () => {
     await nextTick()
@@ -56,55 +65,67 @@ onMounted(async () => {
 
 
     let currentMembers = []
-    const callStartTime = ref(null)
     echo.join(`chat.${props.chat.id}`)
         .here((users) => {
             currentMembers = users
             if (users.length === 2) {
-                callStartTime.value = Date.now()
                 if (currentMembers.length === 2) {
-                    axios.post(`/astrologers/${props.astrologer?.id}/busy`, { busy: true })
+
                 }
             }
         })
         .joining((user) => {
             currentMembers.push(user)
             if (currentMembers.length === 2) {
-                axios.post(`/astrologers/${props.astrologer?.id}/busy`, { busy: true })
-            }
-            if (currentMembers.length === 2) {
-                callStartTime.value = Date.now()
+
             }
         })
         .leaving((user) => {
             currentMembers = currentMembers.filter(u => u.id !== user.id)
             axios.post(`/astrologers/${props.astrologer?.id}/busy`, { busy: false })
-            if (callStartTime.value) {
-                const elapsedSeconds = Math.floor((Date.now() - callStartTime.value) / 1000)
-                endCall(elapsedSeconds, 'user') // reason: user left
-            }
+            endCall(false)
         });
 
-    echo.join(`presence.call.${props.chat.id}`)
+    let currentMembers2 = []
+    echo.join(`call.${props.chat.id}`)
         .here((users) => {
-            currentMembers = users
-            if (currentMembers.length === 2) {
+            currentMembers2 = users
+            if (currentMembers2.length === 2) {
                 showIncomingCall.value = true
                 callStatus.value = 'Incoming call...'
             }
         })
         .joining((user) => {
-            currentMembers.push(user)
-            if (currentMembers.length === 2) {
+            currentMembers2.push(user)
+            if (currentMembers2.length === 2) {
                 showIncomingCall.value = true
                 callStatus.value = 'Incoming call...'
             }
         })
-        .leaving((user) => {
-            currentMembers = currentMembers.filter(u => u.id !== user.id)
-            if (currentMembers.length < 2) {
+        .leaving(async (user) => {
+            currentMembers2 = currentMembers2.filter(u => u.id !== user.id)
+            if (currentMembers2.length < 2) {
                 stopDurationTimer()
+
+                let elapsedSeconds = 0
+                let status = 'ended'
+                // Record call end
+
+                if (callStartTime.value) {
+                    elapsedSeconds = Math.floor((Date.now() - callStartTime.value) / 1000)
+                    status = elapsedSeconds > 0 ? 'answered' : 'ended'
+                }
+                try {
+                    await axios.post(route('user.call.end', props.chat.id), {
+                        reason: 'user',
+                        status: status,
+                        elapsed_seconds: elapsedSeconds
+                    })
+                } catch (e) {
+                    console.error('Error ending call:', e)
+                }
                 endCall(false)
+                axios.post(`/astrologers/${props.astrologer?.id}/busy`, { busy: false })
             }
         })
         .listen('CallSignal', async (e) => {
@@ -113,14 +134,63 @@ onMounted(async () => {
                 callStatus.value = 'Incoming call...'
             } else if (e.type === 'offer') {
                 offerData = e.data
+                if (!offerData.sdp.endsWith('\r\n')) {
+                    offerData.sdp += '\r\n';
+                }
+                await pc.setRemoteDescription(offerData)
+                // Drain any pending candidates queued while PC was not ready
+                while (pendingRemoteCandidates.value.length > 0) {
+                    const candidate = pendingRemoteCandidates.value.shift()
+                    await pc.addIceCandidate(new RTCIceCandidate(candidate))
+                }
+                const answer = await pc.createAnswer()
+                await pc.setLocalDescription(answer)
+                sendSignal('answer', { type: answer.type, sdp: answer.sdp })
             } else if (e.type === 'candidate') {
                 if (pc && pc.remoteDescription) {
-                    console.log('Adding remote candidate:', e.data)
                     await pc.addIceCandidate(new RTCIceCandidate(e.data))
+                } else {
+                    pendingRemoteCandidates.value.push(e.data)
+                }
+            } else if (e.type === 'ice_connected') {
+                remoteConnected.value = true
+                remoteTimestamp.value = e.data.timestamp
+                if (localConnected.value) {
+                    startTime.value = Date.now()
+                    callStartTime.value = startTime.value
+                    callStatus.value = 'connected'
+                    startDurationTimer()
+                    try {
+                        const response = await axios.post('/call/update-status', { chatId: props.chat.id, status: 'answered' })
+                        if (response.data?.call_history) {
+                            upsertLiveMessage(response.data.call_history)
+                        }
+                    } catch (err) {
+                        console.error('Error updating call status:', err)
+                    }
                 }
             } else if (e.type === 'call_ended') {
                 stopDurationTimer()
+                // Check if call was rejected/no response and update status
+                if (!pc || pc.connectionState !== 'connected') {
+                    try {
+                        if (e.data.ended) {
+
+                        } else {
+                            const response = await axios.post('/call/update-status', {
+                                chatId: props.chat.id,
+                                status: e.data.reason === 'no_response' ? 'missed' : 'failed'
+                            })
+                            if (response.data?.call_history) {
+                                upsertLiveMessage(response.data.call_history)
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error updating call status:', err)
+                    }
+                }
                 endCall(false)
+                axios.post(`/astrologers/${props.astrologer?.id}/busy`, { busy: false })
             }
         })
 
@@ -135,7 +205,9 @@ const callDuration = ref(0)
 let durationInterval = null
 
 const startDurationTimer = () => {
-    callDuration.value = 0
+    if (timerStarted.value) return
+    timerStarted.value = true
+    callDuration.value = Math.floor((Date.now() - startTime.value) / 1000)
     if (durationInterval) clearInterval(durationInterval)
     durationInterval = setInterval(() => {
         callDuration.value++
@@ -154,18 +226,24 @@ const formatDuration = (seconds) => {
 }
 
 const acceptCall = async () => {
-    if (!offerData) {
-        return
-    }
     showIncomingCall.value = false
     showCallScreen.value = true
-    callStatus.value = 'Connecting...'
+    callStatus.value = 'connecting...'
 
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
 
     pc = new RTCPeerConnection({
         iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
+            {
+                urls: [
+                    "stun:52.66.24.208:3478",
+                    "turn:52.66.24.208:3478?transport=udp",
+                    "turn:52.66.24.208:3478?transport=tcp",
+                    "turn:52.66.24.208:443?transport=tcp",
+                ],
+                username: 'myastrosathi',
+                credential: 'myastrosathi'
+            }
         ]
     })
 
@@ -187,31 +265,25 @@ const acceptCall = async () => {
         }
     }
 
-
-
-    if (!offerData.sdp.endsWith('\r\n')) {
-        offerData.sdp += '\r\n';
+    pc.oniceconnectionstatechange = async () => {
+        if (pc.iceConnectionState === 'connected') {
+            localConnected.value = true
+            localTimestamp.value = Date.now()
+            sendSignal('ice_connected', { timestamp: localTimestamp.value })
+        }
     }
 
-    await pc.setRemoteDescription(offerData)
-
-
-    const answer = await pc.createAnswer()
-
-    await pc.setLocalDescription(answer)
-
-    sendSignal('answer', { type: answer.type, sdp: answer.sdp })
-
     sendSignal('call_joined', { joined: true })
-    setTimeout(() => {
-        callStatus.value = 'connected'
-        startDurationTimer()
-    }, 3000)
 }
 
 const toggleMute = () => {
     muted.value = !muted.value
     localStream.getAudioTracks()[0].enabled = !muted.value
+}
+
+const toggleSpeaker = () => {
+    speakerOn.value = !speakerOn.value
+    // Note: Actual speaker toggle may require additional implementation
 }
 
 const endCall = (send = true) => {
@@ -230,8 +302,16 @@ const endCall = (send = true) => {
     showIncomingCall.value = false
     callStatus.value = 'Call ended'
     muted.value = false
+    localConnected.value = false
+    remoteConnected.value = false
+    timerStarted.value = false
+    pendingRemoteCandidates.value = []
+    localTimestamp.value = null
+    remoteTimestamp.value = null
+    startTime.value = null
 
-    // Only send signal if this side initiated the end
+    stopDurationTimer()
+
     if (send) {
         sendSignal('call_ended', { ended: true })
         send = false
@@ -277,15 +357,14 @@ watch(liveMessages, async () => {
                                 <div>Type: <span class="font-medium">{{ msg.call_type }}</span></div>
                                 <div>Status:
                                     <span :class="{
-                                        'text-green-600': msg.status === 'ended',
-                                        'text-red-600': msg.status === 'failed' || msg.status === 'missed',
-                                        'text-yellow-600': msg.status === 'answered'
+                                        'text-green-600': msg.status === 'answered',
+                                        'text-red-600': msg.status === 'failed' || msg.status === 'missed' || msg.status === 'ended' || msg.status === 'rejected',
+                                        'text-yellow-600': msg.status === 'ringing'
                                     }">
                                         {{ msg.status }}
                                     </span>
                                 </div>
                                 <div v-if="msg.duration">Duration: {{ msg.duration }} sec</div>
-                                <div v-if="msg.cost">Cost: ₹{{ msg.cost }}</div>
                             </div>
                             <span class="text-xs text-gray-500">
                                 {{ dayjs(msg.started_at).format('MMM D, h:mm A') }}
