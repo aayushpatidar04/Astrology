@@ -178,7 +178,7 @@ const autoResize = (event) => {
       <textarea v-model="newMessage" @input="autoResize($event); handleTyping()"
         @keydown.enter.shift.exact.prevent="newMessage += '\n'" @keydown.enter.exact.prevent="sendMessage()"
         class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-        placeholder="Type a message..." rows="1" ref="messageInput" />
+        placeholder="Type a message..." rows="1" ref="messageInput" :readonly="canSend" />
       <button type="submit" :disabled="!canSend"
         :class="!canSend ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600'"
         class="ml-2 px-6 py-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition">Send</button>
