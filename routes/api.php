@@ -41,6 +41,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/chats/{chatId}/messages', [UserController::class, 'messages']);
 
         Route::get('/recharge', [UserController::class, 'recharge']);
+        Route::get('/wallet', [UserController::class, 'wallet']);
+        Route::post('/end-chat/{chatId}', [UserController::class, 'endChat']);
 
     });
 

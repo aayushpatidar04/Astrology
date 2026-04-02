@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Astrologer;
 use App\Models\Chat;
+use App\Models\ChatSession;
 use App\Models\RechargePackage;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -47,7 +48,8 @@ class UserController extends Controller
         ]);
     }
 
-    public function startChat($astrologerId){
+    public function startChat($astrologerId)
+    {
         $user = auth()->user();
         $astrologer = User::findOrFail($astrologerId);
 
@@ -168,7 +170,8 @@ class UserController extends Controller
         ]);
     }
 
-    public function recharge(){
+    public function recharge()
+    {
         $user = auth()->user()->load('wallet');
 
         $firstTimeOffers = collect();
@@ -193,4 +196,82 @@ class UserController extends Controller
         ]);
     }
 
+    public function wallet()
+    {
+        $wallet = auth()->user()->wallet;
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Wallet fetched successfully!',
+            'wallet' => $wallet,
+        ]);
+    }
+
+    public function endChat(Request $request, $chatId)
+    {
+        try{
+            $request->validate([
+                'seconds' => 'required|integer|min:0',
+                'reason' => 'nullable|string|max:255',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ]);
+        }
+        $chat = Chat::with('participants.user.roles')->findOrFail($chatId);
+
+        // Find the paying participant (role: User)
+        $userParticipant = $chat->participants
+            ->filter(function ($p) {
+                return $p->user->hasRole('User');
+            })->first();
+
+        $astrologerParticipant = $chat->participants
+            ->filter(function ($p) {
+                return $p->user->hasRole('Astrologer');
+            })->first();
+
+        if (! $userParticipant || ! $astrologerParticipant) {
+            return response()->json(['error' => 'Participants missing'], 404);
+        }
+
+        $user = $userParticipant->user->load('wallet');
+        $astrologer = $astrologerParticipant->user->astrologer;
+
+        $deduction = 0;
+        $elapsedSeconds = 0;
+
+        if ($request->filled('seconds')) {
+            $elapsedSeconds = (int) $request->input('seconds', 0);
+            $ratePerMinute = $astrologer?->charged_text_price ?? 0;
+            $deduction = ($elapsedSeconds / 60) * $ratePerMinute;
+        }
+
+        if ($deduction > 0) {
+            $currentBalance = $user->wallet->balance;
+            $finalDeduction = min($deduction, $currentBalance); // cap deduction at current balance
+
+            if ($finalDeduction > 0) {
+                $user->wallet->decrement('balance', $finalDeduction);
+            }
+        }
+
+        ChatSession::create([
+            'chat_id'         => $chat->id,
+            'user_id'         => $user->id,
+            'astrologer_id'   => $astrologerParticipant->user->id,
+            'duration_seconds' => $elapsedSeconds,
+            'deduction'       => $deduction,
+            'ended_by'        => $request->input('reason'),
+            'ended_at'        => now(),
+        ]);
+
+        return response()->json([
+            'success'   => true,
+            'deduction' => $deduction,
+        ]);
+    }
 }
