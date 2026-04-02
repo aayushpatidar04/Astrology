@@ -209,6 +209,7 @@ class MainController extends Controller
         $input = $request->all();
 
         $saltKey   = '96434309-7796-489d-8924-ab56988a6076';
+        // $saltKey   = 'c59ab974-a03a-4764-bc75-52da393e5d7e';
         $saltIndex = 1;
 
         // Build the verification header
@@ -218,6 +219,7 @@ class MainController extends Controller
 
         // PhonePe sandbox status URL
         $url = "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/status/{$input['merchantId']}/{$input['transactionId']}";
+        // $url = "https://api.phonepe.com/apis/hermes/pg/v1/status/{$input['merchantId']}/{$input['transactionId']}";
 
         // Send request using Laravel Http client
         $response = Http::withHeaders([

@@ -219,8 +219,6 @@ class AstrologerController extends Controller
 
         return Redirect::route('astrologer.profile.edit');
     }
-
-
     /**
      * Delete the user's account.
      */
@@ -242,7 +240,7 @@ class AstrologerController extends Controller
         return Redirect::to('/');
     }
 
-    public function showCall($id)
+    public function showCall($id = null)
     {
         $user = User::findOrFail($id);
         $astrologer = auth()->user()->load('astrologer');
@@ -261,6 +259,49 @@ class AstrologerController extends Controller
             'chat' => $chat,
             'history'     => $history,
             'astrologer' => $astrologer,
+        ]);
+    }
+
+    /**
+     * Show all call sessions for the astrologer, and optionally a selected call.
+     */
+    public function calls($id = null)
+    {
+        $user = Auth::user();
+        $astrologer = $user->astrologer;
+        // Get latest call per user for this astrologer
+        $calls = CallHistory::where('astrologer_id', $user->id)
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->get()
+            ->unique('user_id')
+            ->values();
+
+        $selectedUser = null;
+        $chat = null;
+        $history = [];
+        if ($id) {
+            $selectedUser = User::findOrFail($id);
+            // Find the chat between astrologer and user (if any)
+            $chat = Chat::whereHas('participants', function ($q) use ($selectedUser) {
+                    $q->where('user_id', $selectedUser->id);
+                })
+                ->whereHas('participants', function ($q) use ($astrologer) {
+                    $q->where('user_id', $astrologer->user_id);
+                })
+                ->first();
+            // All call history between this astrologer and the selected user
+            $history = CallHistory::where('astrologer_id', $astrologer->user_id)
+                ->where('user_id', $selectedUser->id)
+                ->get();
+        }
+        
+        return Inertia::render('Dashboard/Astrologer/Calls', [
+            'user' => $selectedUser,
+            'chat' => $chat,
+            'calls' => $calls,
+            'history' => $history,
+            'astrologer' => $user->load('astrologer'),
         ]);
     }
 }

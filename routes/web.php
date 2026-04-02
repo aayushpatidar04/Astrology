@@ -64,7 +64,7 @@ Route::middleware(['auth', 'verified', 'role:Astrologer'])->group(function () {
     Route::post('/astrologer/astrologer', [AstrologerController::class, 'updateAstrologer'])->name('astrologer.astrologer.update');
     Route::delete('/astrologer/profile', [AstrologerController::class, 'destroy'])->name('astrologer.profile.destroy');
 
-    Route::get('/astrologer/call/{id}', [AstrologerController::class, 'showCall'])->name('astrologer.call.show');
+    Route::get('/astrologer/calls/{id?}', [AstrologerController::class, 'calls'])->middleware('astrologer.status')->name('astrologer.calls');
 });
 
 Route::middleware(['auth', 'verified', 'role:User'])->group(function () {
@@ -82,6 +82,10 @@ Route::middleware(['auth', 'verified', 'role:User'])->group(function () {
     Route::get('/user/call-history', [UserController::class, 'callHistory'])->name('user.call.history');
     Route::get('/user/transactions', [UserController::class, 'transactions'])->name('user.transactions');
     Route::post('/call/start', [UserController::class, 'start'])->name('call');
+
+    Route::get('/user/profile', [UserController::class, 'editProfile'])->name('user.profile.edit');
+    Route::patch('/user/profile', [UserController::class, 'updateProfile'])->name('user.profile.update');
+    Route::delete('/user/profile', [UserController::class, 'destroyProfile'])->name('user.profile.destroy');
 
 });
 Route::post('user/response/{id}', [MainController::class, 'phonePeResponse'])->name('user.response');

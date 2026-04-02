@@ -132,8 +132,6 @@ let pc = null
 let localStream = null
 let callTimeoutTimer = null
 
-const speakerOn = ref(true)
-
 function sendSignal(type, data) {
     axios.post('/call/signal', {
         roomId: props.chat.id,
@@ -297,11 +295,6 @@ const startCall = async () => {
 const toggleMute = () => {
     muted.value = !muted.value
     localStream.getAudioTracks()[0].enabled = !muted.value
-}
-
-const toggleSpeaker = () => {
-    speakerOn.value = !speakerOn.value
-    // Note: Actual speaker toggle may require additional implementation
 }
 
 const endCall = async (send = false) => {
@@ -481,13 +474,6 @@ const endCall = async (send = false) => {
                                     class="w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300">
                                     <Icon :icon="muted ? 'mdi-microphone-off' : 'mdi-microphone'" width="24" height="24"
                                         :class="muted ? 'text-red-600' : 'text-gray-700'" />
-                                </button>
-
-                                <!-- Speaker -->
-                                <button @click="toggleSpeaker"
-                                    class="w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300">
-                                    <Icon :icon="speakerOn ? 'mdi-volume-high' : 'mdi-volume-off'" width="24"
-                                        height="24" :class="speakerOn ? 'text-blue-600' : 'text-gray-700'" />
                                 </button>
 
                                 <!-- End/Reject Call -->

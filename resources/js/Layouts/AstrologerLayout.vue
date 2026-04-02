@@ -55,6 +55,9 @@ const toggleStatus = async () => {
                             <NavLink href="/astrologer/chats" :active="route().current('astrologer.chats')">
                                 Chats
                             </NavLink>
+                            <NavLink href="/astrologer/calls" :active="route().current('astrologer.calls')">
+                                Calls
+                            </NavLink>
                             <NavLink href="/astrologer/profile" :active="route().current('astrologer.profile.edit')">
                                 Profile
                             </NavLink>
@@ -122,6 +125,9 @@ const toggleStatus = async () => {
                     </ResponsiveNavLink>
                     <ResponsiveNavLink href="/astrologer/chats" :active="route().current('astrologer.chats')">
                         Chats
+                    </ResponsiveNavLink>
+                    <ResponsiveNavLink href="/astrologer/calls" :active="route().current('astrologer.calls')">
+                        Calls
                     </ResponsiveNavLink>
                     <ResponsiveNavLink href="/astrologer/profile" :active="route().current('astrologer.profile.edit')">
                         Profile

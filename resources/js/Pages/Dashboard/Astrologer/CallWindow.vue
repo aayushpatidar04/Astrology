@@ -10,12 +10,15 @@ import { Head } from '@inertiajs/vue3';
 const props = defineProps({
     user: Object,
     astrologer: Object,
-    chat: Object,
-    history: Object,
+    chat: Object, // can be chat or call object
+    history: {
+        type: Array,
+        default: () => []
+    },
 })
 
 const newMessage = ref('')
-const liveMessages = ref([...props.history])
+const liveMessages = ref(Array.isArray(props.history) ? [...props.history] : [])
 const messagesContainer = ref(null)
 
 
@@ -37,7 +40,7 @@ let pc = null
 let localStream = null
 let offerData = null
 
-const speakerOn = ref(true)
+
 
 function sendSignal(type, data) {
 
@@ -65,7 +68,9 @@ onMounted(async () => {
 
 
     let currentMembers = []
-    echo.join(`chat.${props.chat.id}`)
+    // Use chat or call id for channel
+    const channelId = props.chat?.id
+    echo.join(`chat.${channelId}`)
         .here((users) => {
             currentMembers = users
             if (users.length === 2) {
@@ -87,7 +92,7 @@ onMounted(async () => {
         });
 
     let currentMembers2 = []
-    echo.join(`call.${props.chat.id}`)
+    echo.join(`call.${channelId}`)
         .here((users) => {
             currentMembers2 = users
             if (currentMembers2.length === 2) {
@@ -198,7 +203,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-    echo.leave(`chat.${props.chat.id}`)
+    const channelId = props.chat?.id
+    echo.leave(`chat.${channelId}`)
 })
 
 const callDuration = ref(0)
@@ -281,10 +287,7 @@ const toggleMute = () => {
     localStream.getAudioTracks()[0].enabled = !muted.value
 }
 
-const toggleSpeaker = () => {
-    speakerOn.value = !speakerOn.value
-    // Note: Actual speaker toggle may require additional implementation
-}
+
 
 const endCall = (send = true) => {
     if (pc) {
@@ -336,106 +339,90 @@ watch(liveMessages, async () => {
 <template>
 
     <Head :title="user?.name" />
-    <AstrologerLayout>
-        <div class="flex h-[calc(100vh-4rem)] flex-col bg-white border rounded shadow-xl mx-auto max-w-7xl">
-            <!-- Header -->
-            <div class="border-b p-4 font-semibold bg-gray-200 flex justify-between items-center">
-                <span>{{ user.name }}</span>
-                <span class="text-sm text-gray-600">{{ callStatus }}</span>
-            </div>
+    <div class="flex h-[calc(100vh-4rem)] flex-col bg-white border rounded shadow-xl mx-auto max-w-7xl">
+        <!-- Header -->
+        <div class="border-b p-4 font-semibold bg-gray-200 flex justify-between items-center">
+            <span>{{ user.name }}</span>
+            <span class="text-sm text-gray-600">{{ callStatus }}</span>
+        </div>
 
-            <!-- Main Split Layout -->
-            <!-- On md+ screens: row with 1/2 widths; on mobile: stack vertically -->
-            <div class="flex flex-1 flex-col md:flex-row overflow-hidden">
-                <!-- Left: Call History -->
-                <div ref="messagesContainer"
-                    class="w-full md:w-1/2 overflow-y-auto p-6 space-y-3 bg-gray-50 border-b md:border-b-0 md:border-r">
-                    <h3 class="font-semibold text-gray-700 mb-2">Call History</h3>
-                    <div v-for="msg in liveMessages" :key="msg.id">
-                        <div class="w-full p-3 rounded-lg shadow bg-orange-50 border border-gray-200">
-                            <div class="text-sm text-gray-700 space-y-1">
-                                <div>Type: <span class="font-medium">{{ msg.call_type }}</span></div>
-                                <div>Status:
-                                    <span :class="{
-                                        'text-green-600': msg.status === 'answered',
-                                        'text-red-600': msg.status === 'failed' || msg.status === 'missed' || msg.status === 'ended' || msg.status === 'rejected',
-                                        'text-yellow-600': msg.status === 'ringing'
-                                    }">
-                                        {{ msg.status }}
-                                    </span>
-                                </div>
-                                <div v-if="msg.duration">Duration: {{ msg.duration }} sec</div>
+        <!-- Main Split Layout -->
+        <!-- On md+ screens: row with 1/2 widths; on mobile: stack vertically -->
+        <div class="flex flex-1 flex-col md:flex-row overflow-hidden">
+            <!-- Left: Call History -->
+            <div ref="messagesContainer"
+                class="w-full md:w-1/2 overflow-y-auto p-6 space-y-3 bg-gray-50 border-b md:border-b-0 md:border-r">
+                <h3 class="font-semibold text-gray-700 mb-2">Call History</h3>
+                <div v-for="msg in liveMessages" :key="msg.id">
+                    <div class="w-full p-3 rounded-lg shadow bg-orange-50 border border-gray-200">
+                        <div class="text-sm text-gray-700 space-y-1">
+                            <div>Type: <span class="font-medium">{{ msg.call_type }}</span></div>
+                            <div>Status:
+                                <span :class="{
+                                    'text-green-600': msg.status === 'answered',
+                                    'text-red-600': msg.status === 'failed' || msg.status === 'missed' || msg.status === 'ended' || msg.status === 'rejected',
+                                    'text-yellow-600': msg.status === 'ringing'
+                                }">
+                                    {{ msg.status }}
+                                </span>
                             </div>
-                            <span class="text-xs text-gray-500">
-                                {{ dayjs(msg.started_at).format('MMM D, h:mm A') }}
-                            </span>
+                            <div v-if="msg.duration">Duration: {{ msg.duration }} sec</div>
                         </div>
+                        <span class="text-xs text-gray-500">
+                            {{ dayjs(msg.started_at).format('MMM D, h:mm A') }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Call Interface -->
+            <div class="w-full md:w-1/2 flex flex-col items-center justify-center p-6">
+                <!-- Incoming Call -->
+                <div v-if="showIncomingCall" class="text-center">
+                    <h3 class="text-lg font-semibold mb-4">{{ user.name }}</h3>
+                    <p class="mb-4">{{ callStatus }}</p>
+                    <div class="flex justify-center space-x-6">
+                        <button @click="acceptCall"
+                            class="w-12 h-12 flex items-center justify-center rounded-full bg-green-500 hover:bg-green-600">
+                            <Icon icon="mdi-phone" width="24" height="24" class="text-white" />
+                        </button>
+                        <button @click="endCall(true)"
+                            class="w-12 h-12 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600">
+                            <Icon icon="mdi-phone-hangup" width="24" height="24" class="text-white" />
+                        </button>
                     </div>
                 </div>
 
-                <!-- Right: Call Interface -->
-                <div class="w-full md:w-1/2 flex flex-col items-center justify-center p-6">
-                    <!-- Incoming Call -->
-                    <div v-if="showIncomingCall" class="text-center">
-                        <h3 class="text-lg font-semibold mb-4">{{ user.name }}</h3>
-                        <p class="mb-4">{{ callStatus }}</p>
-                        <div class="flex justify-center space-x-6">
-                            <button @click="acceptCall"
-                                class="w-12 h-12 flex items-center justify-center rounded-full bg-green-500 hover:bg-green-600">
-                                <Icon icon="mdi-phone" width="24" height="24" class="text-white" />
-                            </button>
-                            <button @click="endCall(true)"
-                                class="w-12 h-12 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600">
-                                <Icon icon="mdi-phone-hangup" width="24" height="24" class="text-white" />
-                            </button>
-                        </div>
+                <!-- Active Call -->
+                <div v-if="showCallScreen"
+                    class="w-full max-w-md bg-white rounded-lg shadow-lg p-6 flex flex-col items-center">
+                    <audio ref="remoteAudio" autoplay></audio>
+                    <div class="text-gray-700 mt-2 font-medium">
+                        {{ user.name }}
+                    </div>
+                    <div class="text-sm text-gray-500 mt-1">
+                        <span v-if="callStatus === 'connected'">
+                            {{ formatDuration(callDuration) }}
+                        </span>
+                        <span v-else>{{ callStatus }}</span>
                     </div>
 
-                    <!-- Active Call -->
-                    <div v-if="showCallScreen"
-                        class="w-full max-w-md bg-white rounded-lg shadow-lg p-6 flex flex-col items-center">
-                        <audio ref="remoteAudio" autoplay></audio>
-                        <div class="text-gray-700 mt-2 font-medium">
-                            {{ user.name }}
-                        </div>
-                        <div class="text-sm text-gray-500 mt-1">
-                            <span v-if="callStatus === 'connected'">
-                                {{ formatDuration(callDuration) }}
-                            </span>
-                            <span v-else>{{ callStatus }}</span>
-                        </div>
+                    <div class="flex justify-center space-x-6 mt-6">
+                        <!-- Mute -->
+                        <button @click="toggleMute"
+                            class="w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300">
+                            <Icon :icon="muted ? 'mdi-microphone-off' : 'mdi-microphone'" width="24" height="24"
+                                :class="muted ? 'text-red-600' : 'text-gray-700'" />
+                        </button>
 
-                        <div class="flex justify-center space-x-6 mt-6">
-                            <!-- Mute -->
-                            <button @click="toggleMute"
-                                class="w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300">
-                                <Icon :icon="muted ? 'mdi-microphone-off' : 'mdi-microphone'" width="24" height="24"
-                                    :class="muted ? 'text-red-600' : 'text-gray-700'" />
-                            </button>
-
-                            <!-- Speaker -->
-                            <button @click="toggleSpeaker"
-                                class="w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300">
-                                <Icon :icon="speakerOn ? 'mdi-volume-high' : 'mdi-volume-off'" width="24" height="24"
-                                    :class="speakerOn ? 'text-blue-600' : 'text-gray-700'" />
-                            </button>
-
-                            <!-- End Call -->
-                            <button @click="endCall(true)"
-                                class="w-12 h-12 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600">
-                                <Icon icon="mdi-phone-hangup" width="24" height="24" class="text-white" />
-                            </button>
-                        </div>
+                        <!-- End Call -->
+                        <button @click="endCall(true)"
+                            class="w-12 h-12 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600">
+                            <Icon icon="mdi-phone-hangup" width="24" height="24" class="text-white" />
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
-    </AstrologerLayout>
-
-    <!-- Footer -->
-    <footer class="bg-white border-t mt-2">
-        <div class="max-w-7xl mx-auto px-4 py-4 text-center text-sm text-gray-500">
-            © {{ new Date().getFullYear() }} My Astro Sathi. All rights reserved.
-        </div>
-    </footer>
+    </div>
 </template>

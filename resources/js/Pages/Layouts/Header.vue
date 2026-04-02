@@ -189,7 +189,7 @@ onBeforeUnmount(() => {
                     <Link href="/dashboard">Dashboard</Link>
                 </li>
                 <li v-if="user && user.roles[0].name === 'User'">
-                    <Link href="/profile">Profile</Link>
+                    <Link href="/user/profile">Profile</Link>
                 </li>
                 <li v-if="user && user.roles[0].name === 'User'">
                     <Link href="/user/chat-sessions">Chat Sessions</Link>

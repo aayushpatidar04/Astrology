@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Events\CallSignal;
 use App\Events\MessageSent;
+use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\Astrologer;
 use App\Models\CallHistory;
 use App\Models\Chat;
@@ -13,10 +14,14 @@ use App\Models\Order;
 use App\Models\RechargePackage;
 use App\Models\TempOrder;
 use App\Models\User;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
+use Inertia\Response;
 use Pusher\PushNotifications\PushNotifications;
 
 class UserController extends Controller
@@ -141,7 +146,7 @@ class UserController extends Controller
                                 'title' => 'Incoming Call',
                                 'body' => 'A user has started a call. Tap to join.',
                                 'icon' => asset(Auth::user()?->details?->profile_image ?: '/images/favicon.png'),
-                                'deep_link' => route('astrologer.call.show', ['id' => Auth::id()]),
+                                'deep_link' => route('astrologer.calls', ['id' => Auth::id()]),
                                 'data' => [
                                     'type' => 'incoming_call',
                                     'chatId' => $chat->id,
@@ -264,6 +269,7 @@ class UserController extends Controller
             'transaction_ref' => uniqid('txn_'),
         ]);
         $data = [
+            // 'merchantId' => 'M22AUB1U8TCJN',
             'merchantId' => 'PGTESTPAYUAT86',
             'merchantTransactionId' => $tempOrder->transaction_ref,
             'merchantUserId' => 'MUID' . $user->id,
@@ -282,6 +288,7 @@ class UserController extends Controller
 
         // Salt key and index from PhonePe sandbox
         $saltKey   = '96434309-7796-489d-8924-ab56988a6076';
+        // $saltKey   = 'c59ab974-a03a-4764-bc75-52da393e5d7e';
         $saltIndex = 1;
 
         // Create string to hash
@@ -293,6 +300,7 @@ class UserController extends Controller
 
         // Sandbox URL
         $url = "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay";
+        // $url = "https://api.phonepe.com/apis/hermes/pg/v1/pay";
 
         // Send request using Laravel HTTP client
         $response = Http::withHeaders([
@@ -303,7 +311,7 @@ class UserController extends Controller
         ]);
 
         $rData = $response->json();
-
+        \Log::info('PhonePe Response', ['response' => $rData]);
         return response()->json([
             'redirect_url' => $rData['data']['instrumentResponse']['redirectInfo']['url'],
         ]);
@@ -362,5 +370,48 @@ class UserController extends Controller
         return Inertia::render('User/Transactions', [
             'transactions' => $transactions
         ]);
+    }
+
+    public function editProfile(Request $request): Response
+    {
+        return Inertia::render('User/Profile/Edit', [
+            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'status' => session('status'),
+        ]);
+    }
+    /**
+     * Update the user's profile information.
+     */
+    public function updateProfile(ProfileUpdateRequest $request): RedirectResponse
+    {
+        $request->user()->fill($request->validated());
+
+        if ($request->user()->isDirty('email')) {
+            $request->user()->email_verified_at = null;
+        }
+
+        $request->user()->save();
+
+        return Redirect::route('user.profile.edit');
+    }
+    /**
+     * Delete the user's account.
+     */
+    public function destroyProfile(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'password' => ['required', 'current_password'],
+        ]);
+
+        $user = $request->user();
+
+        Auth::logout();
+
+        $user->delete();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return Redirect::to('/');
     }
 }
