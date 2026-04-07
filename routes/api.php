@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AstrologerController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Controller as ApiController;
 use App\Http\Controllers\Api\MainController;
@@ -44,6 +45,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/wallet', [UserController::class, 'wallet']);
         Route::post('/end-chat/{chatId}', [UserController::class, 'endChat']);
 
+    });
+
+    Route::middleware('role:Admin')->group(function () {
+        Route::get('/astrologer/chats', [AstrologerController::class, 'chats']);
+        Route::get('astrologer/chats/{chatId}/messages', [AstrologerController::class, 'messages']);
     });
 
 });
