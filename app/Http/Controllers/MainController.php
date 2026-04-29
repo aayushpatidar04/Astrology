@@ -97,7 +97,7 @@ class MainController extends Controller
         $user = Auth::user();
         $key = $request->input('key');
 
-        if ($user->hasRole('Admin') && $key) {
+        if ($user && $user->hasRole('Admin') && $key) {
             // Admin can fetch specific key
             if ($type === 'daily' || $type === 'yesterday' || $type === 'tomorrow') {
                 $date = Carbon::parse($key);
@@ -198,6 +198,24 @@ class MainController extends Controller
                 'tip_for_couples' => $horoscope->tip_for_couples,
                 'description' => $horoscope->description,
             ],
+        ]);
+    }
+
+    public function terms(){
+        return Inertia::render('Terms/Index', [
+            'user' => Auth::user()?->load('wallet'),
+        ]);
+    }
+
+    public function privacy(){
+        return Inertia::render('Privacy/Index', [
+            'user' => Auth::user()?->load('wallet'),
+        ]);
+    }
+
+    public function refund(){
+        return Inertia::render('RefundPolicy/Index', [
+            'user' => Auth::user()?->load('wallet'),
         ]);
     }
 

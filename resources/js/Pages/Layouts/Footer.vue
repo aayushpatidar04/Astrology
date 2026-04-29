@@ -39,22 +39,16 @@ import { Icon } from "@iconify/vue"
 
             <!-- Services -->
             <div>
-                <h3 class="text-lg font-semibold text-primary mb-4">Our Services</h3>
+                <h3 class="text-lg font-semibold text-primary mb-4">Quick Links</h3>
                 <ul class="space-y-2 text-sm text-black">
                     <li>
-                        <Link href="/services/vastu" class="hover:text-orange-500">Vastu Shastra</Link>
+                        <Link href="/terms-conditions" class="hover:text-orange-500">Terms & Conditions</Link>
                     </li>
                     <li>
-                        <Link href="/services/kundli" class="hover:text-orange-500">Kundli Dosh</Link>
+                        <Link href="/privacy-policy" class="hover:text-orange-500">Privacy Policy</Link>
                     </li>
                     <li>
-                        <Link href="/services/tarot" class="hover:text-orange-500">Tarot Reading</Link>
-                    </li>
-                    <li>
-                        <Link href="/services/palm" class="hover:text-orange-500">Palm Reading</Link>
-                    </li>
-                    <li>
-                        <Link href="/services/crystal" class="hover:text-orange-500">Crystal Ball</Link>
+                        <Link href="/refund-policy" class="hover:text-orange-500">Refund Policy</Link>
                     </li>
                 </ul>
             </div>
@@ -63,10 +57,10 @@ import { Icon } from "@iconify/vue"
             <div>
                 <h3 class="text-lg font-semibold text-primary mb-4">Contact Us</h3>
                 <p class="text-sm mb-2  flex items-center  text-black">
-                    <Icon icon="mdi:map-marker" class="text-orange-500 mr-1" /> Indore, Madhya Pradesh, India
+                    <Icon icon="mdi:map-marker" class="text-orange-500 mr-1" /> Indore - 452001, Madhya Pradesh, India
                 </p>
                 <p class="text-sm mb-2  flex items-center  text-black">
-                    <Icon icon="mdi:phone" class="text-orange-500 mr-1" /> +91 1800 326 3264
+                    <Icon icon="mdi:phone" class="text-orange-500 mr-1" /> +91 96915 65883
                 </p>
                 <p class="text-sm mb-4 flex items-center  text-black">
                     <Icon icon="mdi:email" class="text-orange-500 mr-1" /> myastrosathi15@gmail.com

@@ -22,6 +22,9 @@ Route::get('/blog/category/{slug}', [MainController::class, 'categoryBlogs'])->n
 Route::get('/blog/{slug}', [MainController::class, 'blogDetails'])->name('blog-details');
 Route::get('/horoscope/{type}-horoscope/{sign}', [MainController::class, 'horoscope'])->name('horoscope');
 Route::get('/horoscope/{type}-horoscope', [MainController::class, 'horoscopeType'])->name('horoscope-type');
+Route::get('/terms-conditions', [MainController::class, 'terms'])->name('terms');
+Route::get('/privacy-policy', [MainController::class, 'privacy'])->name('privacy');
+Route::get('/refund-policy', [MainController::class, 'refund'])->name('refund');
 
 Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
