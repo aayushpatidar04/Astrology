@@ -1,21 +1,18 @@
 <template>
 
-  <Head title="Refund Policy" />
+  <Head title="Policies" />
   <div class="policy-page">
-    <!-- Starfield -->
     <div class="stars" aria-hidden="true">
       <span v-for="n in 60" :key="n" class="star" :style="starStyle(n)" />
     </div>
 
     <div class="container">
-      <!-- Header -->
       <header class="page-header">
         <div class="emblem">✦</div>
         <h1 class="title">My Astro Sathi</h1>
-        <p class="subtitle">Shipping &amp; Return Policy</p>
+        <p class="subtitle">Store Policies</p>
       </header>
 
-      <!-- Tab Toggle -->
       <div class="tab-bar" role="tablist">
         <button v-for="tab in tabs" :key="tab.key" class="tab-btn" :class="{ active: activeTab === tab.key }" role="tab"
           :aria-selected="activeTab === tab.key" @click="activeTab = tab.key">
@@ -24,76 +21,80 @@
         </button>
       </div>
 
-      <!-- Shipping Policy -->
       <transition name="fade" mode="out-in">
-        <div v-if="activeTab === 'shipping'" key="shipping" class="policy-content">
-          <p class="lead-text">
-            Our standard order processing time is within 0–2 days of receiving the order (may vary by product).
-            We partner with reputable logistics companies such as Blue Dart, Delhivery, Xpress Bees, and other
-            couriers based on destination. We appreciate your understanding and encourage you to plan accordingly
-            for a stress-free shopping experience.
+
+        <div v-if="activeTab === 'refund'" key="refund" class="policy-content">
+          <p class="lead-text" style="text-align: left;">
+            This refund and cancellation policy outlines how you can cancel or seek a refund for a product / service
+            that you have purchased through the Platform. Under this policy:
           </p>
 
-          <div class="section-grid">
-            <div v-for="item in shippingItems" :key="item.title" class="policy-card">
-              <div class="card-icon">{{ item.icon }}</div>
-              <h3 class="card-title">{{ item.title }}</h3>
-              <p class="card-text">{{ item.text }}</p>
-            </div>
+          <div class="policy-card paragraph-card">
+            <p class="card-text">Cancellations will only be considered if the request is made 5 days of placing the
+              order. However, cancellation requests may not be entertained if the orders have been communicated to such
+              sellers / merchant(s) listed on the Platform and they have initiated the process of shipping them, or the
+              product is out for delivery. In such an event, you may choose to reject the product at the doorstep.</p>
           </div>
 
-          <div class="free-shipping-banner">
-            <span class="banner-icon">🎁</span>
-            <div>
-              <strong>Free Shipping on All Products</strong>
-              <p>We currently offer free shipping on every order — no minimum required.</p>
-            </div>
+          <div class="policy-card paragraph-card">
+            <p class="card-text">9752337971 does not accept cancellation requests for perishable items like flowers,
+              eatables, etc. However, the refund / replacement can be made if the user establishes that the quality of
+              the product delivered is not good.</p>
           </div>
 
-          <p class="policy-note">
-            This Delivery Policy is subject to change. Any updates will be posted on our website.
-            For questions, contact our
-            <a href="mailto:support@myastrosathi.com" class="link">customer support team</a>.
-          </p>
+          <div class="policy-card paragraph-card">
+            <p class="card-text">In case of receipt of damaged or defective items, please report to our customer service
+              team. The request would be entertained once the seller/ merchant listed on the Platform, has checked and
+              determined the same at its own end. This should be reported within 5 days of receipt of products. In case
+              you feel that the product received is not as shown on the site or as per your expectations, you must bring
+              it to the notice of our customer service within 5 days of receiving the product. The customer service team
+              after looking into your complaint will take an appropriate decision.</p>
+          </div>
+
+          <div class="policy-card paragraph-card">
+            <p class="card-text">In case of complaints regarding the products that come with a warranty from the
+              manufacturers, please refer the issue to them.</p>
+          </div>
+
+          <div class="policy-card paragraph-card">
+            <p class="card-text">In case of any refunds approved by 9752337971, it will take 2 days for the refund to be
+              processed to you.</p>
+          </div>
         </div>
 
-        <!-- Return Policy -->
-        <div v-else key="return" class="policy-content">
-          <p class="lead-text">
-            We offer a 24-hour return policy for our products. Please read the guidelines below carefully
-            to ensure a smooth return or refund experience.
-          </p>
-
-          <div class="section-grid">
-            <div v-for="item in returnItems" :key="item.title" class="policy-card">
-              <div class="card-icon">{{ item.icon }}</div>
-              <h3 class="card-title">{{ item.title }}</h3>
-              <p class="card-text">{{ item.text }}</p>
-            </div>
+        <div v-else-if="activeTab === 'return'" key="return" class="policy-content">
+          <div class="policy-card paragraph-card">
+            <p class="card-text">We offer refund / exchange within first 2 days from the date of your purchase. If 2
+              days have passed since your purchase, you will not be offered a return, exchange or refund of any kind. In
+              order to become eligible for a return or an exchange, (i) the purchased item should be unused and in the
+              same condition as you received it, (ii) the item must have original packaging, (iii) if the item that you
+              purchased on a sale, then the item may not be eligible for a return / exchange. Further, only such items
+              are replaced by us (based on an exchange request), if such items are found defective or damaged.</p>
           </div>
 
-          <div class="replacement-block">
-            <h3 class="block-title">🔄 Replacement Process</h3>
-            <div class="replacement-steps">
-              <div v-for="(step, i) in replacementSteps" :key="i" class="step">
-                <div class="step-number">{{ i + 1 }}</div>
-                <div>
-                  <strong>{{ step.title }}</strong>
-                  <p>{{ step.text }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="alert-box">
-            <span>⚠️</span>
-            <p>
-              Orders once placed <strong>cannot be cancelled or exchanged</strong> for another product.
-              For questions, contact us at
-              <a href="mailto:support@myastrosathi.com" class="link">support@myastrosathi.com</a>.
-            </p>
+          <div class="policy-card paragraph-card">
+            <p class="card-text">You agree that there may be a certain category of products / items that are exempted
+              from returns or refunds. Such categories of the products would be identified to you at the item of
+              purchase. For exchange / return accepted request(s) (as applicable), once your returned product / item is
+              received and inspected by us, we will send you an email to notify you about receipt of the returned /
+              exchanged product. Further. If the same has been approved after the quality check at our end, your request
+              (i.e. return / exchange) will be processed in accordance with our policies.</p>
           </div>
         </div>
+
+        <div v-else key="shipping" class="policy-content">
+          <div class="policy-card paragraph-card">
+            <p class="card-text">The orders for the user are shipped through registered domestic courier companies
+              and/or speed post only. Orders are shipped within 2 days from the date of the order and/or payment or as
+              per the delivery date agreed at the time of order confirmation and delivering of the shipment, subject to
+              courier company / post office norms. Platform Owner shall not be liable for any delay in delivery by the
+              courier company / postal authority. Delivery of all orders will be made to the address provided by the
+              buyer at the time of purchase. Delivery of our services will be confirmed on your email ID as specified at
+              the time of registration. If there are any shipping cost(s) levied by the seller or the Platform Owner (as
+              the case be), the same is not refundable.</p>
+          </div>
+        </div>
+
       </transition>
 
       <footer class="page-footer">✦ My Astro Sathi — Written in the Stars ✦</footer>
@@ -105,87 +106,12 @@
 import { Head } from '@inertiajs/vue3'
 import { ref } from 'vue'
 
-const activeTab = ref('shipping')
+const activeTab = ref('refund')
 
 const tabs = [
-  { key: 'shipping', label: 'Shipping Policy', icon: '🚚' },
+  { key: 'refund', label: 'Refund & Cancellation', icon: '💳' },
   { key: 'return', label: 'Return Policy', icon: '↩️' },
-]
-
-const shippingItems = [
-  {
-    icon: '📦',
-    title: 'Shipping Methods & Timeframes',
-    text: 'We offer various shipping methods to suit different needs. Standard shipping typically takes 0–4 business days. Delivery times may vary by destination or due to unforeseen circumstances such as holidays or weather delays.',
-  },
-  {
-    icon: '⚙️',
-    title: 'Order Processing',
-    text: 'Orders are processed after receipt. During peak seasons or promotional events, processing may take slightly longer due to increased demand. We strive to ship all orders as quickly as possible.',
-  },
-  {
-    icon: '🔎',
-    title: 'Tracking Information',
-    text: 'After your order is shipped, you will receive a tracking link via email or SMS to monitor your package\'s status until delivery.',
-  },
-  {
-    icon: '🚫',
-    title: 'Shipping Restrictions',
-    text: 'We offer domestic shipping to various locations. Certain regions may not be serviceable due to legal or logistical reasons. Orders to restricted areas may be cancelled if necessary.',
-  },
-  {
-    icon: '📍',
-    title: 'Address Accuracy',
-    text: 'Customers are responsible for providing accurate shipping information. Errors in the address may cause delivery delays. Please verify your address before finalizing your order.',
-  },
-  {
-    icon: '🔔',
-    title: 'Delivery Attempts',
-    text: 'Our partners make multiple delivery attempts. If unsuccessful, a notification is sent via Email or SMS with instructions to reschedule or collect from a designated location. If an order is returned, a refund will be issued upon parcel receipt.',
-  },
-  {
-    icon: '📫',
-    title: 'Damaged or Lost Packages',
-    text: 'In the rare event of a lost or damaged package, our support team is here to help. Please reach out as soon as possible to initiate an investigation and resolution.',
-  },
-  {
-    icon: '⏳',
-    title: 'Delayed Shipments',
-    text: 'While we aim to deliver within estimated timeframes, delays may occur due to unforeseen circumstances. We will keep you informed and work to resolve any issues promptly.',
-  },
-]
-
-const returnItems = [
-  {
-    icon: '🕐',
-    title: '24-Hour Return Window',
-    text: 'To be eligible for a return, please take a video of the package being opened. Returns must be initiated within 24 hours of receiving the order.',
-  },
-  {
-    icon: '📹',
-    title: 'Damaged Product Returns',
-    text: 'We accept returns only if the product is damaged upon delivery. Send video proof to support@myastrosathi.com within 24 hours of receiving your order.',
-  },
-  {
-    icon: '📣',
-    title: 'Notification Requirement',
-    text: 'Returns or exchanges cannot be processed if we are not notified within the 24-hour window. Valid proof is required for any refund or replacement to be approved.',
-  },
-]
-
-const replacementSteps = [
-  {
-    title: 'Approval & Replacement',
-    text: 'Once your return is approved, we will dispatch a replacement of the same product.',
-  },
-  {
-    title: 'Refund Timing',
-    text: 'Refunds are processed back to the original payment method within 5–12 working days.',
-  },
-  {
-    title: 'Product Unavailability',
-    text: 'A complete refund will be offered only if the same product is unavailable for replacement.',
-  },
+  { key: 'shipping', label: 'Shipping Policy', icon: '🚚' },
 ]
 
 function starStyle(n) {
@@ -304,6 +230,7 @@ function starStyle(n) {
   gap: 12px;
   justify-content: center;
   margin-bottom: 40px;
+  flex-wrap: wrap;
 }
 
 .tab-btn {
@@ -354,7 +281,7 @@ function starStyle(n) {
   font-size: 0.95rem;
   line-height: 1.85;
   color: #c5b8d8;
-  margin-bottom: 36px;
+  margin-bottom: 24px;
   padding: 20px 24px;
   border: 1px solid rgba(201, 168, 76, 0.15);
   border-radius: 12px;
@@ -362,15 +289,14 @@ function starStyle(n) {
 }
 
 /* ─── Card Grid ─────────────────────────────── */
-.section-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
-  margin-bottom: 32px;
+.paragraph-card {
+  margin-bottom: 16px;
+  display: block;
+  width: 100%;
 }
 
 .policy-card {
-  padding: 22px 20px;
+  padding: 22px 24px;
   border: 1px solid rgba(148, 128, 176, 0.18);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.02);
@@ -379,160 +305,15 @@ function starStyle(n) {
 
 .policy-card:hover {
   border-color: rgba(201, 168, 76, 0.35);
-  transform: translateY(-3px);
-}
-
-.card-icon {
-  font-size: 1.5rem;
-  margin-bottom: 10px;
-}
-
-.card-title {
-  font-family: 'Cinzel', serif;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #f0e6c8;
-  letter-spacing: 0.04em;
-  margin: 0 0 8px;
+  transform: translateY(-2px);
 }
 
 .card-text {
-  font-size: 0.88rem;
-  line-height: 1.75;
-  color: #a898c0;
+  font-size: 0.92rem;
+  line-height: 1.8;
+  color: #c5b8d8;
   margin: 0;
-}
-
-/* ─── Free Shipping Banner ──────────────────── */
-.free-shipping-banner {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 20px 24px;
-  border: 1px solid rgba(201, 168, 76, 0.35);
-  border-radius: 12px;
-  background: rgba(201, 168, 76, 0.07);
-  margin-bottom: 24px;
-}
-
-.banner-icon {
-  font-size: 2rem;
-}
-
-.free-shipping-banner strong {
-  display: block;
-  color: #f0d98a;
-  font-size: 0.97rem;
-  margin-bottom: 4px;
-}
-
-.free-shipping-banner p {
-  margin: 0;
-  font-size: 0.87rem;
-  color: #a898c0;
-}
-
-/* ─── Policy Note ───────────────────────────── */
-.policy-note {
-  font-size: 0.85rem;
-  color: #7a6a90;
-  line-height: 1.75;
-  text-align: center;
-}
-
-/* ─── Replacement Block ─────────────────────── */
-.replacement-block {
-  border: 1px solid rgba(148, 128, 176, 0.22);
-  border-radius: 14px;
-  padding: 28px 24px;
-  margin-bottom: 24px;
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.block-title {
-  font-family: 'Cinzel', serif;
-  font-size: 1rem;
-  color: #f0e6c8;
-  margin: 0 0 22px;
-}
-
-.replacement-steps {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.step {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-}
-
-.step-number {
-  min-width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: rgba(201, 168, 76, 0.15);
-  border: 1px solid rgba(201, 168, 76, 0.4);
-  color: #c9a84c;
-  font-family: 'Cinzel', serif;
-  font-size: 0.82rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.step strong {
-  display: block;
-  color: #e8dff5;
-  font-size: 0.9rem;
-  margin-bottom: 4px;
-}
-
-.step p {
-  margin: 0;
-  font-size: 0.87rem;
-  color: #a898c0;
-  line-height: 1.7;
-}
-
-/* ─── Alert Box ─────────────────────────────── */
-.alert-box {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  padding: 18px 22px;
-  border: 1px solid rgba(220, 100, 100, 0.25);
-  border-radius: 12px;
-  background: rgba(220, 100, 100, 0.06);
-  font-size: 0.88rem;
-  line-height: 1.75;
-  color: #c8a8b8;
-}
-
-.alert-box span {
-  font-size: 1.3rem;
-}
-
-.alert-box p {
-  margin: 0;
-}
-
-.alert-box strong {
-  color: #f0c8c8;
-}
-
-/* ─── Links ─────────────────────────────────── */
-.link {
-  color: #c9a84c;
-  text-decoration: none;
-  border-bottom: 1px solid rgba(201, 168, 76, 0.35);
-  transition: color 0.2s, border-color 0.2s;
-}
-
-.link:hover {
-  color: #f0d98a;
-  border-color: #f0d98a;
+  text-align: left;
 }
 
 /* ─── Footer ────────────────────────────────── */
@@ -549,21 +330,12 @@ function starStyle(n) {
 @media (max-width: 520px) {
   .tab-bar {
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
   }
 
   .tab-btn {
     width: 100%;
     justify-content: center;
-  }
-
-  .section-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .free-shipping-banner {
-    flex-direction: column;
-    text-align: center;
   }
 }
 </style>
