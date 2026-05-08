@@ -83,7 +83,7 @@ const services = ref([
                 </p>
 
                 <!-- Read More -->
-                <a href="#" class="text-orange-500 font-medium hover:underline">READ MORE</a>
+                <a href="#" class="text-orange-500 font-medium hover:underline">₹ 500 /-</a>
             </div>
         </div>
     </section>

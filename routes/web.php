@@ -25,6 +25,7 @@ Route::get('/horoscope/{type}-horoscope', [MainController::class, 'horoscopeType
 Route::get('/terms-conditions', [MainController::class, 'terms'])->name('terms');
 Route::get('/privacy-policy', [MainController::class, 'privacy'])->name('privacy');
 Route::get('/refund-policy', [MainController::class, 'refund'])->name('refund');
+Route::get('/contact', [MainController::class, 'contact'])->name('contact');
 
 Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');

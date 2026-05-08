@@ -219,6 +219,12 @@ class MainController extends Controller
         ]);
     }
 
+    public function contact(){
+        return Inertia::render('Contact/Index', [
+            'user' => Auth::user()?->load('wallet'),
+        ]);
+    }
+
     public function phonePeResponse(Request $request, $id)
     {
         $tempOrder = TempOrder::findOrFail($id);

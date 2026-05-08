@@ -38,7 +38,7 @@
 
           <div class="policy-card paragraph-card">
             <p class="card-text">9752337971 does not accept cancellation requests for perishable items like flowers,
-              eatables, etc. However, the refund / replacement can be made if the user establishes that the quality of
+              eatables, etc. However, the refund can be made if the user establishes that the quality of
               the product delivered is not good.</p>
           </div>
 
@@ -110,9 +110,9 @@ const activeTab = ref('refund')
 
 const tabs = [
   { key: 'refund', label: 'Refund & Cancellation', icon: '💳' },
-  { key: 'return', label: 'Return Policy', icon: '↩️' },
-  { key: 'shipping', label: 'Shipping Policy', icon: '🚚' },
 ]
+  // { key: 'return', label: 'Return Policy', icon: '↩️' },
+  // { key: 'shipping', label: 'Shipping Policy', icon: '🚚' },
 
 function starStyle(n) {
   const size = (n % 2) + 1

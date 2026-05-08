@@ -29,10 +29,10 @@
         <div class="section-body">
           <h2 class="section-title">Grievance Officer</h2>
           <p class="section-text">
-            Insert Name of the Office:<br><br>
-            Designation:<br><br>
-            Insert Name and Address of the Company:<br><br>
-            Contact us:<br><br>
+            Insert Name of the Office: My Astro Sathi<br><br>
+            Designation: CEO<br><br>
+            My Astro Sathi - 12 EXT Lokmanya Nagar Indore<br><br>
+            Contact us: 9691565883<br><br>
             Phone: Time: Monday - Friday(9:00 - 18:00)
           </p>
         </div>

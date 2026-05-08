@@ -164,7 +164,7 @@ function checkWalletAndStartChat(astrologer) {
 
     <WhyChooseUs />
 
-    <Blogs :blogs="blogs" />
+    <!-- <Blogs :blogs="blogs" /> -->
 
     <Footer />
 

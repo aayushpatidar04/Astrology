@@ -63,7 +63,7 @@ onBeforeUnmount(() => {
             <!-- Contact Info (hidden on small screens, shown on md+) -->
             <div class="hidden md:flex items-center gap-6 mt-2 md:mt-0">
                 <span class="flex items-center text-primary">
-                    <Icon icon="mdi:phone" width="20" height="20" class="mr-1" /> <b>+1800 326 3264</b>
+                    <Icon icon="mdi:phone" width="20" height="20" class="mr-1" /> <b>+91 96915 65883</b>
                 </span>
                 <span class="flex items-center text-primary">
                     <Icon icon="mdi:email" width="20" height="20" class="mr-1" /> <b>myastrosathi15@gmail.com</b>
@@ -124,7 +124,7 @@ onBeforeUnmount(() => {
                         Services
                     </Link>
                 </li>
-                <li>
+                <!-- <li>
                     <Link :href="route('blog')" class="flex"
                         :class="route().current('blog') ? 'text-primary font-bold' : 'hover:text-orange-500'">
                         <template v-if="route().current('blog')">
@@ -142,14 +142,14 @@ onBeforeUnmount(() => {
                             </template>
                             Horoscopes
                         </span>
-                        <!-- Dropdown arrow -->
+                        
                         <svg class="w-4 h-4 ml-1 text-gray-500 hover:text-orange-500" fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </div>
 
-                    <!-- Dropdown menu -->
+                    
                     <ul v-if="showDropdown"
                         class="absolute left-0 mt-2 w-48 bg-white border rounded shadow-lg z-50">
                         <li>
@@ -177,7 +177,7 @@ onBeforeUnmount(() => {
                                 class="block px-4 py-2 hover:bg-orange-100">Yearly Horoscope</Link>
                         </li>
                     </ul>
-                </li>
+                </li> -->
 
                 <li>
                     <Link href="/contact" class="hover:text-orange-500">Contact Us</Link>

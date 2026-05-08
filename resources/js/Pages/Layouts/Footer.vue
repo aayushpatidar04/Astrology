@@ -28,9 +28,9 @@ import { Icon } from "@iconify/vue"
                     <li>
                         <Link href="/services" class="hover:text-orange-500">Services</Link>
                     </li>
-                    <li>
+                    <!-- <li>
                         <Link href="/blog" class="hover:text-orange-500">Blog</Link>
-                    </li>
+                    </li> -->
                     <li>
                         <Link href="/contact" class="hover:text-orange-500">Contact</Link>
                     </li>
