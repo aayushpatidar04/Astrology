@@ -111,7 +111,7 @@ class AstrologerController extends Controller
         $today = Carbon::today();
         $monthStart = Carbon::now()->startOfMonth();
 
-        $astrologer = Astrologer::where('user_id', $id)->first();
+        $astrologer = Astrologer::with('user')->where('user_id', $id)->first();
         // --- Chats ---
         $todayChats = ChatSession::where('astrologer_id', $id)
             ->whereDate('created_at', $today)
@@ -202,14 +202,17 @@ class AstrologerController extends Controller
             'today' => [
                 'chats' => $todayChats,
                 'calls' => $todayCalls,
+                'video_calls' => 0,
                 'earning' => round($callEarningToday + $chatEarningToday, 2),
             ],
             'month' => [
                 'chats' => $monthChats,
                 'calls' => $monthCalls,
+                'video_calls' => 0,
                 'earning' => round($callEarningMonth + $chatEarningMonth, 2),
             ],
             'last_consultations' => $lastConsultations,
+            'astrologer' => $astrologer,
         ]);
     }
 }
