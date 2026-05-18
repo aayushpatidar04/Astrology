@@ -1,4 +1,5 @@
 <template>
+
   <Head title="Privacy Policy" />
   <div class="privacy-page">
     <div class="stars" aria-hidden="true">
@@ -13,30 +14,121 @@
       </header>
 
       <p class="intro">
-        This Privacy Policy describes how 9752337971 and its affiliates (collectively &quot;9752337971, we, our, us&quot;) collect, use, share, protect or otherwise process your information/ personal data through our website https://myastrosathi.com/ (hereinafter referred to as Platform). Please note that you may be able to browse certain sections of the Platform without registering with us.We do not offer any product/service under this Platform outside India and your personal data will primarily be stored and processed in India. By visiting this Platform, providing your information or availing any product/service offered on the Platform, you expressly agree to be bound by the terms and conditions of this Privacy Policy, the Terms of Use and the applicable service/product terms and conditions, and agree to be governed by the laws of India including but not limited to the laws applicable to data protection and privacy. If you do not agree please do not use or access our Platform.
+        At My Astro Sathi
+        <a href="https://myastrosathi.com" class="text-orange-500 hover:underline">
+          https://myastrosathi.com
+        </a>, your privacy is of paramount importance to us. This Privacy Policy outlines the types of information we
+        collect, how we use it, and how we protect your personal data when you visit our website or book our astrology
+        services and consultations.
       </p>
 
-      <section v-for="section in sections" :key="section.title" class="policy-section">
-        <div class="section-icon">{{ section.icon }}</div>
+      <section class="policy-section">
+        <div class="section-icon">📝</div>
         <div class="section-body">
-          <h2 class="section-title">{{ section.title }}</h2>
-          <p class="section-text" v-html="section.text" />
+          <h2 class="section-title">A. Information We Collect</h2>
+          <p class="section-text">
+            <strong>Personal Identifiable Information:</strong> Name, email address, phone number, and payment details
+            (processed securely through authorized third-party payment gateways).<br><br>
+            <strong>Astrological/Birth Details:</strong> Date of birth, time of birth, and place of birth, which are
+            required strictly to generate your charts and provide accurate consultation services.<br><br>
+            <strong>Log Data & Cookies:</strong> IP addresses, browser type, pages visited on our site, time spent, and
+            other diagnostic data to improve your browsing experience.
+          </p>
         </div>
       </section>
 
       <section class="policy-section">
-        <div class="section-icon">⚖️</div>
+        <div class="section-icon">⚙️</div>
         <div class="section-body">
-          <h2 class="section-title">Grievance Officer</h2>
+          <h2 class="section-title">B. How We Use Your Information</h2>
           <p class="section-text">
-            Insert Name of the Office: My Astro Sathi<br><br>
-            Designation: CEO<br><br>
-            My Astro Sathi - 12 EXT Lokmanya Nagar Indore<br><br>
-            Contact us: 9691565883<br><br>
-            Phone: Time: Monday - Friday(9:00 - 18:00)
+            <strong>Service Fulfillment:</strong> To schedule your consultations, connect you with our experts, generate
+            personalized reports, and send booking confirmations via SMS, WhatsApp, or email.<br><br>
+            <strong>Customer Support:</strong> To assist you with queries, appointment rescheduling, and refund
+            processing.<br><br>
+            <strong>Communication:</strong> To send updates, spiritual insights, promotional offers, or newsletters (you
+            can opt-out of marketing emails at any time).<br><br>
+            <strong>Website Improvements:</strong> To analyze website traffic and enhance our online consultation
+            platform's performance.
           </p>
         </div>
       </section>
+
+      <section class="policy-section">
+        <div class="section-icon">🔒</div>
+        <div class="section-body">
+          <h2 class="section-title">C. Sharing Your Data</h2>
+          <p class="section-text">
+            We do not sell, trade, or rent your personal information or birth details to third parties. We only share
+            data with trusted partners who assist us in running our business, such as:<br><br>
+            <strong>Payment Gateways:</strong> Secure third-party payment processors to complete transactions
+            safely.<br><br>
+            <strong>Astrology Consultants:</strong> Sharing your birth details securely with our in-house or paneled
+            experts solely for analyzing your charts.<br><br>
+            <strong>Legal Compliance:</strong> If required by law, we may disclose information to comply with judicial
+            proceedings or Government orders.
+          </p>
+        </div>
+      </section>
+
+      <section class="policy-section">
+        <div class="section-icon">🛡️</div>
+        <div class="section-body">
+          <h2 class="section-title">D. Data Security</h2>
+          <p class="section-text">
+            We implement a variety of security measures, including SSL encryption, to maintain the safety of your
+            personal data and birth details when you book a service. However, please note that no method of transmission
+            over the internet is 100% secure, and we cannot guarantee absolute security.
+          </p>
+        </div>
+      </section>
+
+      <section class="policy-section">
+        <div class="section-icon">🍪</div>
+        <div class="section-body">
+          <h2 class="section-title">E. Cookies Policy</h2>
+          <p class="section-text">
+            Our website uses "Cookies" to enhance user experience. Cookies help us remember your preferences for future
+            visits and streamline the booking process. You can choose to disable cookies through your browser settings,
+            though some features of our site may not function properly as a result.
+          </p>
+        </div>
+      </section>
+
+      <section class="policy-section">
+        <div class="section-icon">📅</div>
+        <div class="section-body">
+          <h2 class="section-title">F. Changes to This Privacy Policy</h2>
+          <p class="section-text">
+            We reserve the right to modify this Privacy Policy at any time. Any changes will be updated on this page
+            with a revised "Last Updated" date. We encourage you to review this policy periodically.
+          </p>
+        </div>
+      </section>
+
+      <section class="policy-section">
+        <div class="section-icon">📞</div>
+        <div class="section-body">
+          <h2 class="section-title">Contact Us</h2>
+          <p class="section-text">
+            For any questions regarding our privacy practices, you may contact us using the information below:<br><br>
+            <strong>Website:</strong>
+            <a href="https://myastrosathi.com" class="text-orange-500 hover:underline">
+              https://myastrosathi.com
+            </a><br><br>
+            <strong>Email:</strong>
+            <a href="mailto:support@myastrosathi.com" class="text-orange-500 hover:underline">
+              support@myastrosathi.com
+            </a><br><br>
+            <strong>Phone:</strong>
+            <a href="tel:+919201191929" class="text-orange-500 hover:underline">
+              +91 9201191929
+            </a><br><br>
+            <strong>Address:</strong> Mumbai, Maharashtra, India
+          </p>
+        </div>
+      </section>
+
 
       <footer class="page-footer">
         <span>✦ My Astro Sathi — Written in the Stars ✦</span>
@@ -125,6 +217,7 @@ function starStyle(n) {
   pointer-events: none;
   z-index: 0;
 }
+
 .star {
   position: absolute;
   border-radius: 50%;
@@ -132,9 +225,17 @@ function starStyle(n) {
   opacity: 0;
   animation: twinkle linear infinite;
 }
+
 @keyframes twinkle {
-  0%, 100% { opacity: 0; }
-  50%       { opacity: 0.7; }
+
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* ─── Layout ────────────────────────────────────── */
@@ -151,6 +252,7 @@ function starStyle(n) {
   text-align: center;
   margin-bottom: 48px;
 }
+
 .emblem {
   font-size: 2.2rem;
   color: #c9a84c;
@@ -158,10 +260,21 @@ function starStyle(n) {
   display: block;
   animation: pulse 3s ease-in-out infinite;
 }
+
 @keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1);   }
-  50%       { opacity: 0.7; transform: scale(1.15); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.15);
+  }
 }
+
 .title {
   font-family: 'Cinzel', serif;
   font-size: clamp(1.8rem, 5vw, 2.8rem);
@@ -170,6 +283,7 @@ function starStyle(n) {
   letter-spacing: 0.08em;
   margin: 0 0 6px;
 }
+
 .subtitle {
   font-family: 'Cinzel', serif;
   font-size: 1rem;
@@ -201,13 +315,23 @@ function starStyle(n) {
   border-bottom: 1px solid rgba(148, 128, 176, 0.15);
   animation: fadeUp 0.5s ease both;
 }
+
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
 .policy-section:last-of-type {
   border-bottom: none;
 }
+
 .section-icon {
   font-size: 1.4rem;
   min-width: 40px;
@@ -215,9 +339,11 @@ function starStyle(n) {
   padding-top: 2px;
   filter: drop-shadow(0 0 6px rgba(201, 168, 76, 0.4));
 }
+
 .section-body {
   flex: 1;
 }
+
 .section-title {
   font-family: 'Cinzel', serif;
   font-size: 1rem;
@@ -226,6 +352,7 @@ function starStyle(n) {
   letter-spacing: 0.06em;
   margin: 0 0 10px;
 }
+
 .section-text {
   font-size: 0.93rem;
   line-height: 1.8;
@@ -241,6 +368,7 @@ function starStyle(n) {
   transition: color 0.2s, border-color 0.2s;
   margin-left: 4px;
 }
+
 .link:hover {
   color: #f0d98a;
   border-color: #f0d98a;

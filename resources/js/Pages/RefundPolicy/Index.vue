@@ -24,43 +24,57 @@
       <transition name="fade" mode="out-in">
 
         <div v-if="activeTab === 'refund'" key="refund" class="policy-content">
-          <p class="lead-text" style="text-align: left;">
-            This refund and cancellation policy outlines how you can cancel or seek a refund for a product / service
-            that you have purchased through the Platform. Under this policy:
+          <h2 class="text-2xl font-bold mb-4">Cancellation and Refund Policy</h2>
+          <p class="text-sm text-gray-500 mb-6">Last Updated: May 18, 2026</p>
+
+          <p class="lead-text text-left mb-4">
+            Thank you for choosing My Astro Sathi
+            <a href="https://myastrosathi.com" class="text-orange-500 hover:underline">
+              https://myastrosathi.com
+            </a>. Please review our policy for service and consultation bookings below.
           </p>
 
           <div class="policy-card paragraph-card">
-            <p class="card-text">Cancellations will only be considered if the request is made 5 days of placing the
-              order. However, cancellation requests may not be entertained if the orders have been communicated to such
-              sellers / merchant(s) listed on the Platform and they have initiated the process of shipping them, or the
-              product is out for delivery. In such an event, you may choose to reject the product at the doorstep.</p>
+            <h3 class="font-semibold mb-2">Booking & Cancellation Policy</h3>
+            <p class="card-text">
+              <strong>Advance Notice (More than 24 hours):</strong> You can cancel or reschedule your consultation up to
+              24 hours before your appointment for a full refund.
+            </p>
+            <p class="card-text">
+              <strong>Late Notice & No-Shows:</strong> Cancellations made less than 24 hours before the session, or
+              missing your scheduled appointment entirely, are non-refundable.
+            </p>
+            <p class="card-text">
+              <strong>Cancellations by Us:</strong> If we must cancel your session due to an emergency, you will receive
+              a 100% refund.
+            </p>
           </div>
 
-          <div class="policy-card paragraph-card">
-            <p class="card-text">9752337971 does not accept cancellation requests for perishable items like flowers,
-              eatables, etc. However, the refund can be made if the user establishes that the quality of
-              the product delivered is not good.</p>
+          <div class="policy-card paragraph-card mt-6">
+            <h3 class="font-semibold mb-2">Refund Policy</h3>
+            <p class="card-text">
+              Approved refunds will be credited back to your original payment method within 5 to 12 working days.
+            </p>
           </div>
 
-          <div class="policy-card paragraph-card">
-            <p class="card-text">In case of receipt of damaged or defective items, please report to our customer service
-              team. The request would be entertained once the seller/ merchant listed on the Platform, has checked and
-              determined the same at its own end. This should be reported within 5 days of receipt of products. In case
-              you feel that the product received is not as shown on the site or as per your expectations, you must bring
-              it to the notice of our customer service within 5 days of receiving the product. The customer service team
-              after looking into your complaint will take an appropriate decision.</p>
-          </div>
-
-          <div class="policy-card paragraph-card">
-            <p class="card-text">In case of complaints regarding the products that come with a warranty from the
-              manufacturers, please refer the issue to them.</p>
-          </div>
-
-          <div class="policy-card paragraph-card">
-            <p class="card-text">In case of any refunds approved by 9752337971, it will take 2 days for the refund to be
-              processed to you.</p>
+          <div class="policy-card paragraph-card mt-6">
+            <h3 class="font-semibold mb-2">Contact Us</h3>
+            <p class="card-text">For cancellations or support, contact us at:</p>
+            <p class="card-text">
+              <strong>Email:</strong>
+              <a href="mailto:support@myastrosathi.com" class="text-orange-500 hover:underline">
+                support@myastrosathi.com
+              </a>
+            </p>
+            <p class="card-text">
+              <strong>Phone:</strong>
+              <a href="tel:+919201191929" class="text-orange-500 hover:underline">
+                +91 9201191929
+              </a>
+            </p>
           </div>
         </div>
+
 
         <div v-else-if="activeTab === 'return'" key="return" class="policy-content">
           <div class="policy-card paragraph-card">
@@ -111,8 +125,8 @@ const activeTab = ref('refund')
 const tabs = [
   { key: 'refund', label: 'Refund & Cancellation', icon: '💳' },
 ]
-  // { key: 'return', label: 'Return Policy', icon: '↩️' },
-  // { key: 'shipping', label: 'Shipping Policy', icon: '🚚' },
+// { key: 'return', label: 'Return Policy', icon: '↩️' },
+// { key: 'shipping', label: 'Shipping Policy', icon: '🚚' },
 
 function starStyle(n) {
   const size = (n % 2) + 1
