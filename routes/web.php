@@ -92,7 +92,7 @@ Route::middleware(['auth', 'verified', 'role:User'])->group(function () {
     Route::delete('/user/profile', [UserController::class, 'destroyProfile'])->name('user.profile.destroy');
 
 });
-Route::post('user/response/{id}', [MainController::class, 'phonePeResponse'])->name('user.response');
+Route::any('user/response/{id}', [MainController::class, 'phonePeResponse'])->name('user.response');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
