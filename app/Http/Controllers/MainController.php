@@ -158,7 +158,7 @@ class MainController extends Controller
                     ->firstOrFail();
 
                 $startOfWeek = Carbon::now()->setISODate($year, $week)->startOfWeek();
-                $endOfWeek   = Carbon::now()->setISODate($year, $week)->endOfWeek();
+                $endOfWeek = Carbon::now()->setISODate($year, $week)->endOfWeek();
                 $formattedDate = $startOfWeek->format('d M, Y') . ' - ' . $endOfWeek->format('d M, Y');
             } elseif ($type === 'monthly') {
                 $monthKey = $today->format('Y-m');
@@ -201,25 +201,29 @@ class MainController extends Controller
         ]);
     }
 
-    public function terms(){
+    public function terms()
+    {
         return Inertia::render('Terms/Index', [
             'user' => Auth::user()?->load('wallet'),
         ]);
     }
 
-    public function privacy(){
+    public function privacy()
+    {
         return Inertia::render('Privacy/Index', [
             'user' => Auth::user()?->load('wallet'),
         ]);
     }
 
-    public function refund(){
+    public function refund()
+    {
         return Inertia::render('RefundPolicy/Index', [
             'user' => Auth::user()?->load('wallet'),
         ]);
     }
 
-    public function contact(){
+    public function contact()
+    {
         return Inertia::render('Contact/Index', [
             'user' => Auth::user()?->load('wallet'),
         ]);
@@ -229,28 +233,25 @@ class MainController extends Controller
     {
         $tempOrder = TempOrder::findOrFail($id);
         $user = User::findOrFail($tempOrder->user_id);
+        $tokenResponse = Http::asForm()->post(
+            'https://api.phonepe.com/apis/identity-manager/v1/oauth/token',
+            [
+                'client_id' => 'SU2605291038460969015418',
+                'client_secret' => 'b074e043-6df9-459a-84b3-a0d9bbca5e5d',
+                'grant_type' => 'client_credentials',
+            ]
+        );
 
-        $input = $request->all();
-
-        $saltKey   = '96434309-7796-489d-8924-ab56988a6076';
-        // $saltKey   = 'c59ab974-a03a-4764-bc75-52da393e5d7e';
-        $saltIndex = 1;
-
-        // Build the verification header
-        $string = '/pg/v1/status/' . $input['merchantId'] . '/' . $input['transactionId'] . $saltKey;
-        $sha256 = hash('sha256', $string);
-        $finalXHeader = $sha256 . '###' . $saltIndex;
+        $token = $tokenResponse->json()['access_token'];
 
         // PhonePe sandbox status URL
-        $url = "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/status/{$input['merchantId']}/{$input['transactionId']}";
-        // $url = "https://api.phonepe.com/apis/hermes/pg/v1/status/{$input['merchantId']}/{$input['transactionId']}";
+        // $url = "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/status/{$input['merchantId']}/{$input['transactionId']}";
+        $url = "https://api.phonepe.com/apis/pg/checkout/v2/order/{$tempOrder->transaction_ref}/status";
 
         // Send request using Laravel Http client
         $response = Http::withHeaders([
-            'Content-Type'   => 'application/json',
-            'accept'         => 'application/json',
-            'X-VERIFY'       => $finalXHeader,
-            'X-MERCHANT-ID'  => $input['transactionId'],
+            'Content-Type' => 'application/json',
+            'Authorization' => 'O-Bearer ' . $token,
         ])->get($url);
 
         Auth::login($user);
@@ -259,7 +260,7 @@ class MainController extends Controller
         $rData = $response->json();
         // For debugging
 
-        if (($rData['success'] ?? false) && ($rData['code'] ?? '') === 'PAYMENT_SUCCESS') {
+        if (($rData['state'] ?? '') === 'COMPLETED') {
             DB::beginTransaction();
             try {
                 $tempOrder->status = 'success';
@@ -267,12 +268,12 @@ class MainController extends Controller
 
                 // Create permanent order
                 $order = Order::create([
-                    'user_id'        => $user->id,
-                    'phone'        => $user->phone,
-                    'recharge_package_id'     => $tempOrder->recharge_package_id,
-                    'amount'         => $tempOrder->amount,
-                    'bonus_amount'   => $tempOrder->bonus_amount ?? 0,
-                    'payable_amount'   => $tempOrder->payable_amount ?? 0,
+                    'user_id' => $user->id,
+                    'phone' => $user->phone,
+                    'recharge_package_id' => $tempOrder->recharge_package_id,
+                    'amount' => $tempOrder->amount,
+                    'bonus_amount' => $tempOrder->bonus_amount ?? 0,
+                    'payable_amount' => $tempOrder->payable_amount ?? 0,
                     'payment_gateway' => 'phonepe',
                     'transaction_ref' => $tempOrder->transaction_ref,
                 ]);
@@ -286,22 +287,30 @@ class MainController extends Controller
 
                 DB::commit();
 
-                return redirect()->route('user.chat-with-astrologers')->with('success', 'Payment successful! Wallet credited.');
+                return redirect()->route('user.chat-with-astrologers')
+                    ->with('success', 'Payment successful! Wallet credited.');
             } catch (\Exception $e) {
-                // Rollback on error
                 DB::rollBack();
-
-                // Optionally log the error
                 \Log::error('Payment success flow failed: ' . $e->getMessage());
 
                 return redirect()->route('user.chat-with-astrologers')
                     ->with('error', 'Something went wrong. Please contact support.');
             }
-        } elseif (($rData['code'] ?? '') === 'PAYMENT_ERROR') {
+        } elseif (($rData['state'] ?? '') === 'FAILED') {
             $tempOrder->status = 'failed';
             $tempOrder->save();
-            return redirect()->route('user.chat-with-astrologers')->with('error', 'Payment failed. Please try again.');
+
+            return redirect()->route('user.chat-with-astrologers')
+                ->with('error', 'Payment failed. Please try again.');
+        } else {
+            // Handle PENDING or other states gracefully
+            $tempOrder->status = 'pending';
+            $tempOrder->save();
+
+            return redirect()->route('user.chat-with-astrologers')
+                ->with('error', 'Payment is still pending. Please check again later.');
         }
+
         return redirect()->route('user.chat-with-astrologers');
     }
 }

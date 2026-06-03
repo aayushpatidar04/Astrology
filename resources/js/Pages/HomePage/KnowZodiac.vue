@@ -59,12 +59,12 @@ function findZodiac() {
 
         <!-- Button -->
         <div class="md:col-span-3 flex justify-center mt-6">
-          <button
+          <a href="/login"
             type="submit"
             class="px-6 py-3 bg-orange-500 text-white font-semibold rounded hover:bg-orange-600 transition"
           >
             FIND ZODIAC
-          </button>
+          </a>
         </div>
       </form>
     </div>

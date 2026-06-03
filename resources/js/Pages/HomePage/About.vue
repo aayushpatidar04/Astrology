@@ -51,9 +51,9 @@ onUnmounted(() => {
 
             <!-- Buttons -->
             <div class="flex justify-center md:justify-start space-x-4">
-                <button class="px-5 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">
+                <a href="/about-us" class="px-5 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">
                     READ MORE
-                </button>
+                </a>
             </div>
 
             <!-- Contact -->

@@ -53,21 +53,23 @@ class AuthController extends Controller
 
         try {
             // Send OTP via WhatsApp API
-            Http::post('http://wa.intouchsoftwaresolution.com/api/v1/sendMessage', [
-                'key'     => config('app.WHATSAPP_API_KEY'),
-                'to'      => '91' . $validated['phone'],
-                'message' => $content,
-            ]);
+            $response =Http::withHeaders([
+                'Authorization' => 'Bearer ' . config('app.WHATSAPP_API_TOKEN'),
+                'X-Instance-Token' => config('app.WHATSAPP_INSTANCE_TOKEN'),
+            ])->post('https://whatsapp.intouchsoftware.co.in/api/gateway/send/text', [
+                        'to' => '91' . $validated['phone'],
+                        'message' => $content,
+                    ]);
 
             return response()->json([
-                'status'  => 'success',
+                'status' => 'success',
                 'message' => 'OTP sent successfully',
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => 'Failed to send OTP',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 200);
         }
     }
@@ -90,16 +92,16 @@ class AuthController extends Controller
 
         if (!$otpRecord) {
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => 'No OTP found for this phone number',
-                'error'   => 'No OTP found for this phone number'
+                'error' => 'No OTP found for this phone number'
             ], 200);
         }
 
         // Check expiry
         if (Carbon::now()->greaterThan($otpRecord->expires_at)) {
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => 'OTP has expired',
                 'error' => 'OTP has expired',
             ], 200);
@@ -108,7 +110,7 @@ class AuthController extends Controller
         // Check OTP match
         if ($otpRecord->otp != $validated['otp']) {
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => 'Invalid OTP',
                 'error' => 'Invalid OTP',
             ], 200);
@@ -123,15 +125,15 @@ class AuthController extends Controller
             $token = $user->createToken('myastrosathi')->plainTextToken;
 
             return response()->json([
-                'status'  => 'success',
+                'status' => 'success',
                 'message' => 'Phone verified successfully. Logged in.',
-                'user'    => $user,
-                'token'   => $token,
+                'user' => $user,
+                'token' => $token,
             ], 200);
         } else {
             // New user → just return verified status so frontend can redirect to registration
             return response()->json([
-                'status'  => 'success',
+                'status' => 'success',
                 'message' => 'Phone verified successfully. Please proceed to registration.',
             ], 200);
         }
@@ -241,7 +243,9 @@ class AuthController extends Controller
         }
     }
 
-    public function loginAstrologer(Request $request) {}
+    public function loginAstrologer(Request $request)
+    {
+    }
 
     public function logout(Request $request)
     {

@@ -269,51 +269,46 @@ class UserController extends Controller
             'transaction_ref' => uniqid('txn_'),
         ]);
         $data = [
-            // 'merchantId' => 'M22AUB1U8TCJN',
-            'merchantId' => 'PGTESTPAYUAT86',
-            'merchantTransactionId' => $tempOrder->transaction_ref,
+            'merchantId' => 'MYASTROSATHIONLINE',
+            // 'merchantId' => 'PGTESTPAYUAT86',
+            'merchantOrderId' => $tempOrder->transaction_ref,
             'merchantUserId' => 'MUID' . $user->id,
             'amount' => intval($request->total_payable * 100),
-            'redirectUrl' => route('user.response', ['id' => $tempOrder->id]),
             'redirectMode' => 'GET',
-            'callbackUrl' => route('user.response', ['id' => $tempOrder->id]),
             'mobileNumber' => $user->phone ?? '9999999999',
-            'paymentInstrument' => [
-                'type' => 'PAY_PAGE',
+            'paymentFlow' => [
+                'type' => 'PG_CHECKOUT',
+                'merchantUrls' => [
+                    'redirectUrl' => route('user.response', ['id' => $tempOrder->id]),
+                ],
             ],
         ];
+        
+        $tokenResponse = Http::asForm()->post(
+            'https://api.phonepe.com/apis/identity-manager/v1/oauth/token',
+            [
+                'client_id'     => 'SU2605291038460969015418',
+                'client_secret' => 'b074e043-6df9-459a-84b3-a0d9bbca5e5d',
+                'grant_type'    => 'client_credentials',
+            ]
+        );
 
-        // Encode request
-        $encode = base64_encode(json_encode($data));
-
-        // Salt key and index from PhonePe sandbox
-        $saltKey   = '96434309-7796-489d-8924-ab56988a6076';
-        // $saltKey   = 'c59ab974-a03a-4764-bc75-52da393e5d7e';
-        $saltIndex = 1;
-
-        // Create string to hash
-        $string = $encode . '/pg/v1/pay' . $saltKey;
-        $sha256 = hash('sha256', $string);
-
-        // Final header
-        $finalXHeader = $sha256 . '###' . $saltIndex;
+        $token = $tokenResponse->json()['access_token'];
 
         // Sandbox URL
-        $url = "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay";
-        // $url = "https://api.phonepe.com/apis/hermes/pg/v1/pay";
+        // $url = "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay";
+        $url = "https://api.phonepe.com/apis/pg/checkout/v2/pay";
 
         // Send request using Laravel HTTP client
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
-            'X-VERIFY'     => $finalXHeader,
-        ])->post($url, [
-            'request' => $encode,
-        ]);
+            'Authorization' => 'O-Bearer ' . $token,
+        ])->post($url, $data);
 
         $rData = $response->json();
-        \Log::info('PhonePe Response', ['response' => $rData]);
+        // \Log::info($rData);
         return response()->json([
-            'redirect_url' => $rData['data']['instrumentResponse']['redirectInfo']['url'],
+            'redirect_url' => $rData['redirectUrl'] ?? null,
         ]);
     }
 
