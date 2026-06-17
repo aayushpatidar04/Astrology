@@ -90,9 +90,12 @@ Route::middleware(['auth', 'verified', 'role:User'])->group(function () {
     Route::get('/user/profile', [UserController::class, 'editProfile'])->name('user.profile.edit');
     Route::patch('/user/profile', [UserController::class, 'updateProfile'])->name('user.profile.update');
     Route::delete('/user/profile', [UserController::class, 'destroyProfile'])->name('user.profile.destroy');
-
+    
 });
+
 Route::any('user/response/{id}', [MainController::class, 'phonePeResponse'])->name('user.response');
+Route::get('user-call-web-view/{astrologer_id}/{user_id}', [MainController::class, 'callWebView']);
+Route::get('astrologer-call-web-view/{astrologer_id}/{user_id}', [MainController::class, 'astrologerCallWebView']);
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

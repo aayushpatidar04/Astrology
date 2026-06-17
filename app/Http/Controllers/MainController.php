@@ -313,4 +313,19 @@ class MainController extends Controller
 
         return redirect()->route('user.chat-with-astrologers');
     }
+
+    public function callWebView($astrologer_id, $user_id){
+        $user = User::findOrFail($user_id);
+        Auth::login($user);
+
+        return redirect()->route('user.call.show', $astrologer_id);
+    }
+
+    public function astrologerCallWebView($astrologer_id, $user_id){
+        $astrologer = User::findOrFail($astrologer_id);
+        Auth::login($astrologer);
+
+        return redirect()->route('astrologer.calls', $user_id);
+    }
+
 }
