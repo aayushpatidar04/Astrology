@@ -81,6 +81,12 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Packages
                                 </NavLink>
+                                <NavLink
+                                    :href="route('admin.transactions.index')"
+                                    :active="route().current('admin.transactions.index')"
+                                >
+                                    Transactions
+                                </NavLink>
                             </div>
                         </div>
 

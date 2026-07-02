@@ -53,6 +53,8 @@ Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {
     Route::get('/astrologers', [AdminController::class, 'astrologers'])->name('admin.astrologers');
     Route::post('/astrologers/{astrologer}/status', [AdminController::class, 'updateStatus'])->name('admin.astrologers.updateStatus');
     Route::post('/astrologers/{astrologer}/pricing', [AdminController::class, 'updatePricing'])->name('admin.astrologers.updatePricing');
+    Route::get('/admin/transactions', [AdminController::class, 'transactions'])->name('admin.transactions.index');
+    Route::post('/admin/transactions', [AdminController::class, 'transactionStore'])->name('admin.transactions.store');
 
     Route::get('/users', [AdminController::class, 'users'])->name('admin.users');
 });

@@ -5,6 +5,7 @@ import { VueGoodTable } from "vue-good-table-next";
 import "vue-good-table-next/dist/vue-good-table-next.css";
 import dayjs from "dayjs";
 import SetPricing from './SetPricing.vue';
+import AddTransaction from './AddTransaction.vue';
 
 const props = defineProps({
     astrologers: Object,
@@ -132,6 +133,8 @@ function updateStatus(astrologerId, status) {
                                 Reject
                             </button>
                         </template>
+
+                        <AddTransaction :astrologer="props.row.astrologer" />
                     </span>
 
                     <span v-else>

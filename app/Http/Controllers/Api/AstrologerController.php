@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Astrologer;
+use App\Models\BankDetail;
 use App\Models\Chat;
 use App\Models\ChatSession;
 use App\Models\CallHistory;
+use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -214,5 +216,42 @@ class AstrologerController extends Controller
             'last_consultations' => $lastConsultations,
             'astrologer' => $astrologer,
         ]);
+    }
+
+    public function storeBankDetails(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'account_holder' => 'required|string',
+            'account_number' => 'required|string',
+            'ifsc_code' => 'required|string',
+            'bank_name' => 'required|string',
+            'branch_name' => 'nullable|string',
+        ]);
+
+        $details = BankDetail::updateOrCreate(
+            ['astrologer_id' => $id],
+            $validated
+        );
+
+        return response()->json(['message' => 'Bank details saved', 'data' => $details]);
+    }
+
+    public function getBankDetails($id)
+    {
+        $details = BankDetail::where('astrologer_id', $id)->first();
+        return response()->json($details);
+    }
+
+    public function getAstrologerTransactions($id)
+    {
+        $transactions = Transaction::where('astrologer_id', $id)
+            ->orderBy('transacted_at', 'desc')
+            ->get()
+            ->map(function ($txn) {
+                $txn->proof_url = $txn->proof ? asset($txn->proof) : null;
+                return $txn;
+            });
+
+        return response()->json($transactions);
     }
 }

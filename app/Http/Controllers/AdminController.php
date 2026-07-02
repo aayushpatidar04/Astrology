@@ -8,6 +8,7 @@ use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\Horoscope;
 use App\Models\RechargePackage;
+use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -239,7 +240,7 @@ class AdminController extends Controller
     {
         $rules = [
             'title' => 'required|unique:banners,title,' . $id,
-            'link'  => 'nullable',
+            'link' => 'nullable',
         ];
 
         if ($request->hasFile('image')) {
@@ -292,7 +293,7 @@ class AdminController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Banner status updated!',
-            'active'  => $banner->active,
+            'active' => $banner->active,
         ]);
     }
 
@@ -325,7 +326,8 @@ class AdminController extends Controller
         return redirect()->back();
     }
 
-    public function updateRechargePackage(Request $request, $id){
+    public function updateRechargePackage(Request $request, $id)
+    {
         $validated = $request->validate([
             'amount' => 'required|numeric',
             'bonus_amount' => 'nullable|numeric',
@@ -347,7 +349,8 @@ class AdminController extends Controller
         return redirect()->back();
     }
 
-    public function deleteRechargePackage($id){
+    public function deleteRechargePackage($id)
+    {
         $package = RechargePackage::findOrFail($id);
 
         $package->delete();
@@ -379,9 +382,9 @@ class AdminController extends Controller
     public function updatePricing(Request $request, Astrologer $astrologer): RedirectResponse
     {
         $validated = $request->validate([
-            'asked_call_price'   => ['required', 'numeric', 'min:0'],
+            'asked_call_price' => ['required', 'numeric', 'min:0'],
             'charged_call_price' => ['required', 'numeric', 'gte:asked_call_price'],
-            'asked_text_price'   => ['required', 'numeric', 'min:0'],
+            'asked_text_price' => ['required', 'numeric', 'min:0'],
             'charged_text_price' => ['required', 'numeric', 'gte:asked_text_price'],
         ]);
 
@@ -416,5 +419,88 @@ class AdminController extends Controller
         return Inertia::render('Dashboard/Admin/Users/Index', [
             'users' => $users
         ]);
+    }
+
+    public function recordTransaction(Request $request)
+    {
+        $validated = $request->validate([
+            'astrologer_id' => 'required|exists:astrologers,id',
+            'amount' => 'required|numeric',
+            'mode' => 'required|string',
+            'reference_no' => 'nullable|string',
+            'remarks' => 'nullable|string',
+            'proof' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048', // allow image/pdf proof
+        ]);
+
+        // Handle file upload
+        $proofPath = null;
+        if ($request->hasFile('proof')) {
+            $file = $request->file('proof');
+            $filename = time() . '_' . $file->getClientOriginalName();
+
+            // Move file into /public/transaction_proofs
+            $file->move(public_path('transaction_proofs'), $filename);
+
+            // Save relative path (so you can easily build URL later)
+            $proofPath = 'transaction_proofs/' . $filename;
+        }
+
+
+        $transaction = Transaction::create([
+            'astrologer_id' => $validated['astrologer_id'],
+            'amount' => $validated['amount'],
+            'mode' => $validated['mode'],
+            'reference_no' => $validated['reference_no'] ?? null,
+            'remarks' => $validated['remarks'] ?? null,
+            'proof' => $proofPath, // store relative path
+        ]);
+
+        return response()->json([
+            'message' => 'Transaction recorded successfully',
+            'data' => $transaction
+        ]);
+    }
+
+    public function transactions()
+    {
+        $transactions = Transaction::with('astrologer.user')
+            ->orderBy('transacted_at', 'desc')
+            ->paginate(20);
+
+        return inertia('Dashboard/Admin/Transactions/Index', [
+            'transactions' => $transactions,
+        ]);
+    }
+
+    // Store new transaction (manual entry)
+    public function transactionStore(Request $request)
+    {
+        $validated = $request->validate([
+            'astrologer_id' => 'required|exists:astrologers,id',
+            'amount' => 'required|numeric',
+            'mode' => 'required|string',
+            'reference_no' => 'nullable|string',
+            'remarks' => 'nullable|string',
+            'proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+        ]);
+
+        $proofPath = null;
+        if ($request->hasFile('proof')) {
+            $file = $request->file('proof');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('transaction_proofs'), $filename);
+            $proofPath = 'transaction_proofs/' . $filename;
+        }
+
+        Transaction::create([
+            'astrologer_id' => $validated['astrologer_id'],
+            'amount'        => $validated['amount'],
+            'mode'          => $validated['mode'],
+            'reference_no'  => $validated['reference_no'] ?? null,
+            'remarks'       => $validated['remarks'] ?? null,
+            'proof'         => $proofPath,
+        ]);
+
+        return redirect()->route('admin.transactions.index')->with('success', 'Transaction recorded successfully.');
     }
 }

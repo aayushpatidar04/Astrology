@@ -52,6 +52,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('astrologer/chats/{chatId}/messages', [AstrologerController::class, 'messages']);
         Route::get('/astrologers/{id}/stats', [AstrologerController::class, 'stats']);
 
+        Route::post('/astrologers/{id}/bank-details', [AstrologerController::class, 'storeBankDetails']);
+        Route::get('/astrologers/{id}/bank-details', [AstrologerController::class, 'getBankDetails']);
+
+        Route::get('/astrologers/{id}/transactions', [AstrologerController::class, 'getAstrologerTransactions']);
+
     });
 
 });
