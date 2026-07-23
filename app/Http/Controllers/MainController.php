@@ -7,6 +7,7 @@ use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\Horoscope;
 use App\Models\Order;
+use App\Models\RechargePackage;
 use App\Models\TempOrder;
 use App\Models\User;
 use App\Models\UserWallet;
@@ -313,6 +314,32 @@ class MainController extends Controller
 
         return redirect()->route('user.chat-with-astrologers');
     }
+
+    public function phonePeWebView($user_id, $package_id)
+    {
+        // Log in the user
+        $user = User::findOrFail($user_id);
+        Auth::login($user);
+
+        // Fetch package details
+        $package = RechargePackage::findOrFail($package_id);
+
+        // Compute GST (18% of amount)
+        $gst = round(($package->amount * 18) / 100, 2);
+
+        // Total payable = amount + gst - (any coupon discount logic if needed)
+        $totalPayable = $package->amount + $gst;
+
+        return redirect()->route('user.phonePe', [
+            'package_id'   => $package->id,
+            'amount'       => $package->amount,
+            'bonus_amount' => $package->bonus_amount,
+            'gst'          => $gst,
+            'total_payable'=> $totalPayable,
+            'coupon_code'  => null,
+        ]);
+    }
+
 
     public function callWebView($astrologer_id, $user_id){
         $user = User::findOrFail($user_id);

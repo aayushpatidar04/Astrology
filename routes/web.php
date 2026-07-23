@@ -94,7 +94,7 @@ Route::middleware(['auth', 'verified', 'role:User'])->group(function () {
     Route::delete('/user/profile', [UserController::class, 'destroyProfile'])->name('user.profile.destroy');
     
 });
-
+Route::get('/user/phonepe/webview/{user_id}/{package_id}', [MainController::class, 'phonePeWebView'])->name('user.phonepe.webview');
 Route::any('user/response/{id}', [MainController::class, 'phonePeResponse'])->name('user.response');
 Route::get('user-call-web-view/{astrologer_id}/{user_id}', [MainController::class, 'callWebView']);
 Route::get('astrologer-call-web-view/{astrologer_id}/{user_id}', [MainController::class, 'astrologerCallWebView']);
