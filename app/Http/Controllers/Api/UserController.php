@@ -8,9 +8,12 @@ use App\Models\Astrologer;
 use App\Models\Chat;
 use App\Models\ChatSession;
 use App\Models\RechargePackage;
+use App\Models\TempOrder;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+
 
 class UserController extends Controller
 {
@@ -272,6 +275,73 @@ class UserController extends Controller
         return response()->json([
             'success'   => true,
             'deduction' => $deduction,
+        ]);
+    }
+
+    public function phonePeWebView($package_id)
+    {
+        $user = auth()->user();
+        // Fetch package details
+        $package = RechargePackage::findOrFail($package_id);
+
+        // Compute GST (18% of amount)
+        $gst = round(($package->amount * 18) / 100, 2);
+
+        // Total payable = amount + gst - (any coupon discount logic if needed)
+        $totalPayable = $package->amount + $gst;
+
+        $tempOrder = TempOrder::create([
+            'user_id'        => $user->id,
+            'phone'        => $user->phone,
+            'recharge_package_id'     => $package_id,
+            'amount'         => $package->amount,
+            'bonus_amount'   => $package->bonus_amount ?? 0,
+            'payable_amount'   => $totalPayable ?? 0,
+            'status'         => 'pending',
+            'payment_gateway' => 'phonepe',
+            'transaction_ref' => uniqid('txn_'),
+        ]);
+        $data = [
+            'merchantId' => 'MYASTROSATHIONLINE',
+            // 'merchantId' => 'PGTESTPAYUAT86',
+            'merchantOrderId' => $tempOrder->transaction_ref,
+            'merchantUserId' => 'MUID' . $user->id,
+            'amount' => intval($totalPayable * 100),
+            'redirectMode' => 'GET',
+            'mobileNumber' => $user->phone ?? '9999999999',
+            'paymentFlow' => [
+                'type' => 'PG_CHECKOUT',
+                'merchantUrls' => [
+                    'redirectUrl' => route('user.response', ['id' => $tempOrder->id]),
+                ],
+            ],
+        ];
+        
+        $tokenResponse = Http::asForm()->post(
+            'https://api.phonepe.com/apis/identity-manager/v1/oauth/token',
+            [
+                'client_id'     => 'SU2605291038460969015418',
+                'client_secret' => 'b074e043-6df9-459a-84b3-a0d9bbca5e5d',
+                'grant_type'    => 'client_credentials',
+            ]
+        );
+
+        $token = $tokenResponse->json()['access_token'];
+
+        // Sandbox URL
+        // $url = "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay";
+        $url = "https://api.phonepe.com/apis/pg/checkout/v2/pay";
+
+        // Send request using Laravel HTTP client
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Authorization' => 'O-Bearer ' . $token,
+        ])->post($url, $data);
+
+        $rData = $response->json();
+
+        return response()->json([
+            'redirect_url' => $rData['redirectUrl'] ?? null,
         ]);
     }
 }
