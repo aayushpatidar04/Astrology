@@ -49,7 +49,7 @@ class UserController extends Controller
         $ratePerMinute = $astrologer->charged_text_price;
         $minRequiredBalance = $ratePerMinute * 4;
 
-        if ($user->wallet->balance < $minRequiredBalance) {
+        if ($user->wallet?->balance < $minRequiredBalance) {
             return redirect()->route('user.chat-with-astrologers')
                 ->with('error', 'You need at least 4 minutes balance to start a chat.');
         }
@@ -91,7 +91,7 @@ class UserController extends Controller
         $ratePerMinute = $astrologer->charged_text_price;
         $minRequiredBalance = $ratePerMinute * 4; // 4 minutes minimum
 
-        if ($user->wallet->balance < $minRequiredBalance) {
+        if ($user->wallet?->balance < $minRequiredBalance) {
             // Redirect to recharge page or show a message
             return redirect()->route('user.chat-with-astrologers')
                 ->with('error', 'You need at least 4 minutes balance to start a chat.');
@@ -241,7 +241,7 @@ class UserController extends Controller
             'firstTimeOffers' => $firstTimeOffers,
             'regularOffers'   => $regularOffers,
             'specialOffers'   => $specialOffers,
-            'walletBalance'   => $user->wallet->balance,
+            'walletBalance'   => $user->wallet?->balance,
         ]);
     }
 
@@ -337,7 +337,7 @@ class UserController extends Controller
         $ratePerMinute = $astrologer->charged_call_price;
         $minRequiredBalance = $ratePerMinute * 4; // 4 minutes minimum
 
-        if ($user->wallet->balance < $minRequiredBalance) {
+        if ($user->wallet?->balance < $minRequiredBalance) {
             // Redirect to recharge page or show a message
             return redirect()->route('user.chat-with-astrologers')
                 ->with('error', 'You need at least 4 minutes balance to start a call.');

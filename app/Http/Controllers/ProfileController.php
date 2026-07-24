@@ -140,11 +140,11 @@ class ProfileController extends Controller
 
         // Deduct from wallet if positive
         if ($deduction > 0) {
-            $currentBalance = $user->wallet->balance;
+            $currentBalance = $user->wallet?->balance;
             $finalDeduction = min($deduction, $currentBalance); // cap deduction at current balance
 
             if ($finalDeduction > 0) {
-                $user->wallet->decrement('balance', $finalDeduction);
+                $user->wallet?->decrement('balance', $finalDeduction);
             }
         }
 
@@ -206,11 +206,11 @@ class ProfileController extends Controller
 
         // Deduct from wallet if positive
         if ($deduction > 0) {
-            $currentBalance = $user->wallet->balance;
+            $currentBalance = $user->wallet?->balance;
             $finalDeduction = min($deduction, $currentBalance); // cap deduction at current balance
 
             if ($finalDeduction > 0) {
-                $user->wallet->decrement('balance', $finalDeduction);
+                $user->wallet?->decrement('balance', $finalDeduction);
             }
         }
 

@@ -195,7 +195,7 @@ class UserController extends Controller
             'firstTimeOffers' => $firstTimeOffers,
             'regularOffers'   => $regularOffers,
             'specialOffers'   => $specialOffers,
-            'walletBalance'   => $user->wallet->balance,
+            'walletBalance'   => $user->wallet?->balance,
         ]);
     }
 
@@ -254,11 +254,11 @@ class UserController extends Controller
         }
 
         if ($deduction > 0) {
-            $currentBalance = $user->wallet->balance;
+            $currentBalance = $user->wallet?->balance;
             $finalDeduction = min($deduction, $currentBalance); // cap deduction at current balance
 
             if ($finalDeduction > 0) {
-                $user->wallet->decrement('balance', $finalDeduction);
+                $user->wallet?->decrement('balance', $finalDeduction);
             }
         }
 
