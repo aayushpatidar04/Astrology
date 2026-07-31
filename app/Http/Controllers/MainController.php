@@ -315,6 +315,93 @@ class MainController extends Controller
         return redirect()->route('user.chat-with-astrologers');
     }
 
+    public function phonePeResponseApi(Request $request, $id)
+    {
+        $tempOrder = TempOrder::findOrFail($id);
+        $user = User::findOrFail($tempOrder->user_id);
+
+        $tokenResponse = Http::asForm()->post(
+            'https://api.phonepe.com/apis/identity-manager/v1/oauth/token',
+            [
+                'client_id' => 'SU2605291038460969015418',
+                'client_secret' => 'b074e043-6df9-459a-84b3-a0d9bbca5e5d',
+                'grant_type' => 'client_credentials',
+            ]
+        );
+
+        $token = $tokenResponse->json()['access_token'];
+
+        $url = "https://api.phonepe.com/apis/pg/checkout/v2/order/{$tempOrder->transaction_ref}/status";
+
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Authorization' => 'O-Bearer ' . $token,
+        ])->get($url);
+
+        Auth::login($user);
+
+        $rData = $response->json();
+
+        if (($rData['state'] ?? '') === 'COMPLETED') {
+            DB::beginTransaction();
+            try {
+                $tempOrder->status = 'success';
+                $tempOrder->save();
+
+                $order = Order::create([
+                    'user_id' => $user->id,
+                    'phone' => $user->phone,
+                    'recharge_package_id' => $tempOrder->recharge_package_id,
+                    'amount' => $tempOrder->amount,
+                    'bonus_amount' => $tempOrder->bonus_amount ?? 0,
+                    'payable_amount' => $tempOrder->payable_amount ?? 0,
+                    'payment_gateway' => 'phonepe',
+                    'transaction_ref' => $tempOrder->transaction_ref,
+                ]);
+
+                $wallet = UserWallet::where('user_id', $user->id)->first();
+                if ($wallet) {
+                    $wallet->balance += $tempOrder->amount + $tempOrder->bonus_amount;
+                    $wallet->save();
+                }
+
+                DB::commit();
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Payment successful! Wallet credited.',
+                    'order' => $order,
+                    'wallet_balance' => $wallet->balance ?? null,
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                \Log::error('Payment success flow failed: ' . $e->getMessage());
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Something went wrong. Please contact support.',
+                ], 500);
+            }
+        } elseif (($rData['state'] ?? '') === 'FAILED') {
+            $tempOrder->status = 'failed';
+            $tempOrder->save();
+
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'Payment failed. Please try again.',
+            ]);
+        } else {
+            $tempOrder->status = 'pending';
+            $tempOrder->save();
+
+            return response()->json([
+                'status' => 'pending',
+                'message' => 'Payment is still pending. Please check again later.',
+            ]);
+        }
+    }
+
+
 
     public function callWebView($astrologer_id, $user_id){
         $user = User::findOrFail($user_id);

@@ -312,7 +312,7 @@ class UserController extends Controller
             'paymentFlow' => [
                 'type' => 'PG_CHECKOUT',
                 'merchantUrls' => [
-                    'redirectUrl' => route('user.response', ['id' => $tempOrder->id]),
+                    'redirectUrl' => route('user.response.api', ['id' => $tempOrder->id]),
                 ],
             ],
         ];
