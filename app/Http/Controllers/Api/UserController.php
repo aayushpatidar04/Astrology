@@ -10,6 +10,7 @@ use App\Models\ChatSession;
 use App\Models\RechargePackage;
 use App\Models\TempOrder;
 use App\Models\User;
+use App\Services\FirebaseNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -21,6 +22,16 @@ class UserController extends Controller
         'auth',
         'role' => 'User'
     ];
+
+    private function sendNotification($fcmToken, $title, $body, $data)
+    {
+        $firebase = new FirebaseNotificationService();
+        try {
+            $firebase->sendNotification($fcmToken, $title, $body, $data);
+        } catch (\Throwable $e) {
+            Log::info($e->getMessage());
+        }
+    }
 
     public function astrologers()
     {
@@ -53,7 +64,7 @@ class UserController extends Controller
 
     public function startChat($astrologerId)
     {
-        $user = auth()->user();
+        $user = Auth::user();
         $astrologer = User::findOrFail($astrologerId);
 
         $chat = Chat::whereHas('participants', function ($q) use ($user) {
@@ -175,7 +186,7 @@ class UserController extends Controller
 
     public function recharge()
     {
-        $user = auth()->user()->load('wallet');
+        $user = Auth::user()->load('wallet');
 
         $firstTimeOffers = collect();
         $regularOffers   = collect();
@@ -201,7 +212,7 @@ class UserController extends Controller
 
     public function wallet()
     {
-        $wallet = auth()->user()->wallet;
+        $wallet = Auth::user()->wallet;
 
         return response()->json([
             'status' => 'success',
@@ -280,7 +291,7 @@ class UserController extends Controller
 
     public function phonePeWebView($package_id)
     {
-        $user = auth()->user();
+        $user = Auth::user();
         // Fetch package details
         $package = RechargePackage::findOrFail($package_id);
 

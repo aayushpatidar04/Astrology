@@ -16,6 +16,8 @@ Route::post('verifyOtp', [AuthController::class, 'verifyOtp']);
 Route::post('/register-astrologer', [AuthController::class, 'registerAstrologer']);
 Route::post('/register-user', [AuthController::class, 'registerUser']);
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('device-token', [AuthController::class, 'storeDeviceToken']);
+    Route::post('test-notification', [MainController::class, 'testNotification']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::prefix('blogs')->group(function () {

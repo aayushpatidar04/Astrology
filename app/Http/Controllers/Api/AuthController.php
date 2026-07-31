@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\UserDetail;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -330,5 +331,28 @@ class AuthController extends Controller
                 'error' => $e->getMessage(),
             ], 200);
         }
+    }
+
+    public function storeDeviceToken(Request $request)
+    {
+        try {
+            $request->validate([
+                'device_token' => 'required|string',
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'errors' => $e->errors(),
+                'message' => 'Validation failed',
+            ], 200);
+        }
+
+        $user = Auth::user();
+        $user->device_token = $request->device_token;
+        $user->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Device token stored successfully'
+        ]);
     }
 }

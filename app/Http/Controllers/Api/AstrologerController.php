@@ -9,12 +9,26 @@ use App\Models\Chat;
 use App\Models\ChatSession;
 use App\Models\CallHistory;
 use App\Models\Transaction;
+use App\Services\FirebaseNotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AstrologerController extends Controller
 {
+
+    private function sendNotification($fcmToken, $title, $body, $data)
+    {
+        $firebase = new FirebaseNotificationService();
+        try {
+            $firebase->sendNotification($fcmToken, $title, $body, $data);
+        } catch (\Throwable $e) {
+            Log::info($e->getMessage());
+        }
+    }
+
     public function chats()
     {
         $userId = Auth::id();
@@ -172,7 +186,7 @@ class AstrologerController extends Controller
                 'chat_sessions.duration_seconds as duration',
                 'chat_sessions.ended_at',
                 'chat_sessions.created_at',
-                \DB::raw("'chat' as type")
+                DB::raw("'chat' as type")
             )
             ->orderBy('chat_sessions.created_at', 'desc')
             ->limit(3);
@@ -181,13 +195,13 @@ class AstrologerController extends Controller
             ->join('users', 'call_histories.user_id', '=', 'users.id')
             ->select(
                 'call_histories.id',
-                \DB::raw('NULL as chat_id'), // align columns with chat_sessions
+                DB::raw('NULL as chat_id'), // align columns with chat_sessions
                 'call_histories.user_id',
                 'users.name as user_name',
                 'call_histories.duration',
                 'call_histories.ended_at',
                 'call_histories.created_at',
-                \DB::raw("'call' as type")
+                DB::raw("'call' as type")
             )
             ->orderBy('call_histories.created_at', 'desc')
             ->limit(3);

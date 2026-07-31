@@ -12,9 +12,11 @@ use App\Models\Chat;
 use App\Models\Chogdiya;
 use App\Models\Horoscope;
 use App\Models\Testimonial;
+use App\Services\FirebaseNotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class MainController extends Controller
@@ -22,6 +24,23 @@ class MainController extends Controller
     protected array $middleware = [
         'auth',
     ];
+
+    private function sendNotification($fcmToken, $title, $body, $data)
+    {
+        $firebase = new FirebaseNotificationService();
+        try {
+            $firebase->sendNotification($fcmToken, $title, $body, $data);
+        } catch (\Throwable $e) {
+            Log::info($e->getMessage());
+        }
+    }
+
+    public function testNotification(Request $request){
+        $this->sendNotification($request->fcmToken, $request->title, $request->body, $request->date);
+        return response()->json([
+            'message' => 'sent'
+        ]);
+    }
 
     public function blogCategories()
     {
