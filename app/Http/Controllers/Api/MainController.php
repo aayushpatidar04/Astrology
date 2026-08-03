@@ -36,7 +36,7 @@ class MainController extends Controller
     }
 
     public function testNotification(Request $request){
-        $this->sendNotification($request->fcmToken, $request->title, $request->body, $request->date);
+        $this->sendNotification($request->fcmToken, $request->title, $request->body, $request->data);
         return response()->json([
             'message' => 'sent'
         ]);

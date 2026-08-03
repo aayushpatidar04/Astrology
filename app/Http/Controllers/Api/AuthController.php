@@ -62,7 +62,7 @@ class AuthController extends Controller
             $response =Http::withHeaders([
                 'Authorization' => 'Bearer ' . config('app.WHATSAPP_API_TOKEN'),
                 'X-Instance-Token' => config('app.WHATSAPP_INSTANCE_TOKEN'),
-            ])->post('https://whatsapp.intouchsoftware.co.in/api/gateway/send/text', [
+            ])->post('https://crm.intouchsoftware.co.in/api/gateway/send/text', [
                         'to' => '91' . $validated['phone'],
                         'message' => $content,
                     ]);
