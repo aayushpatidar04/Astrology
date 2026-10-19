@@ -2,7 +2,95 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Chrome, Edge, Safari */
+/* ---------- Base ---------- */
+@layer base {
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply antialiased text-gray-800;
+    }
+
+    ::selection {
+        background: #FF7010;
+        color: #fff;
+    }
+}
+
+/* ---------- Reusable components ---------- */
+@layer components {
+    .section-heading {
+        @apply text-3xl md:text-4xl font-bold text-gray-800 tracking-tight;
+    }
+
+    /* small orange bar under centered headings */
+    .section-heading-accent::after {
+        content: '';
+        display: block;
+        width: 4rem;
+        height: 4px;
+        margin: 0.85rem auto 0;
+        border-radius: 9999px;
+        background: linear-gradient(90deg, #FF7010, #FFB066);
+    }
+
+    .btn-primary {
+        @apply relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-lg bg-primary px-6 py-2.5 font-semibold text-white shadow-md shadow-orange-500/30 transition duration-300 hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-lg hover:shadow-orange-500/40 active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-orange-300;
+    }
+
+    /* shimmer sweep on hover */
+    .btn-primary::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%);
+        transform: translateX(-100%);
+        transition: transform 0.7s ease;
+    }
+
+    .btn-primary:hover::before {
+        transform: translateX(100%);
+    }
+
+    .btn-outline {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg border-2 border-primary px-6 py-2.5 font-semibold text-primary transition duration-300 hover:-translate-y-0.5 hover:bg-primary hover:text-white hover:shadow-lg hover:shadow-orange-500/30 active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-orange-300;
+    }
+}
+
+/* ---------- Scroll reveal (used by Components/Reveal.vue) ---------- */
+.reveal {
+    opacity: 0;
+    transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal-up { transform: translateY(32px); }
+.reveal-down { transform: translateY(-32px); }
+.reveal-left { transform: translateX(-40px); }
+.reveal-right { transform: translateX(40px); }
+.reveal-scale { transform: scale(0.9); }
+.reveal-fade { transform: none; }
+
+.reveal.is-visible {
+    opacity: 1;
+    transform: none;
+}
+
+/* Respect users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    .reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+
+}
+
+/* ---------- Scrollbar (Chrome, Edge, Safari) ---------- */
 *::-webkit-scrollbar {
     width: 4px;
     height: 4px;
@@ -14,6 +102,7 @@
 
 *::-webkit-scrollbar-thumb {
     background-color: #f97316;
+    border-radius: 9999px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
@@ -23,4 +112,3 @@
 *::-webkit-scrollbar-button {
     display: none;
 }
-

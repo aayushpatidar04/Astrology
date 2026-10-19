@@ -1,113 +1,362 @@
 <script setup>
-import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import AuthLayout from '@/Layouts/AuthLayout.vue';
+import AuthField from '@/Components/AuthField.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Icon } from '@iconify/vue';
+import { ref } from 'vue';
 
 const form = useForm({
+    account_type: 'user',
     name: '',
     email: '',
+    phone: '',
+    otp: '',
+    dob: '',
+    birth_time: '',
+    gender: '',
+    location: '',
+    preferred_language: 'Hindi',
+    user_profile_image: null,
+    bio: '',
+    expertise: '',
+    experience_years: '',
+    astrologer_profile_image: null,
+    documents: [],
     password: '',
     password_confirmation: '',
 });
 
-const submit = () => {
-    form.post(route('register'), {
-        onFinish: () => form.reset('password', 'password_confirmation'),
+const otpForm = useForm({
+    phone: '',
+});
+
+const otpSent = ref(false);
+const astrologerImageName = ref('');
+const userImageName = ref('');
+
+const setAccountType = (accountType) => {
+    form.account_type = accountType;
+    form.clearErrors();
+};
+
+const setProfileImage = (event, field, imageName) => {
+    const file = event.target.files?.[0] ?? null;
+    form[field] = file;
+    imageName.value = file?.name ?? '';
+};
+
+const addDocument = () => {
+    form.documents.push({ name: '', file: null });
+};
+
+const removeDocument = (index) => {
+    form.documents.splice(index, 1);
+};
+
+const setDocumentFile = (event, index) => {
+    form.documents[index].file = event.target.files?.[0] ?? null;
+};
+
+const sendOtp = () => {
+    otpForm.phone = form.phone;
+    otpForm.post(route('register.otp.send'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            otpSent.value = true;
+            form.otp = '';
+        },
     });
+};
+
+const submit = () => {
+    form.post(route('register'), { forceFormData: true });
 };
 </script>
 
 <template>
-    <GuestLayout>
+    <AuthLayout title="Create your account" subtitle="Join MyAstroSathi and get guidance from expert astrologers">
         <Head title="Register" />
 
-        <form @submit.prevent="submit">
+        <form @submit.prevent="submit" class="auth-form">
+            <div class="auth-role-tabs" role="tablist" aria-label="Choose account type">
+                <button
+                    type="button"
+                    role="tab"
+                    :aria-selected="form.account_type === 'user'"
+                    :class="{ 'is-active': form.account_type === 'user' }"
+                    @click="setAccountType('user')"
+                >
+                    Register as User
+                </button>
+                <button
+                    type="button"
+                    role="tab"
+                    :aria-selected="form.account_type === 'astrologer'"
+                    :class="{ 'is-active': form.account_type === 'astrologer' }"
+                    @click="setAccountType('astrologer')"
+                >
+                    Register as Astrologer
+                </button>
+            </div>
+
+            <AuthField id="name" label="Name" icon="mdi:account-outline" placeholder="Your full name"
+                v-model="form.name" :error="form.errors.name" required autofocus autocomplete="name" />
+
+            <AuthField id="email" label="Email" type="email" icon="mdi:email-outline" placeholder="you@example.com"
+                v-model="form.email" :error="form.errors.email" required autocomplete="username" />
+
+            <div class="auth-form auth-form-tight" style="gap: 0">
+                <AuthField id="phone" label="WhatsApp phone number" type="tel" icon="mdi:whatsapp" prefix="+91"
+                    placeholder="10-digit number" v-model="form.phone"
+                    :error="form.errors.phone || otpForm.errors.phone" required inputmode="numeric"
+                    pattern="[0-9]{10}" maxlength="10" autocomplete="tel-national" @input="otpSent = false" />
+
+                <button type="button" class="auth-btn auth-btn-outline"
+                    :disabled="otpForm.processing || form.phone.length !== 10" @click="sendOtp">
+                    <Icon v-if="otpForm.processing" icon="mdi:loading" width="18" height="18" class="auth-spin" />
+                    {{ otpSent ? 'Resend OTP' : 'Send OTP' }}
+                </button>
+            </div>
+
+            <Transition name="field">
+                <AuthField v-if="otpSent" id="otp" label="One-time password" icon="mdi:shield-key-outline" code
+                    placeholder="6-digit code" v-model="form.otp" :error="form.errors.otp" required
+                    inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" />
+            </Transition>
+
+            <template v-if="form.account_type === 'user'">
+                <div class="auth-profile-grid">
+                    <AuthField id="dob" label="Date of birth" type="date" icon="mdi:cake-variant-outline"
+                        v-model="form.dob" :error="form.errors.dob" />
+
+                    <AuthField id="birth_time" label="Birth time" type="time" icon="mdi:clock-outline"
+                        v-model="form.birth_time" :error="form.errors.birth_time" />
+                </div>
+
+                <label class="auth-select-label" for="gender">Gender</label>
+                <select id="gender" v-model="form.gender" class="auth-select">
+                    <option value="">Prefer not to say</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                </select>
+                <p v-if="form.errors.gender" class="auth-field-error">{{ form.errors.gender }}</p>
+
+                <AuthField id="location" label="Location" icon="mdi:map-marker-outline"
+                    placeholder="City or town" v-model="form.location" :error="form.errors.location" />
+
+                <AuthField id="preferred_language" label="Preferred language" icon="mdi:translate"
+                    placeholder="Hindi" v-model="form.preferred_language"
+                    :error="form.errors.preferred_language" />
+
+                <label class="auth-upload-label" for="user_profile_image">Profile photo</label>
+                <input id="user_profile_image" type="file" accept="image/jpeg,image/png,image/webp"
+                    class="auth-file-input" @change="setProfileImage($event, 'user_profile_image', userImageName)" />
+                <p v-if="userImageName" class="auth-hint">{{ userImageName }}</p>
+                <p v-if="form.errors.user_profile_image" class="auth-field-error">{{ form.errors.user_profile_image }}</p>
+            </template>
+
+            <template v-else>
+                <div>
+                    <label class="auth-select-label" for="bio">Professional bio</label>
+                    <textarea id="bio" v-model="form.bio" class="auth-textarea" rows="4"
+                        placeholder="Tell clients about your background and approach" required />
+                    <p v-if="form.errors.bio" class="auth-field-error">{{ form.errors.bio }}</p>
+                </div>
+
+                <AuthField id="expertise" label="Areas of expertise" icon="mdi:star-outline"
+                    placeholder="Vedic astrology, Tarot (separate with commas)" v-model="form.expertise"
+                    :error="form.errors.expertise" required />
+
+                <AuthField id="experience_years" label="Years of experience" type="number"
+                    icon="mdi:briefcase-outline" placeholder="Years of experience"
+                    v-model="form.experience_years" :error="form.errors.experience_years"
+                    required min="0" max="80" />
+
+                <label class="auth-upload-label" for="astrologer_profile_image">Profile image</label>
+                <input id="astrologer_profile_image" type="file" accept="image/jpeg,image/png,image/webp"
+                    class="auth-file-input"
+                    @change="setProfileImage($event, 'astrologer_profile_image', astrologerImageName)" required />
+                <p v-if="astrologerImageName" class="auth-hint">{{ astrologerImageName }}</p>
+                <p v-if="form.errors.astrologer_profile_image" class="auth-field-error">
+                    {{ form.errors.astrologer_profile_image }}
+                </p>
+
+                <div class="auth-documents">
+                    <div class="auth-documents-heading">
+                        <div>
+                            <h3>Supporting documents <span>(optional)</span></h3>
+                            <p>Add certificates or credentials for Admin review.</p>
+                        </div>
+                        <button type="button" class="auth-btn auth-btn-outline" @click="addDocument">
+                            Add document
+                        </button>
+                    </div>
+                    <div v-for="(document, index) in form.documents" :key="index" class="auth-document-row">
+                        <AuthField :id="`document-name-${index}`" label="Document name"
+                            icon="mdi:file-document-outline" placeholder="Certificate name"
+                            v-model="document.name" :error="form.errors[`documents.${index}.name`]" required />
+                        <div>
+                            <label class="auth-upload-label" :for="`document-file-${index}`">File (PDF or image)</label>
+                            <input :id="`document-file-${index}`" type="file" accept="application/pdf,image/jpeg,image/png"
+                                class="auth-file-input" required @change="setDocumentFile($event, index)" />
+                            <p v-if="document.file" class="auth-hint">{{ document.file.name }}</p>
+                            <p v-if="form.errors[`documents.${index}.file`]" class="auth-field-error">
+                                {{ form.errors[`documents.${index}.file`] }}
+                            </p>
+                        </div>
+                        <button type="button" class="auth-remove-document" :aria-label="`Remove document ${index + 1}`"
+                            @click="removeDocument(index)">Remove</button>
+                    </div>
+                </div>
+            </template>
+
+            <AuthField id="password" label="Password" type="password" icon="mdi:lock-outline"
+                placeholder="Create a password" v-model="form.password" :error="form.errors.password" required
+                autocomplete="new-password" />
+
+            <AuthField id="password_confirmation" label="Confirm Password" type="password"
+                icon="mdi:lock-check-outline" placeholder="Re-enter your password" v-model="form.password_confirmation"
+                :error="form.errors.password_confirmation" required autocomplete="new-password" />
+
             <div>
-                <InputLabel for="name" value="Name" />
-
-                <TextInput
-                    id="name"
-                    type="text"
-                    class="mt-1 block w-full"
-                    v-model="form.name"
-                    required
-                    autofocus
-                    autocomplete="name"
-                />
-
-                <InputError class="mt-2" :message="form.errors.name" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel for="email" value="Email" />
-
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autocomplete="username"
-                />
-
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel for="password" value="Password" />
-
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password"
-                    required
-                    autocomplete="new-password"
-                />
-
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel
-                    for="password_confirmation"
-                    value="Confirm Password"
-                />
-
-                <TextInput
-                    id="password_confirmation"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password_confirmation"
-                    required
-                    autocomplete="new-password"
-                />
-
-                <InputError
-                    class="mt-2"
-                    :message="form.errors.password_confirmation"
-                />
-            </div>
-
-            <div class="mt-4 flex items-center justify-end">
-                <Link
-                    :href="route('login')"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                >
-                    Already registered?
-                </Link>
-
-                <PrimaryButton
-                    class="ms-4"
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
+                <button type="submit" class="auth-btn" :disabled="form.processing || !otpSent">
+                    <Icon v-if="form.processing" icon="mdi:loading" width="20" height="20" class="auth-spin" />
                     Register
-                </PrimaryButton>
+                </button>
+                <p v-if="!otpSent" class="auth-hint">
+                    Verify your WhatsApp number with an OTP to enable registration.
+                </p>
             </div>
+
+            <p class="auth-center">
+                Already registered?
+                <Link :href="route('login')" class="auth-link">Log in</Link>
+            </p>
         </form>
-    </GuestLayout>
+    </AuthLayout>
 </template>
+
+<style scoped>
+.field-enter-active,
+.field-leave-active {
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.field-enter-from,
+.field-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+
+.auth-role-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    padding: 0.3rem;
+    border: 1px solid #fed7aa;
+    border-radius: 0.75rem;
+    background: rgba(255, 247, 237, 0.75);
+}
+
+.auth-role-tabs button {
+    padding: 0.7rem 0.5rem;
+    border: 0;
+    border-radius: 0.55rem;
+    background: transparent;
+    color: #7c2d12;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.auth-role-tabs button.is-active {
+    background: #ff7010;
+    color: white;
+    box-shadow: 0 2px 6px rgba(124, 45, 18, 0.15);
+}
+
+.auth-profile-grid,
+.auth-document-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.auth-select-label,
+.auth-upload-label {
+    display: block;
+    margin-bottom: 0.375rem;
+    color: #374151;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.auth-select,
+.auth-textarea,
+.auth-file-input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid #fed7aa;
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.95);
+    color: #1f2937;
+}
+
+.auth-textarea {
+    resize: vertical;
+}
+
+.auth-field-error {
+    margin: 0.375rem 0 0;
+    color: #dc2626;
+    font-size: 0.875rem;
+}
+
+.auth-documents {
+    display: grid;
+    gap: 1rem;
+}
+
+.auth-documents-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.auth-documents-heading h3 {
+    color: #374151;
+    font-weight: 600;
+}
+
+.auth-documents-heading h3 span,
+.auth-documents-heading p {
+    color: #6b7280;
+    font-size: 0.8rem;
+}
+
+.auth-document-row {
+    align-items: end;
+    padding: 1rem;
+    border: 1px solid #fed7aa;
+    border-radius: 0.75rem;
+}
+
+.auth-remove-document {
+    padding: 0.6rem;
+    color: #b91c1c;
+    font-size: 0.875rem;
+}
+
+@media (max-width: 560px) {
+    .auth-role-tabs button {
+        font-size: 0.85rem;
+    }
+
+    .auth-profile-grid,
+    .auth-document-row {
+        grid-template-columns: 1fr;
+    }
+}
+</style>

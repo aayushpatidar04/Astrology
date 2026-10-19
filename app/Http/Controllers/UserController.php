@@ -134,8 +134,8 @@ class UserController extends Controller
 
                 // Send Beams push to astrologer from this chat room
                 $beamsClient = new PushNotifications([
-                    'instanceId' => config('app.VITE_PUSHER_BEAMS_INSTANCE_ID'),
-                    'secretKey' => config('app.VITE_PUSHER_BEAMS_SECRET_KEY'),
+                    'instanceId' => config('services.pusher_beams.instance_id'),
+                    'secretKey' => config('services.pusher_beams.secret_key'),
                 ]);
 
                 $beamsClient->publishToUsers(
@@ -178,8 +178,8 @@ class UserController extends Controller
 
         broadcast(new MessageSent($message))->toOthers();
         $beamsClient = new PushNotifications([
-            "instanceId" => config('app.VITE_PUSHER_BEAMS_INSTANCE_ID'),
-            "secretKey" => config('app.VITE_PUSHER_BEAMS_SECRET_KEY'),
+            'instanceId' => config('services.pusher_beams.instance_id'),
+            'secretKey' => config('services.pusher_beams.secret_key'),
         ]);
 
         $recipientId = $chat->participants()

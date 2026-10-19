@@ -11,8 +11,8 @@ use Illuminate\Support\Facades\Route;
 
 Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
-Route::post('sendOtp', [AuthController::class, 'sendOtp']);
-Route::post('verifyOtp', [AuthController::class, 'verifyOtp']);
+Route::post('sendOtp', [AuthController::class, 'sendOtp'])->middleware('throttle:3,1');
+Route::post('verifyOtp', [AuthController::class, 'verifyOtp'])->middleware('throttle:6,1');
 Route::post('/register-astrologer', [AuthController::class, 'registerAstrologer']);
 Route::post('/register-user', [AuthController::class, 'registerUser']);
 Route::post('test-notification', [MainController::class, 'testNotification']);

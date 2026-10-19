@@ -10,6 +10,7 @@ import Testimonials from './Testimonials.vue';
 import WhyChooseUs from './WhyChooseUs.vue';
 import Footer from '../Layouts/Footer.vue';
 import Blogs from './Blogs.vue';
+import Reveal from '@/Components/Reveal.vue';
 import * as PusherPushNotifications from "@pusher/push-notifications-web";
 import { ref, onMounted } from 'vue';
 import echo from '@/echo';
@@ -89,68 +90,88 @@ function checkWalletAndStartChat(astrologer) {
     <Banner />
 
     <!-- Astrologers Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6 p-5 md:p-16">
-        <div v-for="astrologer in astrologers" :key="astrologer.id"
-            class="bg-white rounded-lg shadow hover:shadow-lg transition flex items-center p-4">
+    <section class="px-5 py-14 md:px-16">
+        <Reveal class="text-center max-w-2xl mx-auto mb-12">
+            <h2 class="section-heading section-heading-accent">Our Astrologers</h2>
+        </Reveal>
 
-            <!-- Astrologer image -->
-            <div class="flex-shrink-0 text-center">
-                <img :src="`/${astrologer.profile_image}`" alt="Astrologer image"
-                    class="w-24 h-24 object-cover rounded-full border-2 border-orange-500 transform transition-transform duration-300 hover:scale-105" />
-                <span v-if="astrologer.is_busy"
-                    class="inline-flex items-center px-5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 mt-1">
-                    Busy
-                </span>
-                <span v-else
-                    class="inline-flex items-center px-5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 mt-1">
-                    Available
-                </span>
-            </div>
+        <div class="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
+            <Reveal v-for="(astrologer, i) in astrologers" :key="astrologer.id" :delay="(i % 3) * 100" class="h-full">
+                <div
+                    class="group flex h-full items-center rounded-2xl border border-orange-100 bg-white p-4 shadow-sm transition duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-orange-900/10">
 
-            <!-- Astrologer content -->
-            <div class="flex-1 ml-4 flex flex-col justify-between h-full">
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-800">
-                        {{ astrologer.user.name }}
-                    </h3>
-                    <div class="flex items-center text-sm text-gray-500">
-                        <span>Exp: {{ astrologer.experience_years }} years</span>
+                    <!-- Astrologer image -->
+                    <div class="flex-shrink-0 text-center">
+                        <div class="rounded-full bg-gradient-to-br from-primary to-amber-300 p-[3px]">
+                            <img :src="`/${astrologer.profile_image}`" alt="Astrologer image"
+                                class="h-24 w-24 rounded-full border-2 border-white object-cover transition-transform duration-500 group-hover:scale-105" />
+                        </div>
+                        <span v-if="astrologer.is_busy"
+                            class="mt-2 inline-flex items-center gap-1.5 rounded-full bg-red-100 px-4 py-1 text-xs font-semibold text-red-700">
+                            <span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>
+                            Busy
+                        </span>
+                        <span v-else
+                            class="mt-2 inline-flex items-center gap-1.5 rounded-full bg-green-100 px-4 py-1 text-xs font-semibold text-green-700">
+                            <span class="relative flex h-1.5 w-1.5">
+                                <span class="absolute inline-flex h-full w-full rounded-full bg-green-500 animate-ping-soft"></span>
+                                <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-500"></span>
+                            </span>
+                            Available
+                        </span>
                     </div>
-                    <p class="text-sm text-gray-600">
-                        {{ Array.isArray(astrologer.expertise)
-                            ? astrologer.expertise.join(', ')
-                            : (astrologer.expertise ?? 'Astrologer') }}
-                    </p>
-                </div>
 
-                <!-- Chat Now button -->
-                <div class="mt-3 flex justify-between items-center">
-                    <p class="font-bold">₹ {{ astrologer.charged_text_price }} / min</p>
-                    <button @click.prevent="checkWalletAndStartChat(astrologer)" :disabled="astrologer.is_busy"
-                        class="inline-block bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed">
-                        Chat Now
-                    </button>
+                    <!-- Astrologer content -->
+                    <div class="ml-4 flex h-full flex-1 flex-col justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 transition-colors group-hover:text-primary">
+                                {{ astrologer.user.name }}
+                            </h3>
+                            <div class="flex items-center text-sm text-gray-500">
+                                <span>Exp: {{ astrologer.experience_years }} years</span>
+                            </div>
+                            <p class="text-sm text-gray-600">
+                                {{ Array.isArray(astrologer.expertise)
+                                    ? astrologer.expertise.join(', ')
+                                    : (astrologer.expertise ?? 'Astrologer') }}
+                            </p>
+                        </div>
+
+                        <!-- Chat Now button -->
+                        <div class="mt-3 flex items-center justify-between">
+                            <p class="font-bold text-gray-800">₹ {{ astrologer.charged_text_price }} / min</p>
+                            <button @click.prevent="checkWalletAndStartChat(astrologer)" :disabled="astrologer.is_busy"
+                                class="inline-block rounded-lg bg-green-500 px-4 py-2 text-white shadow-md shadow-green-500/20 transition duration-300 hover:-translate-y-0.5 hover:bg-green-600 hover:shadow-lg hover:shadow-green-500/30 active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none">
+                                Chat Now
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </Reveal>
         </div>
-
-    </div>
+    </section>
 
     <!-- Recharge Modal -->
-    <div v-if="showRechargeModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-white p-6 rounded shadow-lg max-w-sm w-full">
-            <p class="text-gray-800">
-                Minimum balance of 4 minutes ₹{{ selectedAstrologer.charged_text_price * 4 }}
-                is required to start chat with {{ selectedAstrologer.user.name }}
-            </p>
-            <div class="mt-4 flex justify-between space-x-2">
-                <button @click="showRechargeModal = false" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-                <Link :href="route('user.recharge')" class="px-4 py-2 bg-green-500 text-white rounded">
-                    Recharge Now
-                </Link>
+    <Transition name="modal">
+        <div v-if="showRechargeModal"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+            @click.self="showRechargeModal = false">
+            <div class="modal-card w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+                <p class="text-gray-800">
+                    Minimum balance of 4 minutes ₹{{ selectedAstrologer.charged_text_price * 4 }}
+                    is required to start chat with {{ selectedAstrologer.user.name }}
+                </p>
+                <div class="mt-5 flex justify-between space-x-2">
+                    <button @click="showRechargeModal = false"
+                        class="rounded-lg bg-gray-200 px-4 py-2 transition duration-300 hover:bg-gray-300">Cancel</button>
+                    <Link :href="route('user.recharge')"
+                        class="rounded-lg bg-green-500 px-4 py-2 text-white shadow-md shadow-green-500/20 transition duration-300 hover:-translate-y-0.5 hover:bg-green-600">
+                        Recharge Now
+                    </Link>
+                </div>
             </div>
         </div>
-    </div>
+    </Transition>
 
     <About />
 
@@ -169,3 +190,25 @@ function checkWalletAndStartChat(astrologer) {
     <Footer />
 
 </template>
+
+<style scoped>
+.modal-enter-active,
+.modal-leave-active {
+    transition: opacity 0.25s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+    opacity: 0;
+}
+
+.modal-enter-active .modal-card,
+.modal-leave-active .modal-card {
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.modal-enter-from .modal-card,
+.modal-leave-to .modal-card {
+    transform: scale(0.92) translateY(12px);
+}
+</style>

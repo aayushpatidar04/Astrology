@@ -4,125 +4,54 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Astrologer;
-use App\Models\PhoneOtp;
 use App\Models\User;
 use App\Models\UserDetail;
-use Carbon\Carbon;
+use App\Services\WhatsAppOtpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
 
-    public function sendOtp(Request $request)
+    public function sendOtp(Request $request, WhatsAppOtpService $otpService)
     {
-        try {
-            $validated = $request->validate([
-                'phone' => 'required|numeric|digits:10'
-            ]);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'errors' => $e->errors(),
-                'message' => 'Validation failed',
-            ], 200);
-        }
-
-        // Generate a 6-digit OTP
-        if($validated['phone'] == '9999999999' || $validated['phone'] == '9999999998'){
-            $otp = '998241';
-        }else{
-            // Generate a 6-digit OTP
-            $otp = rand(100000, 999999);
-        }
-
-        // Expiry time (5 minutes from now)
-        $expiresAt = Carbon::now()->addMinutes(5);
-
-        // Store OTP in PhoneOtp table (update if already exists)
-        PhoneOtp::updateOrCreate(
-            ['phone' => $validated['phone']],
-            [
-                'otp' => $otp,
-                'expires_at' => $expiresAt,
-            ]
-        );
-
-        // Build WhatsApp message content
-        $content = "🌟 Welcome to My Astro Sathi! 🌟 \n" .
-            "Your verification code is {$otp}. \n" .
-            "Please enter this code within 5 minutes to activate your account and begin your astrological journey.";
-
+        $validated = $request->validate([
+            'phone' => ['required', 'digits:10'],
+        ]);
 
         try {
-            // Send OTP via WhatsApp API
-            $response =Http::withHeaders([
-                'Authorization' => 'Bearer ' . config('app.WHATSAPP_API_TOKEN'),
-                'X-Instance-Token' => config('app.WHATSAPP_INSTANCE_TOKEN'),
-            ])->post('https://crm.intouchsoftware.co.in/api/gateway/send/text', [
-                        'to' => '91' . $validated['phone'],
-                        'message' => $content,
-                    ]);
+            $otpService->send($validated['phone']);
+        } catch (\RuntimeException $exception) {
+            report($exception);
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'OTP sent successfully',
-            ], 200);
-        } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to send OTP',
-                'error' => $e->getMessage(),
-            ], 200);
+                'message' => 'Unable to send an OTP right now.',
+            ], 503);
         }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'OTP sent successfully',
+        ]);
     }
 
-    public function verifyOtp(Request $request)
+    public function verifyOtp(Request $request, WhatsAppOtpService $otpService)
     {
-        try {
-            $validated = $request->validate([
-                'phone' => 'required|numeric|digits:10',
-                'otp' => 'required|numeric|digits:6'
-            ]);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'errors' => $e->errors(),
-                'message' => 'Validation failed',
-            ], 200);
-        }
+        $validated = $request->validate([
+            'phone' => ['required', 'digits:10'],
+            'otp' => ['required', 'digits:6'],
+        ]);
 
-        $otpRecord = PhoneOtp::where('phone', $validated['phone'])->first();
-
-        if (!$otpRecord) {
+        if (! $otpService->consume($validated['phone'], $validated['otp'])) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'No OTP found for this phone number',
-                'error' => 'No OTP found for this phone number'
-            ], 200);
+                'message' => 'The OTP is invalid or has expired.',
+            ], 422);
         }
-
-        // Check expiry
-        if (Carbon::now()->greaterThan($otpRecord->expires_at)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'OTP has expired',
-                'error' => 'OTP has expired',
-            ], 200);
-        }
-
-        // Check OTP match
-        if ($otpRecord->otp != $validated['otp']) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid OTP',
-                'error' => 'Invalid OTP',
-            ], 200);
-        }
-
-        $otpRecord->delete();
 
         $user = User::with(['astrologer', 'details'])->where('phone', $validated['phone'])->first();
 

@@ -57,3 +57,16 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## WhatsApp OTP authentication
+
+Web and API sign-in use a six-digit WhatsApp OTP. Configure these values in `.env`:
+
+- `META_WHATSAPP_ACCESS_TOKEN` and `META_WHATSAPP_PHONE_NUMBER_ID` from the Meta WhatsApp Cloud API.
+- `META_WHATSAPP_API_VERSION` for the Graph API version enabled for the Meta app.
+- `META_WHATSAPP_OTP_TEMPLATE_NAME` and `META_WHATSAPP_OTP_TEMPLATE_LANGUAGE` for an approved message template.
+- `META_WHATSAPP_COUNTRY_CODE` (defaults to `91`); account phone numbers and login requests use ten digits without the country code.
+
+The configured template must accept the OTP as its first body variable (`{{1}}`). OTPs expire after five minutes, are stored as hashes, and send/verification endpoints are rate limited. Browser registration verifies the phone with an OTP and offers separate User and Astrologer account types. User profiles accept optional birth details and a profile photo; Astrologer profiles require a bio, expertise, years of experience, and a profile image, with optional supporting documents. New astrologers start with `pending_verification` status for Admin review. Every existing account that needs OTP login—including Admin accounts—must have its phone number set in the `users` table.
+
+The API endpoints remain `POST /api/sendOtp` and `POST /api/verifyOtp`. The browser login screen sends a code and then verifies it at `POST /login`.

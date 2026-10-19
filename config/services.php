@@ -28,6 +28,20 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'meta_whatsapp' => [
+        'access_token' => env('META_WHATSAPP_ACCESS_TOKEN'),
+        'phone_number_id' => env('META_WHATSAPP_PHONE_NUMBER_ID'),
+        'api_version' => env('META_WHATSAPP_API_VERSION', 'v26.0'),
+        'template_name' => env('META_WHATSAPP_OTP_TEMPLATE_NAME'),
+        'template_language' => env('META_WHATSAPP_OTP_TEMPLATE_LANGUAGE', 'en_US'),
+        'country_code' => env('META_WHATSAPP_COUNTRY_CODE', '91'),
+    ],
+
+    'pusher_beams' => [
+        'instance_id' => env('VITE_PUSHER_BEAMS_INSTANCE_ID'),
+        'secret_key' => env('PUSHER_BEAMS_SECRET_KEY'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
