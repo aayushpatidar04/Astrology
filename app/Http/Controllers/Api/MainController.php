@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class MainController extends Controller
 {
@@ -25,20 +26,52 @@ class MainController extends Controller
         'auth',
     ];
 
-    private function sendNotification($fcmToken, $title, $body, $data)
+    private function sendNotification(?string $fcmToken, string $title, string $body, array $data): bool
     {
-        $firebase = new FirebaseNotificationService();
+        if (blank($fcmToken)) {
+            return false;
+        }
+
         try {
-            $firebase->sendNotification($fcmToken, $title, $body, $data);
-        } catch (\Throwable $e) {
-            Log::info($e->getMessage());
+            app(FirebaseNotificationService::class)->sendNotification($fcmToken, $title, $body, $data);
+            return true;
+        } catch (Throwable $exception) {
+            Log::warning('Firebase notification delivery failed.', [
+                'exception' => $exception::class,
+            ]);
+
+            return false;
         }
     }
 
-    public function testNotification(Request $request){
-        $this->sendNotification($request->fcmToken, $request->title, $request->body, $request->data);
+    public function testNotification(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => ['required', 'string'],
+            'body' => ['required', 'string'],
+            'data' => ['sometimes', 'array'],
+        ]);
+
+        $deviceToken = Auth::user()->device_token;
+        if (blank($deviceToken)) {
+            return response()->json([
+                'message' => 'No device token is registered for this account.',
+            ], 422);
+        }
+
+        if (! $this->sendNotification(
+            $deviceToken,
+            $validated['title'],
+            $validated['body'],
+            $validated['data'] ?? []
+        )) {
+            return response()->json([
+                'message' => 'Unable to send the Firebase notification.',
+            ], 502);
+        }
+
         return response()->json([
-            'message' => 'sent'
+            'message' => 'sent',
         ]);
     }
 
@@ -209,6 +242,9 @@ class MainController extends Controller
 
     public function sendMessage(Request $request, $chatId)
     {
+        $validated = $request->validate([
+            'message' => ['required', 'string', 'max:1000'],
+        ]);
         $userId = Auth::id();
 
         $chat = Chat::whereHas('participants', fn($q) => $q->where('user_id', $userId))
@@ -224,11 +260,28 @@ class MainController extends Controller
 
         $message = $chat->messages()->create([
             'user_id' => $userId,
-            'message' => $request->input('message'),
+            'message' => $validated['message'],
         ]);
 
         // Broadcast event (for real-time updates)
         broadcast(new MessageSent($message))->toOthers();
+
+        $recipient = $chat->participants()
+            ->with('user')
+            ->where('user_id', '!=', $userId)
+            ->first()
+            ?->user;
+
+        $this->sendNotification(
+            $recipient?->device_token,
+            Auth::user()->name,
+            $message->message,
+            [
+                'type' => 'chat_message',
+                'chat_id' => $chat->id,
+                'sender_id' => $userId,
+            ]
+        );
 
         return response()->json([
             'status' => 'success',

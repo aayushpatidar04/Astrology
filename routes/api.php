@@ -5,7 +5,6 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Controller as ApiController;
 use App\Http\Controllers\Api\MainController;
 use App\Http\Controllers\Api\UserController;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
@@ -15,9 +14,9 @@ Route::post('sendOtp', [AuthController::class, 'sendOtp'])->middleware('throttle
 Route::post('verifyOtp', [AuthController::class, 'verifyOtp'])->middleware('throttle:6,1');
 Route::post('/register-astrologer', [AuthController::class, 'registerAstrologer']);
 Route::post('/register-user', [AuthController::class, 'registerUser']);
-Route::post('test-notification', [MainController::class, 'testNotification']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('device-token', [AuthController::class, 'storeDeviceToken']);
+    Route::post('test-notification', [MainController::class, 'testNotification']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::prefix('blogs')->group(function () {

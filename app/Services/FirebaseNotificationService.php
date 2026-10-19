@@ -2,76 +2,49 @@
 
 namespace App\Services;
 
-use App\Models\User;
-use Kreait\Firebase\Factory;
+use Kreait\Firebase\Contract\Messaging;
 use Kreait\Firebase\Messaging\CloudMessage;
-use Kreait\Firebase\Messaging\Notification;
-use Illuminate\Support\Facades\Log;
 
 class FirebaseNotificationService
 {
-    protected $messaging;
+    public function __construct(private Messaging $messaging) {}
 
-    public function __construct()
+    public function sendNotification(string $token, string $title, string $body, array $data = []): array
     {
-        try {
-            $firebaseCredentialsPath = storage_path('firebase_credentials.json');
-
-            $factory = (new Factory)->withServiceAccount($firebaseCredentialsPath);
-            $this->messaging = $factory->createMessaging();
-        } catch (\Exception $e) {
-            Log::error('Firebase initialization error: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    public function sendNotification($token, $title, $body, $data = [])
-    {
-        try {
-            $data = collect($data)->map(function ($value) {
-                if (is_array($value)) {
-                    return json_encode($value); // flatten nested arrays
-                }
-                if ($value instanceof \Carbon\Carbon) {
-                    return $value->toDateTimeString(); // format dates
-                }
-                return (string) $value; // cast everything else to string
-            })->toArray();
-            // Merge title and body into data (since we won't use Notification::create)
-            $data = array_merge([
-                'title' => $title,
-                'body' => $body,
-                'sound' => 'custom_sound'
-            ], $data);
-
-            $message = CloudMessage::withTarget('token', $token)
-                ->withData($data) // ✅ Only data payload
-                ->withHighestPossiblePriority();
-
-            $result = $this->messaging->send($message);
-            return $result;
-        } catch (\Exception $e) {
-            Log::error('Firebase notification error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-            throw $e;
-        }
-    }
-
-
-    public function sendMultipleNotifications($tokens, $title, $body, $data = [])
-    {
-        try {
-
-            $results = [];
-            foreach ($tokens as $token) {
-                $results[] = $this->sendNotification($token, $title, $body, $data);
+        $data = collect($data)->map(function ($value): string {
+            if (is_array($value)) {
+                return json_encode($value, JSON_THROW_ON_ERROR);
             }
 
-            return $results;
-        } catch (\Exception $e) {
-            Log::error('Multiple notifications error: ' . $e->getMessage());
-            throw $e;
+            if ($value instanceof \DateTimeInterface) {
+                return $value->format('Y-m-d H:i:s');
+            }
+
+            return (string) $value;
+        })->all();
+
+        $data = array_merge([
+            'title' => $title,
+            'body' => $body,
+            'sound' => 'custom_sound',
+        ], $data);
+
+        return $this->messaging->send(
+            CloudMessage::new()
+                ->withToken($token)
+                ->withData($data)
+                ->withHighestPossiblePriority()
+        );
+    }
+
+    public function sendMultipleNotifications(array $tokens, string $title, string $body, array $data = []): array
+    {
+        $results = [];
+
+        foreach ($tokens as $token) {
+            $results[] = $this->sendNotification((string) $token, $title, $body, $data);
         }
+
+        return $results;
     }
 }

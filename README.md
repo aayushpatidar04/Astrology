@@ -70,3 +70,9 @@ Web and API sign-in use a six-digit WhatsApp OTP. Configure these values in `.en
 The configured template must accept the OTP as its first body variable (`{{1}}`). OTPs expire after five minutes, are stored as hashes, and send/verification endpoints are rate limited. Browser registration verifies the phone with an OTP and offers separate User and Astrologer account types. User profiles accept optional birth details and a profile photo; Astrologer profiles require a bio, expertise, years of experience, and a profile image, with optional supporting documents. New astrologers start with `pending_verification` status for Admin review. Every existing account that needs OTP login—including Admin accounts—must have its phone number set in the `users` table.
 
 The API endpoints remain `POST /api/sendOtp` and `POST /api/verifyOtp`. The browser login screen sends a code and then verifies it at `POST /login`.
+
+## Push notifications
+
+Web push notifications use Pusher Beams. Configure `VITE_PUSHER_BEAMS_INSTANCE_ID` and `PUSHER_BEAMS_SECRET_KEY`; authenticated web users subscribe through the `/beams-auth` endpoint.
+
+Mobile API push notifications use Firebase Cloud Messaging (FCM). Create a Firebase service-account key with Firebase Cloud Messaging permissions, keep the JSON file out of source control, and set `FIREBASE_CREDENTIALS` to its path (the example default is `storage/firebase_credentials.json`). Mobile clients should register their current FCM token with the authenticated `POST /api/device-token` endpoint using the `device_token` field. API chat messages are delivered to the other participant's registered device token; web chat notifications continue to use Pusher Beams.

@@ -10,7 +10,6 @@ use App\Models\ChatSession;
 use App\Models\RechargePackage;
 use App\Models\TempOrder;
 use App\Models\User;
-use App\Services\FirebaseNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -22,16 +21,6 @@ class UserController extends Controller
         'auth',
         'role' => 'User'
     ];
-
-    private function sendNotification($fcmToken, $title, $body, $data)
-    {
-        $firebase = new FirebaseNotificationService();
-        try {
-            $firebase->sendNotification($fcmToken, $title, $body, $data);
-        } catch (\Throwable $e) {
-            Log::info($e->getMessage());
-        }
-    }
 
     public function astrologers()
     {

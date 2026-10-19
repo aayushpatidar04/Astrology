@@ -9,26 +9,13 @@ use App\Models\Chat;
 use App\Models\ChatSession;
 use App\Models\CallHistory;
 use App\Models\Transaction;
-use App\Services\FirebaseNotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class AstrologerController extends Controller
 {
-
-    private function sendNotification($fcmToken, $title, $body, $data)
-    {
-        $firebase = new FirebaseNotificationService();
-        try {
-            $firebase->sendNotification($fcmToken, $title, $body, $data);
-        } catch (\Throwable $e) {
-            Log::info($e->getMessage());
-        }
-    }
-
     public function chats()
     {
         $userId = Auth::id();
