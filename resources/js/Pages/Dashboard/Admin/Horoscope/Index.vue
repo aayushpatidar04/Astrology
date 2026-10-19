@@ -1,5 +1,6 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3'
+import { Icon } from '@iconify/vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import Create from './Create.vue';
 import { VueGoodTable } from "vue-good-table-next";
@@ -37,44 +38,46 @@ const groupedHoroscopes = computed(() => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                Horoscopes
-            </h2>
+            <h2 class="adm-title">Horoscopes</h2>
         </template>
 
-        <div class="container p-4 mx-auto">
+        <div class="adm-toolbar">
+            <p class="adm-sub">Daily, weekly, monthly and yearly predictions for every zodiac sign.</p>
+            <Create />
+        </div>
 
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold"></h2>
-                <Create />
-            </div>
+        <!-- Tabs -->
+        <div class="adm-tabs">
+            <button v-for="tab in ['daily', 'weekly', 'monthly', 'yearly']" :key="tab" @click="activeTab = tab"
+                class="adm-tab" :class="{ 'is-active': activeTab === tab }">
+                {{ tab.toUpperCase() }}
+                <span class="adm-tab-count">{{ groupedHoroscopes[tab].length }}</span>
+            </button>
+        </div>
 
-            <!-- Tabs -->
-            <div class="flex space-x-4 border-b mb-4">
-                <button v-for="tab in ['daily', 'weekly', 'monthly', 'yearly']" :key="tab" @click="activeTab = tab" :class="['px-4 py-2 font-semibold',
-                    activeTab === tab ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-gray-500']">
-                    {{ tab.toUpperCase() }} ({{ groupedHoroscopes[tab].length }})
-                </button>
-            </div>
-
-            <!-- Table for active tab -->
+        <!-- Table for active tab -->
+        <div class="adm-card adm-table">
             <VueGoodTable v-if="groupedHoroscopes[activeTab].length" :columns="columns"
                 :rows="groupedHoroscopes[activeTab]" :paginate="true" :search-options="{ enabled: true }"
                 :lineNumbers="true" :pagination-options="{ enabled: true, perPage: 10 }">
                 <template #table-row="props">
                     <span v-if="props.column.field === 'type'">
-                        <div>
-                            <div class="font-semibold uppercase">{{ props.row.type }}</div>
-                            <div v-if="props.row.type === 'daily'" class="text-sm text-gray-500 lowercase">{{ props.row.date }}</div>
-                            <div v-else-if="props.row.type === 'weekly'" class="text-sm text-gray-500 lowercase">{{ props.row.week_key }}</div>
-                            <div v-else-if="props.row.type === 'monthly'" class="text-sm text-gray-500 lowercase">{{ props.row.month_key }}</div>
-                            <div v-else-if="props.row.type === 'yearly'" class="text-sm text-gray-500 lowercase">{{ props.row.year_key }}</div>
-                        </div>
+                        <span class="adm-strong" style="text-transform: uppercase">{{ props.row.type }}</span>
+                        <span v-if="props.row.type === 'daily'" class="adm-muted">{{ props.row.date }}</span>
+                        <span v-else-if="props.row.type === 'weekly'" class="adm-muted">{{ props.row.week_key }}</span>
+                        <span v-else-if="props.row.type === 'monthly'" class="adm-muted">{{ props.row.month_key }}</span>
+                        <span v-else-if="props.row.type === 'yearly'" class="adm-muted">{{ props.row.year_key }}</span>
                     </span>
-                    <span v-else-if="props.column.field === 'actions'" class="flex">
-                        <Link :href="route('horoscope', { type: props.row.type, sign: props.row.sign, key: (user.roles[0].name === 'Admin' ? props.row.date || props.row.week_key || props.row.month_key || props.row.year_key : null) })"><button class="px-2 py-1 bg-orange-500 text-white rounded mr-2 mt-1">
+                    <span v-else-if="props.column.field === 'sign'">
+                        <span class="adm-badge adm-badge-orange">{{ props.row.sign }}</span>
+                    </span>
+                    <span v-else-if="props.column.field === 'actions'" class="adm-row">
+                        <Link
+                            :href="route('horoscope', { type: props.row.type, sign: props.row.sign, key: (user.roles[0].name === 'Admin' ? props.row.date || props.row.week_key || props.row.month_key || props.row.year_key : null) })"
+                            class="adm-btn adm-btn-sm">
+                            <Icon icon="mdi:eye-outline" width="16" height="16" />
                             View
-                        </button></Link>
+                        </Link>
                     </span>
                     <span v-else>
                         {{ props.formattedRow[props.column.field] }}
@@ -82,15 +85,9 @@ const groupedHoroscopes = computed(() => {
                 </template>
             </VueGoodTable>
 
-            <div v-else class="text-gray-500 italic">
+            <div v-else class="adm-empty">
                 No horoscopes available for {{ activeTab }}.
             </div>
         </div>
     </AuthenticatedLayout>
 </template>
-
-<style>
-[id^="vgt-select-rpp-"] {
-    background-image: none !important;
-}
-</style>

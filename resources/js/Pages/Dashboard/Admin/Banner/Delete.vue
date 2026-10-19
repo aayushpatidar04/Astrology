@@ -17,10 +17,8 @@ function openDeleteBanner(banner) {
     showDeleteBanner.value = true
 }
 
-
-
 const deleteBanner = () => {
-    router.delete(route("admin.banners.destroy", {id: props.banner.id}), {
+    router.delete(route("admin.banners.destroy", { id: props.banner.id }), {
         preserveScroll: true,
         onSuccess: () => {
             showDeleteBanner.value = false
@@ -31,23 +29,25 @@ const deleteBanner = () => {
         }
     })
 }
-
 </script>
 
 <template>
 
-    <button @click="openDeleteBanner(banner)" class="text-red-500 text-2xl">
-        <Icon icon="mdi:trash"></Icon>
+    <button @click="openDeleteBanner(banner)" class="adm-icon-btn adm-icon-del" title="Delete">
+        <Icon icon="mdi:trash" />
     </button>
 
     <!-- Delete Banner Modal -->
     <Modal :show="showDeleteBanner" @close="showDeleteBanner = false">
-        <div class="p-6 text-center">
-            <h3 class="text-xl font-semibold mb-4">Delete Banner</h3>
+        <div class="adm-confirm">
+            <div class="adm-confirm-icon">
+                <Icon icon="mdi:trash-can-outline" />
+            </div>
+            <h3>Delete Banner</h3>
             <p>Are you sure you want to delete <b>{{ selectedBanner?.title }}</b>?</p>
-            <div class="flex justify-center gap-4 mt-6">
-                <button @click="showDeleteBanner = false" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-                <button @click="deleteBanner" class="px-4 py-2 bg-red-500 text-white rounded">Delete</button>
+            <div class="adm-confirm-actions">
+                <button @click="showDeleteBanner = false" class="adm-btn adm-btn-ghost">Cancel</button>
+                <button @click="deleteBanner" class="adm-btn adm-btn-danger">Delete</button>
             </div>
         </div>
     </Modal>

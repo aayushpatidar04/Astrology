@@ -17,10 +17,8 @@ function openDeletePackage(recharge) {
     showDeletePackage.value = true
 }
 
-
-
 const deletePackage = () => {
-    router.delete(route("admin.recharge-packages.destroy", {id: props.recharge.id}), {
+    router.delete(route("admin.recharge-packages.destroy", { id: props.recharge.id }), {
         preserveScroll: true,
         onSuccess: () => {
             showDeletePackage.value = false
@@ -31,23 +29,25 @@ const deletePackage = () => {
         }
     })
 }
-
 </script>
 
 <template>
 
-    <button @click="openDeletePackage(recharge)" class="text-red-500 text-2xl">
-        <Icon icon="mdi:trash"></Icon>
+    <button @click="openDeletePackage(recharge)" class="adm-icon-btn adm-icon-del" title="Delete">
+        <Icon icon="mdi:trash" />
     </button>
 
     <!-- Delete Package Modal -->
     <Modal :show="showDeletePackage" @close="showDeletePackage = false">
-        <div class="p-6 text-center">
-            <h3 class="text-xl font-semibold mb-4">Delete Package</h3>
-            <p>Are you sure you want to delete <b>₹{{ selectedPackage?.amount }}</b> package?</p>
-            <div class="flex justify-center gap-4 mt-6">
-                <button @click="showDeletePackage = false" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-                <button @click="deletePackage" class="px-4 py-2 bg-red-500 text-white rounded">Delete</button>
+        <div class="adm-confirm">
+            <div class="adm-confirm-icon">
+                <Icon icon="mdi:trash-can-outline" />
+            </div>
+            <h3>Delete Package</h3>
+            <p>Are you sure you want to delete the <b>₹{{ selectedPackage?.amount }}</b> package?</p>
+            <div class="adm-confirm-actions">
+                <button @click="showDeletePackage = false" class="adm-btn adm-btn-ghost">Cancel</button>
+                <button @click="deletePackage" class="adm-btn adm-btn-danger">Delete</button>
             </div>
         </div>
     </Modal>

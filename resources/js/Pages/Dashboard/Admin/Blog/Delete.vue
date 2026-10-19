@@ -2,6 +2,7 @@
 import Modal from "@/Components/Modal.vue";
 import { inject, ref } from "vue";
 import { router } from '@inertiajs/vue3'
+import { Icon } from "@iconify/vue";
 
 const props = defineProps({
     blog: Object,
@@ -35,18 +36,21 @@ const deleteBlog = () => {
 
 <template>
 
-    <button @click="openDeleteBlog(blog)" class="px-2 py-1 bg-red-500 text-white rounded mt-1">
-        Delete
+    <button @click="openDeleteBlog(blog)" class="adm-icon-btn adm-icon-del" title="Delete">
+        <Icon icon="mdi:trash" />
     </button>
 
     <!-- Delete Blog Modal -->
     <Modal :show="showDeleteBlog" @close="showDeleteBlog = false">
-        <div class="p-6 text-center">
-            <h3 class="text-xl font-semibold mb-4">Delete Blog</h3>
+        <div class="adm-confirm">
+            <div class="adm-confirm-icon">
+                <Icon icon="mdi:trash-can-outline" />
+            </div>
+            <h3>Delete Blog</h3>
             <p>Are you sure you want to delete <b>{{ selectedBlog?.title }}</b>?</p>
-            <div class="flex justify-center gap-4 mt-6">
-                <button @click="showDeleteBlog = false" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-                <button @click="deleteBlog" class="px-4 py-2 bg-red-500 text-white rounded">Delete</button>
+            <div class="adm-confirm-actions">
+                <button @click="showDeleteBlog = false" class="adm-btn adm-btn-ghost">Cancel</button>
+                <button @click="deleteBlog" class="adm-btn adm-btn-danger">Delete</button>
             </div>
         </div>
     </Modal>

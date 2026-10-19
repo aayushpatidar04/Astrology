@@ -1,13 +1,9 @@
 <script setup>
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
+import AdminField from '@/Components/AdminField.vue';
 import Modal from '@/Components/Modal.vue';
-import TextInput from '@/Components/TextInput.vue';
 import { useForm } from '@inertiajs/vue3';
 import { inject, ref } from 'vue';
 import { Icon } from '@iconify/vue';
-
-
 
 const showEditBanner = ref(false)
 const alertRef = inject('alertRef')
@@ -23,13 +19,13 @@ const form = useForm({
 })
 
 const openEditBanner = (banner) => {
-    form.title = banner.title,
-        form.link = banner.link,
-        form.image = banner.image,
-        showEditBanner.value = true
+    form.title = banner.title
+    form.link = banner.link
+    form.image = banner.image
+    showEditBanner.value = true
 }
 
-function handleImageUpload(event, index) {
+function handleImageUpload(event) {
     const file = event.target.files[0]
     if (file) {
         form.image = file
@@ -52,53 +48,43 @@ function submitForm() {
         },
     })
 }
-
 </script>
 
 <template>
-    <button @click="openEditBanner(props.banner)" class="text-yellow-500 text-2xl">
-        <Icon icon="mdi:pencil"></Icon>
+    <button @click="openEditBanner(props.banner)" class="adm-icon-btn adm-icon-edit" title="Edit">
+        <Icon icon="mdi:pencil" />
     </button>
 
-    <!-- Add Blog Modal -->
+    <!-- Edit Banner Modal -->
     <Modal :show="showEditBanner" @close="showEditBanner = false">
-        <div class="p-6">
-            <h3 class="text-xl font-semibold mb-4">Add Banner</h3>
+        <div class="adm-modal-head">
+            <h3>Edit Banner</h3>
+            <button type="button" class="adm-icon-btn" aria-label="Close" @click="showEditBanner = false">
+                <Icon icon="mdi:close" />
+            </button>
+        </div>
 
-            <!-- Title -->
-            <div class="mb-4">
-                <InputLabel for="title" value="Title" />
-                <TextInput id="title" v-model="form.title" type="text" class="w-full" required />
-                <InputError :message="form.errors.title" />
-            </div>
+        <div class="adm-modal-body">
+            <AdminField label="Title" for-id="title" :error="form.errors.title">
+                <input id="title" v-model="form.title" type="text" class="adm-input" required />
+            </AdminField>
 
-            <!-- Link -->
-            <div class="mb-4">
-                <InputLabel for="link" value="Link" />
-                <TextInput id="link" v-model="form.link" type="text" class="w-full" />
-                <InputError :message="form.errors.link" />
-            </div>
+            <AdminField label="Link" for-id="link" :error="form.errors.link">
+                <input id="link" v-model="form.link" type="text" class="adm-input" />
+            </AdminField>
 
-            <!-- Image -->
-            <div class="mb-4">
-                <InputLabel for="image" value="Image" />
-                <input type="file" id="image" @change="handleImageUpload($event, index)" accept="image/*" class="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-blue-50 file:text-blue-700
-                    hover:file:bg-blue-100" required />
-                <InputError :message="form.errors.image" />
+            <AdminField label="Image" for-id="image" :error="form.errors.image">
+                <input type="file" id="image" @change="handleImageUpload($event)" accept="image/*" class="adm-file"
+                    required />
+            </AdminField>
+        </div>
 
-            </div>
-
-            <!-- Actions -->
-            <div class="flex justify-end gap-2">
-                <button type="button" @click="showEditBanner = false"
-                    class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-                <button type="button" @click="submitForm"
-                    class="px-4 py-2 bg-orange-500 text-white rounded">Save</button>
-            </div>
+        <div class="adm-modal-foot">
+            <button type="button" @click="showEditBanner = false" class="adm-btn adm-btn-ghost">Cancel</button>
+            <button type="button" @click="submitForm" class="adm-btn" :disabled="form.processing">
+                <Icon v-if="form.processing" icon="mdi:loading" width="18" height="18" class="adm-spin" />
+                Save
+            </button>
         </div>
     </Modal>
 

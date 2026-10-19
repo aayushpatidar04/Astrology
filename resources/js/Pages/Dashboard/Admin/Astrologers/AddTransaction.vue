@@ -1,61 +1,56 @@
 <template>
-    <button @click="openForm(astrologer)"
-        class="px-3 py-1 text-xs font-semibold rounded bg-purple-100 text-purple-800 hover:bg-purple-200 whitespace-nowrap">
+    <button @click="openForm(astrologer)" class="adm-pill adm-pill-purple">
         Add Transaction
     </button>
 
     <Modal :show="showForm" @close="closeModal">
-        <div class="bg-white p-6 rounded shadow-lg max-w-3xl">
-            <h2 class="text-lg font-semibold mb-4">
-                Add Transaction for {{ selectedAstrologer?.user?.name }}
-            </h2>
+        <form @submit.prevent="saveTransaction">
+            <div class="adm-modal-head">
+                <h3>Add Transaction for {{ selectedAstrologer?.user?.name }}</h3>
+                <button type="button" class="adm-icon-btn" aria-label="Close" @click="closeModal">
+                    <Icon icon="mdi:close" />
+                </button>
+            </div>
 
-            <form @submit.prevent="saveTransaction" class="space-y-4">
-                <div>
-                    <InputLabel for="amount" value="Amount" />
-                    <TextInput id="amount" type="number" v-model="form.amount" class="mt-1 block w-full" />
-                    <InputError :message="form.errors.amount" class="mt-1" />
-                </div>
+            <div class="adm-modal-body">
+                <AdminField label="Amount" for-id="amount" :error="form.errors.amount">
+                    <input id="amount" type="number" v-model="form.amount" class="adm-input" />
+                </AdminField>
 
-                <div>
-                    <InputLabel for="mode" value="Mode (NEFT/Bank Transfer)" />
-                    <TextInput id="mode" type="text" v-model="form.mode" class="mt-1 block w-full" />
-                    <InputError :message="form.errors.mode" class="mt-1" />
-                </div>
+                <AdminField label="Mode (NEFT/Bank Transfer)" for-id="mode" :error="form.errors.mode">
+                    <input id="mode" type="text" v-model="form.mode" class="adm-input" />
+                </AdminField>
 
-                <div>
-                    <InputLabel for="reference_no" value="Reference No" />
-                    <TextInput id="reference_no" type="text" v-model="form.reference_no" class="mt-1 block w-full" />
-                </div>
+                <AdminField label="Reference No" for-id="reference_no">
+                    <input id="reference_no" type="text" v-model="form.reference_no" class="adm-input" />
+                </AdminField>
 
-                <div>
-                    <InputLabel for="remarks" value="Remarks" />
-                    <textarea id="remarks" v-model="form.remarks" class="mt-1 block w-full border rounded"></textarea>
-                </div>
+                <AdminField label="Remarks" for-id="remarks">
+                    <textarea id="remarks" v-model="form.remarks" class="adm-input"></textarea>
+                </AdminField>
 
-                <div>
-                    <InputLabel for="proof" value="Proof (Image/PDF)" />
-                    <input id="proof" type="file" @change="handleFileUpload" />
-                </div>
+                <AdminField label="Proof (Image/PDF)" for-id="proof">
+                    <input id="proof" type="file" @change="handleFileUpload" class="adm-file" />
+                </AdminField>
+            </div>
 
-                <div class="flex justify-end gap-2 mt-4">
-                    <button @click="closeModal" class="px-3 py-1 rounded bg-gray-200">Cancel</button>
-                    <button type="submit" class="px-3 py-1 rounded bg-green-600 text-white" :disabled="form.processing">
-                        Save
-                    </button>
-                </div>
-            </form>
-        </div>
+            <div class="adm-modal-foot">
+                <button type="button" @click="closeModal" class="adm-btn adm-btn-ghost">Cancel</button>
+                <button type="submit" class="adm-btn" :disabled="form.processing">
+                    <Icon v-if="form.processing" icon="mdi:loading" width="18" height="18" class="adm-spin" />
+                    Save
+                </button>
+            </div>
+        </form>
     </Modal>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
+import { Icon } from '@iconify/vue'
 import Modal from '@/Components/Modal.vue';
-import TextInput from '@/Components/TextInput.vue'
-import InputLabel from '@/Components/InputLabel.vue'
-import InputError from '@/Components/InputError.vue'
+import AdminField from '@/Components/AdminField.vue'
 
 const props = defineProps({
     astrologer: Object
@@ -91,7 +86,9 @@ function handleFileUpload(e) {
 function saveTransaction() {
     form.value.processing = true
     const data = new FormData()
+    // errors / processing are UI state, not request fields
     Object.keys(form.value).forEach(key => {
+        if (key === 'errors' || key === 'processing') return
         if (form.value[key] !== null) data.append(key, form.value[key])
     })
 

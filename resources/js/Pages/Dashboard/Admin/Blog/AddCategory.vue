@@ -1,8 +1,6 @@
 <script setup>
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
+import AdminField from '@/Components/AdminField.vue';
 import Modal from '@/Components/Modal.vue';
-import TextInput from '@/Components/TextInput.vue';
 import { useForm } from '@inertiajs/vue3';
 import { inject, ref } from 'vue';
 import { Icon } from '@iconify/vue';
@@ -29,7 +27,6 @@ const submitCategoryForm = () => {
     category_form.post(route('blog-category.store'), {
         preserveScroll: true,
         onSuccess: () => {
-            console.log('yesssss');
             showAddCategory.value = false;
             category_form.clearErrors();
             category_form.reset();
@@ -45,39 +42,44 @@ const submitCategoryForm = () => {
 </script>
 
 <template>
-    <button type="button" @click="openAddCategory" class="px-3 py-2 bg-green-500 text-white rounded">
+    <button type="button" @click="openAddCategory" class="adm-btn adm-btn-success adm-btn-square"
+        title="Add category">
         <Icon icon="mdi:plus" width="20" height="20" />
     </button>
 
     <!-- Add Category Modal -->
     <Modal :show="showAddCategory" @close="showAddCategory = false">
-        <div class="p-6">
-            <h3 class="text-xl font-semibold mb-4">Add Category</h3>
-            <div class="mb-4">
-                <InputLabel for="name" value="Name" />
-                <TextInput id="name" v-model="category_form.name" type="text" class="mt-1 block w-full"
+        <div class="adm-modal-head">
+            <h3>Add Category</h3>
+            <button type="button" class="adm-icon-btn" aria-label="Close" @click="showAddCategory = false">
+                <Icon icon="mdi:close" />
+            </button>
+        </div>
+
+        <div class="adm-modal-body">
+            <AdminField label="Name" for-id="name" :error="category_form.errors.name">
+                <input id="name" v-model="category_form.name" type="text" class="adm-input"
                     placeholder="Enter category name" />
-                <InputError :message="category_form.errors.name" class="mt-2" />
-            </div>
-            <div class="mb-4">
-                <InputLabel for="meta_title" value="Meta Title" />
-                <TextInput id="meta_title" v-model="category_form.meta_title" type="text" class="mt-1 block w-full"
+            </AdminField>
+
+            <AdminField label="Meta Title" for-id="meta_title" :error="category_form.errors.meta_title">
+                <input id="meta_title" v-model="category_form.meta_title" type="text" class="adm-input"
                     placeholder="Enter meta title of category" />
-                <InputError :message="category_form.errors.meta_title" class="mt-2" />
-            </div>
-            <div class="mb-4">
-                <InputLabel for="meta_description" value="Meta Description" />
-                <textarea class="w-full border-gray-300 rounded px-3 py-2" v-model="category_form.meta_description"
+            </AdminField>
+
+            <AdminField label="Meta Description" for-id="meta_description"
+                :error="category_form.errors.meta_description">
+                <textarea id="meta_description" class="adm-input" v-model="category_form.meta_description"
                     placeholder="Enter meta description of category"></textarea>
-                <InputError :message="category_form.errors.meta_description" class="mt-2" />
-            </div>
-            <div class="flex justify-end gap-2">
-                <button type="button" @click="showAddCategory = false"
-                    class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-                <button type="button" class="px-4 py-2 bg-orange-500 text-white rounded"
-                    :class="{ 'opacity-25': category_form.processing }" :disabled="category_form.processing"
-                    @click="submitCategoryForm">Save</button>
-            </div>
+            </AdminField>
+        </div>
+
+        <div class="adm-modal-foot">
+            <button type="button" @click="showAddCategory = false" class="adm-btn adm-btn-ghost">Cancel</button>
+            <button type="button" class="adm-btn" :disabled="category_form.processing" @click="submitCategoryForm">
+                <Icon v-if="category_form.processing" icon="mdi:loading" width="18" height="18" class="adm-spin" />
+                Save
+            </button>
         </div>
     </Modal>
 </template>

@@ -1,8 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import Create from './Create.vue';
-import { Icon } from '@iconify/vue';
 import Edit from './Edit.vue';
 import Delete from './Delete.vue';
 import { VueGoodTable } from "vue-good-table-next";
@@ -21,6 +20,9 @@ const columns = [
     { label: "Actions", field: "actions", sortable: false },
 ]
 
+// "first_time" -> "First Time"
+const prettyType = (type) =>
+    (type || '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 </script>
 
 <template>
@@ -29,33 +31,38 @@ const columns = [
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                Packages
-            </h2>
+            <h2 class="adm-title">Packages</h2>
         </template>
-        <div class="container p-4 mx-auto">
 
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold"></h2>
-                <Create />
-            </div>
+        <div class="adm-toolbar">
+            <p class="adm-sub">Wallet recharge packages shown to users.</p>
+            <Create />
+        </div>
 
-            <!-- Table for active tab -->
+        <div class="adm-card adm-table">
             <VueGoodTable :columns="columns" :rows="packages" :paginate="true" :search-options="{ enabled: true }"
                 :lineNumbers="true" :pagination-options="{ enabled: true, perPage: 10 }">
                 <template #table-row="props">
-                    <span v-if="props.column.field === 'recommended'">
-                        <span v-if="props.row.recommended"
-                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                            Yes
+                    <span v-if="props.column.field === 'amount'" class="adm-strong">
+                        ₹{{ props.row.amount }}
+                    </span>
+                    <span v-else-if="props.column.field === 'bonus_amount'">
+                        <span v-if="props.row.bonus_amount" style="color: #15803d; font-weight: 600">+₹{{ props.row.bonus_amount }}</span>
+                        <span v-else class="adm-muted">—</span>
+                    </span>
+                    <span v-else-if="props.column.field === 'recommended'">
+                        <span v-if="props.row.recommended" class="adm-badge adm-badge-green">
+                            <span class="adm-dot"></span> Yes
                         </span>
-                        <span v-else
-                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-                            No
+                        <span v-else class="adm-badge adm-badge-red">
+                            <span class="adm-dot"></span> No
                         </span>
                     </span>
+                    <span v-else-if="props.column.field === 'type'">
+                        <span class="adm-badge adm-badge-blue">{{ prettyType(props.row.type) }}</span>
+                    </span>
 
-                    <span v-else-if="props.column.field === 'actions'" class="flex gap-2 items-center">
+                    <span v-else-if="props.column.field === 'actions'" class="adm-row">
                         <Edit :recharge="props.row" />
                         <Delete :recharge="props.row" />
                     </span>
@@ -65,14 +72,7 @@ const columns = [
                     </span>
                 </template>
             </VueGoodTable>
-
         </div>
 
     </AuthenticatedLayout>
 </template>
-
-<style>
-[id^="vgt-select-rpp-"] {
-    background-image: none !important;
-}
-</style>

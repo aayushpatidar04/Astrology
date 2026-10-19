@@ -1,9 +1,7 @@
 <script setup>
 import { inject, ref } from "vue";
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
+import AdminField from '@/Components/AdminField.vue';
 import Modal from '@/Components/Modal.vue';
-import TextInput from '@/Components/TextInput.vue';
 import { Icon } from '@iconify/vue';
 import { QuillEditor } from '@vueup/vue-quill';
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
@@ -91,7 +89,7 @@ function updateBlog() {
             selectedBlog.clearErrors()
             selectedBlog.reset()
             tagsString.value = ""
-            alertRef.value.showAlert('Blog added successfully!', 'success');
+            alertRef.value.showAlert('Blog updated successfully!', 'success');
         },
         onError: () => {
             alertRef.value.showAlert('Validation failed. Please check your inputs.', 'error');
@@ -102,126 +100,110 @@ function updateBlog() {
 </script>
 
 <template>
-    <button @click="openEditBlog(blog)" class="px-2 py-1 bg-blue-500 text-white rounded mr-2 mt-1">
-        Edit
+    <button @click="openEditBlog(blog)" class="adm-icon-btn adm-icon-edit" title="Edit">
+        <Icon icon="mdi:pencil" />
     </button>
 
     <!-- Edit Blog Modal -->
     <Modal :show="showEditBlog" @close="showEditBlog = false">
-        <div class="p-6">
-            <h3 class="text-xl font-semibold mb-4">Edit Blog</h3>
+        <div class="adm-modal-head">
+            <h3>Edit Blog</h3>
+            <button type="button" class="adm-icon-btn" aria-label="Close" @click="showEditBlog = false">
+                <Icon icon="mdi:close" />
+            </button>
+        </div>
 
+        <div class="adm-modal-body">
             <!-- Category -->
-            <div class="mb-4">
-                <InputLabel for="category" value="Category" />
-                <div class="flex gap-2">
-                    <select v-model="selectedBlog.blog_category_id" id="category"
-                        class="w-full border-gray-300 rounded px-3 py-2">
+            <AdminField label="Category" for-id="category" :error="selectedBlog.errors.blog_category_id">
+                <div class="adm-inline">
+                    <select v-model="selectedBlog.blog_category_id" id="category" class="adm-input">
                         <option disabled value="">Select Category</option>
                         <option v-for="cat in props.categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                     </select>
                     <AddCategory />
                 </div>
-                <InputError :message="selectedBlog.errors.blog_category_id" />
-            </div>
+            </AdminField>
 
-            <div class="mb-4">
-                <InputLabel for="title" value="Title" />
-                <TextInput id="title" v-model="selectedBlog.title" type="text" class="w-full" />
-                <InputError :message="selectedBlog.errors.title" />
-            </div>
+            <AdminField label="Title" for-id="title" :error="selectedBlog.errors.title">
+                <input id="title" v-model="selectedBlog.title" type="text" class="adm-input" />
+            </AdminField>
 
             <!-- Meta Description -->
-            <div class="mb-4">
-                <InputLabel for="meta_description" value="Meta Description" />
+            <AdminField label="Meta Description" for-id="meta_description"
+                :error="selectedBlog.errors.meta_description">
                 <textarea id="meta_description" v-model="selectedBlog.meta_description"
-                    class="w-full border-gray-300 rounded px-3 py-2"></textarea>
-                <InputError :message="selectedBlog.errors.meta_description" />
-            </div>
+                    class="adm-input"></textarea>
+            </AdminField>
 
             <!-- Short Description -->
-            <div class="mb-4">
-                <InputLabel for="short_description" value="Short Description" />
+            <AdminField label="Short Description" for-id="short_description"
+                :error="selectedBlog.errors.short_description">
                 <textarea id="short_description" v-model="selectedBlog.short_description"
-                    class="w-full border-gray-300 rounded px-3 py-2"></textarea>
-                <InputError :message="selectedBlog.errors.short_description" />
-            </div>
+                    class="adm-input"></textarea>
+            </AdminField>
 
             <!-- Description1 -->
-            <div class="mb-4">
-                <InputLabel for="description1" value="Description 1" />
+            <AdminField label="Description 1" :error="selectedBlog.errors.description1">
                 <QuillEditor v-model:content="selectedBlog.description1" contentType="html" theme="snow"
                     placeholder="Write your blog content here..." style="height:300px" />
-                <InputError :message="selectedBlog.errors.description1" />
-            </div>
+            </AdminField>
 
             <!-- Description2 -->
-            <div class="mb-4">
-                <InputLabel for="description2" value="Description 2 (Optional)" />
+            <AdminField label="Description 2 (Optional)" :error="selectedBlog.errors.description2">
                 <QuillEditor v-model:content="selectedBlog.description2" contentType="html" theme="snow"
                     placeholder="Write your blog content here..." style="height:300px" />
-                <InputError :message="selectedBlog.errors.description2" />
-            </div>
+            </AdminField>
 
-            <div class="mb-4">
-                <InputLabel value="Existing Images" />
-                <div class="grid grid-cols-3 gap-4">
-                    <div v-for="(img, index) in selectedBlog.old_images" :key="index" class="relative">
+            <!-- Existing images -->
+            <div v-if="selectedBlog.old_images?.length" class="adm-field">
+                <p class="adm-section-label">Existing Images</p>
+                <div class="adm-thumbs">
+                    <div v-for="(img, index) in selectedBlog.old_images" :key="index" class="adm-thumb">
                         <!-- Image preview -->
-                        <img :src="`/${img.image}`" alt="Blog image" class="h-24 w-full object-cover rounded shadow" />
+                        <img :src="`/${img.image}`" alt="Blog image" />
 
                         <!-- Small remove button -->
-                        <button type="button" @click="removeOldImage(img.image)"
-                            class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                        <button type="button" @click="removeOldImage(img.image)" title="Remove image">
                             ×
                         </button>
                     </div>
                 </div>
             </div>
 
-
             <!-- Images -->
-            <div class="mb-4">
-                <InputLabel value="Images" />
-                <div v-for="(img, index) in selectedBlog.images" :key="index" class="flex gap-2 mb-2">
-                    <input type="file" @change="handleImageUpload($event, index)" accept="image/*" class="block w-1/2 text-sm text-gray-500
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-full file:border-0
-                        file:text-sm file:font-semibold
-                        file:bg-blue-50 file:text-blue-700
-                        hover:file:bg-blue-100" />
+            <AdminField label="Images" :error="selectedBlog.errors.images">
+                <div v-for="(img, index) in selectedBlog.images" :key="index" class="adm-inline"
+                    style="margin-bottom: 0.5rem">
+                    <input type="file" @change="handleImageUpload($event, index)" accept="image/*" class="adm-file" />
                     <!-- Alt text -->
-                    <TextInput v-model="img.alt_text" type="text" placeholder="Alt Image text" class="w-1/2" />
+                    <input v-model="img.alt_text" type="text" placeholder="Alt Image text" class="adm-input" />
 
                     <!-- Add/Remove buttons -->
                     <button v-if="index > 0" type="button" @click="removeImageField(index)"
-                        class="px-3 py-1 bg-red-500 text-white rounded">
+                        class="adm-btn adm-btn-danger adm-btn-square" title="Remove image">
                         <Icon icon="mdi:minus" />
                     </button>
-                    <button v-else type="button" @click="addImageField"
-                        class="px-3 py-1 bg-green-500 text-white rounded">
+                    <button v-else type="button" @click="addImageField" class="adm-btn adm-btn-success adm-btn-square"
+                        title="Add another image">
                         <Icon icon="mdi:plus" />
                     </button>
                 </div>
-                <InputError :message="selectedBlog.errors.images" />
-
-            </div>
+            </AdminField>
 
             <!-- Tags -->
-            <div class="mb-4">
-                <InputLabel for="tags" value="Tags" />
-                <!-- Example using vue-tagify or similar -->
-                <TextInput id="tags" v-model="tagsString" type="text" placeholder="Enter tags (comma separated)"
-                    class="w-full" />
-                <InputError :message="selectedBlog.errors.tags" />
-            </div>
+            <AdminField label="Tags" for-id="tags" :error="selectedBlog.errors.tags">
+                <input id="tags" v-model="tagsString" type="text" placeholder="Enter tags (comma separated)"
+                    class="adm-input" />
+            </AdminField>
+        </div>
 
-            <div class="flex justify-end gap-2">
-                <button type="button" @click="showEditBlog = false"
-                    class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-                <button type="button" @click="updateBlog"
-                    class="px-4 py-2 bg-blue-500 text-white rounded">Update</button>
-            </div>
+        <div class="adm-modal-foot">
+            <button type="button" @click="showEditBlog = false" class="adm-btn adm-btn-ghost">Cancel</button>
+            <button type="button" @click="updateBlog" class="adm-btn" :disabled="selectedBlog.processing">
+                <Icon v-if="selectedBlog.processing" icon="mdi:loading" width="18" height="18" class="adm-spin" />
+                Update
+            </button>
         </div>
     </Modal>
 </template>

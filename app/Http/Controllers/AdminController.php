@@ -12,6 +12,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Redirect;
@@ -26,9 +27,212 @@ class AdminController extends Controller
         'role:Admin',
     ];
 
+    private const DAYS = 180;
+
+    /*
+    |--------------------------------------------------------------------------
+    | EDIT THESE to match your own models / columns
+    |--------------------------------------------------------------------------
+    | Every block is wrapped in safe(), so a wrong model name simply shows an
+    | empty widget instead of breaking the page. Set APP_ENV=local to see the
+    | exception in your log while you wire things up.
+    */
+
+    /** Money users paid in. Needs: amount, created_at. */
+    protected function rechargesQuery()
+    {
+        return Transaction::query()->where('type', 'credit');
+    }
+
+    /** Payouts to astrologers (the admin "Transactions" page). Needs: amount, transacted_at, astrologer_id. */
+    protected function payoutsQuery()
+    {
+        return Transaction::query();
+    }
+
+    /** Chat sessions. Needs: astrologer_id, created_at. */
+    protected function chatsQuery()
+    {
+        return \App\Models\ChatSession::query();
+    }
+
+    /** Call sessions. Needs: astrologer_id, created_at. */
+    protected function callsQuery()
+    {
+        return \App\Models\CallHistory::query();
+    }
+
+    /** User wallets. Needs: balance. */
+    protected function walletsQuery()
+    {
+        return \App\Models\UserWallet::query();
+    }
+
+    /** User profile details. Needs: gender, preferred_language. */
+    protected function detailsQuery()
+    {
+        return \App\Models\UserDetail::query();
+    }
+
     public function dashboard()
     {
-        return Inertia::render('Dashboard');
+        $users = fn() => User::query()->whereHas('roles', fn($q) => $q->where('name', 'User'));
+
+        $signups = $this->safe(fn() => $this->perDay($users(), 'created_at'), []);
+        $revenue = $this->safe(fn() => $this->perDay($this->rechargesQuery(), 'created_at', 'amount'), []);
+        $payouts = $this->safe(fn() => $this->perDay($this->payoutsQuery(), 'transacted_at', 'amount'), []);
+        $chats = $this->safe(fn() => $this->perDay($this->chatsQuery(), 'created_at'), []);
+        $calls = $this->safe(fn() => $this->perDay($this->callsQuery(), 'created_at'), []);
+
+        $daily = collect(range(self::DAYS - 1, 0))->map(function ($i) use ($signups, $revenue, $payouts, $chats, $calls) {
+            $d = now()->subDays($i)->toDateString();
+
+            return [
+                'date' => $d,
+                'signups' => (int) ($signups[$d] ?? 0),
+                'revenue' => (float) ($revenue[$d] ?? 0),
+                'payouts' => (float) ($payouts[$d] ?? 0),
+                'sessions' => (int) (($chats[$d] ?? 0) + ($calls[$d] ?? 0)),
+            ];
+        })->values();
+
+        return Inertia::render('Dashboard', [
+            'totals' => [
+                'users' => $this->safe(fn() => $users()->count(), 0),
+                'recharge_total' => $this->safe(fn() => (float) $this->rechargesQuery()->sum('amount'), 0),
+                'payouts_total' => $this->safe(fn() => (float) $this->payoutsQuery()->sum('amount'), 0),
+                'sessions' => $this->safe(fn() => $this->chatsQuery()->count(), 0)
+                    + $this->safe(fn() => $this->callsQuery()->count(), 0),
+                'wallet_balance' => $this->safe(fn() => (float) $this->walletsQuery()->sum('balance'), 0),
+                'busy_astrologers' => $this->safe(fn() => Astrologer::where('is_busy', true)->count(), 0),
+                'blogs' => $this->safe(fn() => \App\Models\Blog::count(), 0),
+                'banners' => $this->safe(fn() => \App\Models\Banner::count(), 0),
+                'banners_active' => $this->safe(fn() => \App\Models\Banner::where('active', true)->count(), 0),
+                'horoscopes' => $this->safe(fn() => \App\Models\Horoscope::count(), 0),
+                'packages' => $this->safe(fn() => \App\Models\RechargePackage::count(), 0),
+            ],
+
+            'daily' => $daily,
+
+            'astrologerStatus' => $this->safe(
+                fn() => Astrologer::query()->selectRaw('status, COUNT(*) as c')->groupBy('status')->pluck('c', 'status'),
+                collect()
+            ),
+
+            'topAstrologers' => $this->safe(fn() => $this->topAstrologers(), []),
+            'gender' => $this->safe(fn() => $this->gender(), []),
+            'languages' => $this->safe(fn() => $this->languages(), []),
+            'horoscopeTypes' => $this->safe(
+                fn() => \App\Models\Horoscope::query()->selectRaw('type, COUNT(*) as c')->groupBy('type')->pluck('c', 'type'),
+                collect()
+            ),
+
+            'pendingAstrologers' => $this->safe(fn() => Astrologer::with('user:id,name,email')
+                ->where('status', 'pending_verification')->latest()->limit(5)->get()
+                ->map(fn($a) => [
+                    'id' => $a->id,
+                    'name' => $a->user?->name,
+                    'email' => $a->user?->email,
+                    'experience_years' => $a->experience_years,
+                ]), []),
+
+            'recentPayouts' => $this->safe(fn() => $this->payoutsQuery()->with('astrologer.user:id,name')
+                ->latest('transacted_at')->limit(5)->get()
+                ->map(fn($t) => [
+                    'name' => $t->astrologer?->user?->name,
+                    'amount' => $t->amount,
+                    'mode' => $t->mode,
+                    'reference_no' => $t->reference_no,
+                    'date' => $t->transacted_at,
+                ]), []),
+
+            'recentUsers' => $this->safe(fn() => $users()->latest()->limit(5)->get(['id', 'name', 'email', 'phone', 'created_at']), []),
+        ]);
+    }
+
+    /** { 'YYYY-MM-DD' => count | sum } for the last DAYS days. */
+    protected function perDay($query, string $dateColumn, ?string $sumColumn = null): array
+    {
+        $from = now()->subDays(self::DAYS - 1)->startOfDay();
+        $aggregate = $sumColumn ? "SUM($sumColumn)" : 'COUNT(*)';
+
+        return $query->where($dateColumn, '>=', $from)
+            ->selectRaw("DATE($dateColumn) as d, $aggregate as v")
+            ->groupBy('d')
+            ->pluck('v', 'd')
+            ->all();
+    }
+
+    protected function topAstrologers(): array
+    {
+        $counts = collect();
+
+        foreach ([fn() => $this->chatsQuery(), fn() => $this->callsQuery()] as $make) {
+            $rows = $this->safe(
+                fn() => $make()->selectRaw('astrologer_id, COUNT(*) as c')->groupBy('astrologer_id')->pluck('c', 'astrologer_id'),
+                collect()
+            );
+
+            foreach ($rows as $id => $c) {
+                $counts[$id] = ($counts[$id] ?? 0) + $c;
+            }
+        }
+
+        $top = $counts->sortDesc()->take(5);
+        if ($top->isEmpty()) {
+            return [];
+        }
+
+        $paid = $this->safe(
+            fn() => $this->payoutsQuery()->whereIn('astrologer_id', $top->keys())
+                ->selectRaw('astrologer_id, SUM(amount) as s')->groupBy('astrologer_id')->pluck('s', 'astrologer_id'),
+            collect()
+        );
+        $names = Astrologer::with('user:id,name')->whereIn('id', $top->keys())->get()->keyBy('id');
+
+        return $top->map(fn($c, $id) => [
+            'name' => $names[$id]->user?->name ?? "Astrologer #$id",
+            'sessions' => $c,
+            'paid' => (float) ($paid[$id] ?? 0),
+        ])->values()->all();
+    }
+
+    protected function gender(): array
+    {
+        return $this->detailsQuery()
+            ->selectRaw('LOWER(gender) as g, COUNT(*) as c')
+            ->whereNotNull('gender')
+            ->groupBy('g')
+            ->pluck('c', 'g')
+            ->all();
+    }
+
+    /** preferred_language may hold "Hindi, English" - split and count each language. */
+    protected function languages(): array
+    {
+        return $this->detailsQuery()->whereNotNull('preferred_language')->pluck('preferred_language')
+            ->flatMap(fn($v) => is_array($v) ? $v : preg_split('/[,\/|]+/', (string) $v))
+            ->map(fn($v) => Str::title(trim((string) $v)))
+            ->filter()
+            ->countBy()
+            ->sortDesc()
+            ->take(6)
+            ->map(fn($c, $l) => ['label' => $l, 'value' => $c])
+            ->values()
+            ->all();
+    }
+
+    protected function safe(callable $fn, $default = null)
+    {
+        try {
+            return $fn();
+        } catch (\Throwable $e) {
+            if (app()->isLocal()) {
+                report($e);
+            }
+
+            return $default;
+        }
     }
 
     public function blogs()
@@ -494,11 +698,11 @@ class AdminController extends Controller
 
         Transaction::create([
             'astrologer_id' => $validated['astrologer_id'],
-            'amount'        => $validated['amount'],
-            'mode'          => $validated['mode'],
-            'reference_no'  => $validated['reference_no'] ?? null,
-            'remarks'       => $validated['remarks'] ?? null,
-            'proof'         => $proofPath,
+            'amount' => $validated['amount'],
+            'mode' => $validated['mode'],
+            'reference_no' => $validated['reference_no'] ?? null,
+            'remarks' => $validated['remarks'] ?? null,
+            'proof' => $proofPath,
         ]);
 
         return redirect()->route('admin.transactions.index')->with('success', 'Transaction recorded successfully.');

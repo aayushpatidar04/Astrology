@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import { Icon } from '@iconify/vue';
 import { VueGoodTable } from "vue-good-table-next";
 import "vue-good-table-next/dist/vue-good-table-next.css";
 import dayjs from "dayjs";
@@ -34,78 +35,79 @@ function updateStatus(astrologerId, status) {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                Astrologers
-            </h2>
+            <h2 class="adm-title">Astrologers</h2>
         </template>
-        <div class="container p-4 mx-auto max-w-7xl">
 
+        <div class="adm-toolbar">
+            <p class="adm-sub">Verify astrologers, set their pricing and record payouts.</p>
+        </div>
+
+        <div class="adm-card adm-table">
             <!-- DataTable -->
             <VueGoodTable :columns="columns" :rows="astrologers" :paginate="true" :search-options="{ enabled: true }"
                 :lineNumbers="true" :pagination-options="{ enabled: true, perPage: 10 }">
                 <template #table-row="props">
-                    <span v-if="props.column.field === 'astrologer'" class="flex items-center gap-3">
+                    <div v-if="props.column.field === 'astrologer'" class="adm-cell-user">
+                        <img v-if="props.row.astrologer?.profile_image" :src="props.row.astrologer?.profile_image"
+                            :alt="props.row.name" class="adm-avatar">
+                        <span v-else class="adm-avatar">{{ props.row.name?.charAt(0)?.toUpperCase() }}</span>
                         <div>
-                            <img :src="props.row.astrologer?.profile_image" :alt="props.row.name"
-                                class="w-32 h-auto rounded">
+                            <span class="adm-strong">{{ props.row.name }}</span>
+                            <span class="adm-muted adm-lc">{{ props.row.email }}</span>
+                            <span class="adm-muted adm-lc">{{ props.row.phone }}</span>
                         </div>
-                        <div>
-                            <div class="font-semibold">{{ props.row.name }}</div>
-                            <div class="text-sm text-gray-500 lowercase">{{ props.row.email }}</div>
-                            <div class="text-sm text-gray-500 lowercase">{{ props.row.phone }}</div>
-                        </div>
-                    </span>
+                    </div>
                     <span v-else-if="props.column.field === 'experience'">
                         {{ props.row.astrologer?.experience_years }} Years
                     </span>
                     <span v-else-if="props.column.field === 'status'">
                         <span v-if="props.row.astrologer?.status === 'pending_verification'"
-                            class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 whitespace-nowrap">
-                            Verification Pending
+                            class="adm-badge adm-badge-yellow">
+                            <span class="adm-dot"></span> Verification Pending
                         </span>
 
-                        <span v-else-if="props.row.astrologer?.status === 'verified'"
-                            class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                            Verified
+                        <span v-else-if="props.row.astrologer?.status === 'verified'" class="adm-badge adm-badge-green">
+                            <span class="adm-dot"></span> Verified
                         </span>
 
-                        <span v-else-if="props.row.astrologer?.status === 'active'"
-                            class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                            Active
+                        <span v-else-if="props.row.astrologer?.status === 'active'" class="adm-badge adm-badge-blue">
+                            <span class="adm-dot"></span> Active
                         </span>
 
-                        <span v-else-if="props.row.astrologer?.status === 'rejected'"
-                            class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                            Rejected
+                        <span v-else-if="props.row.astrologer?.status === 'rejected'" class="adm-badge adm-badge-red">
+                            <span class="adm-dot"></span> Rejected
                         </span>
                     </span>
                     <span v-else-if="props.column.field === 'verified_by'">
-                        <div class="font-semibold">{{ props.row.astrologer?.verifier?.name }}</div>
-                        <div class="text-sm text-gray-500 lowercase">{{ props.row.astrologer?.verifier?.email }}</div>
+                        <span class="adm-strong">{{ props.row.astrologer?.verifier?.name }}</span>
+                        <span class="adm-muted adm-lc">{{ props.row.astrologer?.verifier?.email }}</span>
                     </span>
                     <span v-else-if="props.column.field === 'expertise'">
-                        <div class="flex flex-wrap gap-1">
+                        <span class="adm-row">
                             <span v-for="expertise in props.row.astrologer?.expertise" :key="expertise"
-                                class="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">
+                                class="adm-chip">
                                 {{ expertise }}
                             </span>
-                        </div>
+                        </span>
                     </span>
                     <span v-else-if="props.column.field === 'created_at'">
                         {{ dayjs(props.row.created_at).format("D MMM, YYYY HH:mm:ss") }}
                     </span>
                     <span v-else-if="props.column.field === 'documents'">
-                        <div v-for="doc in props.row.astrologer.documents">
-                            <a :href="doc.document_path" target="_blank">{{ doc.name }}</a>
+                        <div v-for="doc in props.row.astrologer?.documents" :key="doc.document_path">
+                            <a :href="doc.document_path" target="_blank" class="adm-link">
+                                <Icon icon="mdi:file-document-outline" width="16" height="16" />
+                                {{ doc.name }}
+                            </a>
                         </div>
                     </span>
-                    <span v-else-if="props.column.field === 'actions'" class="flex gap-2 items-center">
+                    <span v-else-if="props.column.field === 'actions'" class="adm-row adm-actions">
                         <SetPricing :astrologer="props.row.astrologer" />
 
                         <!-- Pending Verification: show Verify + Reject -->
                         <template v-if="props.row.astrologer?.status === 'pending_verification'">
                             <button @click="updateStatus(props.row.astrologer.id, 'verified')"
-                                class="px-3 py-1 text-xs font-semibold rounded bg-green-100 text-green-800 hover:bg-green-200">
+                                class="adm-pill adm-pill-green">
                                 Verify
                             </button>
                         </template>
@@ -113,7 +115,7 @@ function updateStatus(astrologerId, status) {
                         <!-- Verified: allow Activate or Reject -->
                         <template v-else-if="props.row.astrologer?.status === 'verified'">
                             <button @click="updateStatus(props.row.astrologer.id, 'active')"
-                                class="px-3 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800 hover:bg-blue-200">
+                                class="adm-pill adm-pill-blue">
                                 Activate
                             </button>
                         </template>
@@ -122,14 +124,14 @@ function updateStatus(astrologerId, status) {
                         <!-- Rejected: optionally allow re‑verification -->
                         <template v-if="props.row.astrologer?.status === 'rejected'">
                             <button @click="updateStatus(props.row.astrologer.id, 'pending_verification')"
-                                class="px-3 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
+                                class="adm-pill adm-pill-yellow">
                                 Re‑Verify
                             </button>
                         </template>
-                        <!-- Active: allow Reject (or deactivate if you want) -->
-                        <template v-else="props.row.astrologer?.status === 'active'">
+                        <!-- Everything else: allow Reject -->
+                        <template v-else>
                             <button @click="updateStatus(props.row.astrologer.id, 'rejected')"
-                                class="px-3 py-1 text-xs font-semibold rounded bg-red-100 text-red-800 hover:bg-red-200">
+                                class="adm-pill adm-pill-red">
                                 Reject
                             </button>
                         </template>
@@ -142,15 +144,7 @@ function updateStatus(astrologerId, status) {
                     </span>
                 </template>
             </VueGoodTable>
-
         </div>
 
     </AuthenticatedLayout>
 </template>
-
-
-<style>
-[id^="vgt-select-rpp-"] {
-    background-image: none !important;
-}
-</style>

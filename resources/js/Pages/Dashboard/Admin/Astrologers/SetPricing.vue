@@ -1,10 +1,9 @@
 <script setup>
 import { ref, inject } from 'vue'
 import { useForm } from '@inertiajs/vue3'
+import { Icon } from '@iconify/vue'
 import Modal from '@/Components/Modal.vue';
-import TextInput from '@/Components/TextInput.vue'
-import InputLabel from '@/Components/InputLabel.vue'
-import InputError from '@/Components/InputError.vue'
+import AdminField from '@/Components/AdminField.vue'
 
 const props = defineProps({
     astrologer: Object
@@ -47,58 +46,52 @@ const closeModal = () => {
 
 
 <template>
-    <button @click="openPricingForm(props.astrologer)"
-        class="px-3 py-1 text-xs font-semibold rounded bg-purple-100 text-purple-800 hover:bg-purple-200 whitespace-nowrap">
+    <button @click="openPricingForm(props.astrologer)" class="adm-pill adm-pill-purple">
         Set Pricing
     </button>
 
     <Modal :show="showPricingForm" @close="closeModal">
-        <div class="bg-white p-6 rounded shadow-lg max-w-5xl">
-            <h2 class="text-lg font-semibold mb-4">
-                Set Pricing for {{ selectedAstrologer?.user?.name }}
-            </h2>
-    
-            <div class="grid grid-cols-2 gap-5">
+        <div class="adm-modal-head">
+            <h3>Set Pricing for {{ selectedAstrologer?.user?.name }}</h3>
+            <button type="button" class="adm-icon-btn" aria-label="Close" @click="closeModal">
+                <Icon icon="mdi:close" />
+            </button>
+        </div>
+
+        <div class="adm-modal-body">
+            <div class="adm-grid-2">
                 <!-- Asked Call Price -->
-                <div>
-                    <InputLabel for="asked_call_price" value="Asked Call Price (per min)" />
-                    <TextInput id="asked_call_price" type="number" v-model="form.asked_call_price"
-                        class="mt-1 block w-full" />
-                    <InputError :message="form.errors.asked_call_price" class="mt-1" />
-                </div>
-    
+                <AdminField label="Asked Call Price (per min)" for-id="asked_call_price"
+                    :error="form.errors.asked_call_price">
+                    <input id="asked_call_price" type="number" v-model="form.asked_call_price" class="adm-input" />
+                </AdminField>
+
                 <!-- Charged Call Price -->
-                <div>
-                    <InputLabel for="charged_call_price" value="Charged Call Price (per min)" />
-                    <TextInput id="charged_call_price" type="number" v-model="form.charged_call_price"
-                        class="mt-1 block w-full" />
-                    <InputError :message="form.errors.charged_call_price" class="mt-1" />
-                </div>
-    
+                <AdminField label="Charged Call Price (per min)" for-id="charged_call_price"
+                    :error="form.errors.charged_call_price">
+                    <input id="charged_call_price" type="number" v-model="form.charged_call_price" class="adm-input" />
+                </AdminField>
+
                 <!-- Asked Text Price -->
-                <div>
-                    <InputLabel for="asked_text_price" value="Asked Text Price (per min)" />
-                    <TextInput id="asked_text_price" type="number" v-model="form.asked_text_price"
-                        class="mt-1 block w-full" />
-                    <InputError :message="form.errors.asked_text_price" class="mt-1" />
-                </div>
-    
+                <AdminField label="Asked Text Price (per min)" for-id="asked_text_price"
+                    :error="form.errors.asked_text_price">
+                    <input id="asked_text_price" type="number" v-model="form.asked_text_price" class="adm-input" />
+                </AdminField>
+
                 <!-- Charged Text Price -->
-                <div>
-                    <InputLabel for="charged_text_price" value="Charged Text Price (per min)" />
-                    <TextInput id="charged_text_price" type="number" v-model="form.charged_text_price"
-                        class="mt-1 block w-full" />
-                    <InputError :message="form.errors.charged_text_price" class="mt-1" />
-                </div>
+                <AdminField label="Charged Text Price (per min)" for-id="charged_text_price"
+                    :error="form.errors.charged_text_price">
+                    <input id="charged_text_price" type="number" v-model="form.charged_text_price" class="adm-input" />
+                </AdminField>
             </div>
-    
-            <div class="flex justify-end gap-2 mt-4">
-                <button @click="showPricingForm = false" class="px-3 py-1 rounded bg-gray-200">Cancel</button>
-                <button @click="savePricing" class="px-3 py-1 rounded bg-green-600 text-white"
-                    :disabled="form.processing">
-                    Save
-                </button>
-            </div>
+        </div>
+
+        <div class="adm-modal-foot">
+            <button type="button" @click="showPricingForm = false" class="adm-btn adm-btn-ghost">Cancel</button>
+            <button type="button" @click="savePricing" class="adm-btn" :disabled="form.processing">
+                <Icon v-if="form.processing" icon="mdi:loading" width="18" height="18" class="adm-spin" />
+                Save
+            </button>
         </div>
     </Modal>
 </template>

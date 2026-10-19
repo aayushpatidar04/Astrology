@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { Icon } from '@iconify/vue';
 import { VueGoodTable } from "vue-good-table-next";
 import "vue-good-table-next/dist/vue-good-table-next.css";
 import Create from './Create.vue';
@@ -29,45 +30,43 @@ const columns = [
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                Blogs
-            </h2>
+            <h2 class="adm-title">Blogs</h2>
         </template>
-        <div class="container p-4 mx-auto">
 
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold"></h2>
-                <Create :categories="categories" />
-            </div>
+        <div class="adm-toolbar">
+            <p class="adm-sub">Write and manage the articles shown on the website.</p>
+            <Create :categories="categories" />
+        </div>
 
+        <div class="adm-card adm-table">
             <!-- DataTable -->
             <VueGoodTable :columns="columns" :rows="blogs" :paginate="true" :search-options="{ enabled: true }"
                 :lineNumbers="true" :pagination-options="{ enabled: true, perPage: 10 }">
                 <template #table-row="props">
                     <span v-if="props.column.field === 'title'">
-                        <div>
-                            <div class="font-semibold">{{ props.row.title }}</div>
-                            <div class="text-sm text-gray-500 lowercase">{{ props.row.slug }}</div>
-                        </div>
+                        <span class="adm-strong">{{ props.row.title }}</span>
+                        <span class="adm-muted adm-lc">{{ props.row.slug }}</span>
                     </span>
                     <span v-else-if="props.column.field === 'category'">
-                        {{ props.row.category?.name }}
+                        <span v-if="props.row.category?.name" class="adm-badge adm-badge-blue">
+                            {{ props.row.category?.name }}
+                        </span>
                     </span>
                     <span v-else-if="props.column.field === 'tags'">
-                        <div class="flex flex-wrap gap-1">
-                            <span v-for="tag in props.row.tags" :key="tag"
-                                class="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">
+                        <span class="adm-row">
+                            <span v-for="tag in props.row.tags" :key="tag" class="adm-chip">
                                 {{ tag }}
                             </span>
-                        </div>
+                        </span>
                     </span>
                     <span v-else-if="props.column.field === 'created_at'">
                         {{ dayjs(props.row.created_at).format("D MMM, YYYY HH:mm:ss") }}
                     </span>
-                    <span v-else-if="props.column.field === 'actions'" class="flex">
-                        <Link :href="route('blog-details', { slug: props.row.slug })"><button class="px-2 py-1 bg-orange-500 text-white rounded mr-2 mt-1">
-                            View
-                        </button></Link>
+                    <span v-else-if="props.column.field === 'actions'" class="adm-row">
+                        <Link :href="route('blog-details', { slug: props.row.slug })" class="adm-icon-btn adm-icon-add"
+                            title="View">
+                            <Icon icon="mdi:eye-outline" />
+                        </Link>
                         <Edit :categories="categories" :blog="props.row" />
                         <Delete :blog="props.row" />
                     </span>
@@ -76,15 +75,7 @@ const columns = [
                     </span>
                 </template>
             </VueGoodTable>
-
         </div>
 
     </AuthenticatedLayout>
 </template>
-
-
-<style>
-[id^="vgt-select-rpp-"] {
-    background-image: none !important;
-}
-</style>
