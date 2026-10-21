@@ -292,7 +292,7 @@ class UserController extends Controller
 
     public function chatSessions()
     {
-        $sessions = ChatSession::with(['chat', 'user', 'astrologer'])->where('user_id', auth()->id())->latest()->get();
+        $sessions = ChatSession::with(['chat', 'user', 'astrologer.astrologer'])->where('user_id', auth()->id())->latest()->get();
         return Inertia::render('User/ChatSession', [
             'sessions' => $sessions,
         ]);
@@ -447,7 +447,7 @@ class UserController extends Controller
 
     public function callHistory()
     {
-        $history = CallHistory::with(['user', 'astrologer'])->where('user_id', auth()->id())->latest()->get();
+        $history = CallHistory::with(['user', 'astrologer.astrologer'])->where('user_id', auth()->id())->latest()->get();
         return Inertia::render('User/CallHistory', [
             'history' => $history,
         ]);

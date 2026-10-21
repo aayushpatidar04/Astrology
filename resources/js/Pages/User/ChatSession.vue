@@ -73,8 +73,8 @@ const endedMeta = (who) => ({
                         <div v-if="props.column.field === 'astrologer'" class="usr-cell">
                             <span class="usr-avatar">
                                 <img
-                                    v-if="props.row.astrologer?.profile_image"
-                                    :src="props.row.astrologer.profile_image"
+                                    v-if="props.row.astrologer.astrologer?.profile_image"
+                                    :src="props.row.astrologer.astrologer.profile_image"
                                     :alt="props.row.astrologer?.name"
                                     class="w-full h-full rounded-full object-cover"
                                 />
