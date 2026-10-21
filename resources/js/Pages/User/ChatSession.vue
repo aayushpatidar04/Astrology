@@ -71,7 +71,17 @@ const endedMeta = (who) => ({
                     :lineNumbers="true" :pagination-options="{ enabled: true, perPage: 10 }">
                     <template #table-row="props">
                         <div v-if="props.column.field === 'astrologer'" class="usr-cell">
-                            <span class="usr-avatar">{{ props.row.astrologer?.name?.charAt(0)?.toUpperCase() }}</span>
+                            <span class="usr-avatar">
+                                <img
+                                    v-if="props.row.astrologer?.profile_image"
+                                    :src="props.row.astrologer.profile_image"
+                                    :alt="props.row.astrologer?.name"
+                                    class="w-full h-full rounded-full object-cover"
+                                />
+                                <template v-else>
+                                    {{ props.row.astrologer?.name?.charAt(0)?.toUpperCase() }}
+                                </template>
+                            </span>
                             <span class="usr-strong">{{ props.row.astrologer.name }}</span>
                         </div>
                         <span v-else-if="props.column.field === 'duration'">

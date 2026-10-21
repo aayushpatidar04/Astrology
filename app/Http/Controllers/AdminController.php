@@ -7,6 +7,7 @@ use App\Models\Banner;
 use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\Horoscope;
+use App\Models\Order;
 use App\Models\RechargePackage;
 use App\Models\Transaction;
 use App\Models\User;
@@ -41,10 +42,10 @@ class AdminController extends Controller
     | exception in your log while you wire things up.
     */
 
-    /** Money users paid in. Needs: amount, created_at. */
+    /** Completed customer recharges. Orders are created after successful payment. */
     protected function rechargesQuery()
     {
-        return Transaction::query()->where('type', 'credit');
+        return Order::query();
     }
 
     /** Payouts to astrologers (the admin "Transactions" page). Needs: amount, transacted_at, astrologer_id. */
@@ -82,7 +83,7 @@ class AdminController extends Controller
         $users = fn() => User::query()->whereHas('roles', fn($q) => $q->where('name', 'User'));
 
         $signups = $this->safe(fn() => $this->perDay($users(), 'created_at'), []);
-        $revenue = $this->safe(fn() => $this->perDay($this->rechargesQuery(), 'created_at', 'amount'), []);
+        $revenue = $this->safe(fn() => $this->perDay($this->rechargesQuery(), 'created_at', 'payable_amount'), []);
         $payouts = $this->safe(fn() => $this->perDay($this->payoutsQuery(), 'transacted_at', 'amount'), []);
         $chats = $this->safe(fn() => $this->perDay($this->chatsQuery(), 'created_at'), []);
         $calls = $this->safe(fn() => $this->perDay($this->callsQuery(), 'created_at'), []);
@@ -102,7 +103,7 @@ class AdminController extends Controller
         return Inertia::render('Dashboard', [
             'totals' => [
                 'users' => $this->safe(fn() => $users()->count(), 0),
-                'recharge_total' => $this->safe(fn() => (float) $this->rechargesQuery()->sum('amount'), 0),
+                'recharge_total' => $this->safe(fn() => (float) $this->rechargesQuery()->sum('payable_amount'), 0),
                 'payouts_total' => $this->safe(fn() => (float) $this->payoutsQuery()->sum('amount'), 0),
                 'sessions' => $this->safe(fn() => $this->chatsQuery()->count(), 0)
                     + $this->safe(fn() => $this->callsQuery()->count(), 0),
