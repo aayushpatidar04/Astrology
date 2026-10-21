@@ -1,10 +1,11 @@
 <script setup>
 import AuthLayout from '@/Layouts/AuthLayout.vue';
 import AuthField from '@/Components/AuthField.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { Icon } from '@iconify/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
+const page = usePage();
 const form = useForm({
     account_type: 'user',
     name: '',
@@ -33,6 +34,18 @@ const otpForm = useForm({
 const otpSent = ref(false);
 const astrologerImageName = ref('');
 const userImageName = ref('');
+const validationErrors = computed(() => [
+    ...new Set(
+        [...Object.values(page.props.errors ?? {}), ...Object.values(form.errors), ...Object.values(otpForm.errors)]
+            .filter((error) => typeof error === 'string' && error.trim())
+    ),
+]);
+const flashError = computed(() => page.props.flash?.error);
+const fieldErrors = computed(() => ({
+    ...page.props.errors,
+    ...otpForm.errors,
+    ...form.errors,
+}));
 
 const setAccountType = (accountType) => {
     form.account_type = accountType;
@@ -78,6 +91,19 @@ const submit = () => {
         <Head title="Register" />
 
         <form @submit.prevent="submit" class="auth-form">
+            <div v-if="flashError || validationErrors.length" class="auth-error-summary" role="alert">
+                <Icon icon="mdi:alert-circle-outline" width="20" height="20" />
+                <div>
+                    <p v-if="flashError">{{ flashError }}</p>
+                    <template v-if="validationErrors.length">
+                        <p>Please fix the following errors:</p>
+                        <ul>
+                            <li v-for="(error, index) in validationErrors" :key="index">{{ error }}</li>
+                        </ul>
+                    </template>
+                </div>
+            </div>
+
             <div class="auth-role-tabs" role="tablist" aria-label="Choose account type">
                 <button
                     type="button"
@@ -100,15 +126,15 @@ const submit = () => {
             </div>
 
             <AuthField id="name" label="Name" icon="mdi:account-outline" placeholder="Your full name"
-                v-model="form.name" :error="form.errors.name" required autofocus autocomplete="name" />
+                v-model="form.name" :error="fieldErrors.name" required autofocus autocomplete="name" />
 
             <AuthField id="email" label="Email" type="email" icon="mdi:email-outline" placeholder="you@example.com"
-                v-model="form.email" :error="form.errors.email" required autocomplete="username" />
+                v-model="form.email" :error="fieldErrors.email" required autocomplete="username" />
 
             <div class="auth-form auth-form-tight" style="gap: 0">
                 <AuthField id="phone" label="WhatsApp phone number" type="tel" icon="mdi:whatsapp" prefix="+91"
                     placeholder="10-digit number" v-model="form.phone"
-                    :error="form.errors.phone || otpForm.errors.phone" required inputmode="numeric"
+                    :error="fieldErrors.phone" required inputmode="numeric"
                     pattern="[0-9]{10}" maxlength="10" autocomplete="tel-national" @input="otpSent = false" />
 
                 <button type="button" class="auth-btn auth-btn-outline"
@@ -120,40 +146,41 @@ const submit = () => {
 
             <Transition name="field">
                 <AuthField v-if="otpSent" id="otp" label="One-time password" icon="mdi:shield-key-outline" code
-                    placeholder="6-digit code" v-model="form.otp" :error="form.errors.otp" required
+                    placeholder="6-digit code" v-model="form.otp" :error="fieldErrors.otp" required
                     inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" />
             </Transition>
 
             <template v-if="form.account_type === 'user'">
                 <div class="auth-profile-grid">
                     <AuthField id="dob" label="Date of birth" type="date" icon="mdi:cake-variant-outline"
-                        v-model="form.dob" :error="form.errors.dob" />
+                        v-model="form.dob" :error="fieldErrors.dob" />
 
                     <AuthField id="birth_time" label="Birth time" type="time" icon="mdi:clock-outline"
-                        v-model="form.birth_time" :error="form.errors.birth_time" />
+                        v-model="form.birth_time" :error="fieldErrors.birth_time" />
                 </div>
 
                 <label class="auth-select-label" for="gender">Gender</label>
-                <select id="gender" v-model="form.gender" class="auth-select">
+                <select id="gender" v-model="form.gender" class="auth-select"
+                    :aria-invalid="!!fieldErrors.gender" :aria-describedby="fieldErrors.gender ? 'gender-error' : undefined">
                     <option value="">Prefer not to say</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                     <option value="other">Other</option>
                 </select>
-                <p v-if="form.errors.gender" class="auth-field-error">{{ form.errors.gender }}</p>
+                <p v-if="fieldErrors.gender" id="gender-error" class="auth-field-error">{{ fieldErrors.gender }}</p>
 
                 <AuthField id="location" label="Location" icon="mdi:map-marker-outline"
-                    placeholder="City or town" v-model="form.location" :error="form.errors.location" />
+                    placeholder="City or town" v-model="form.location" :error="fieldErrors.location" />
 
                 <AuthField id="preferred_language" label="Preferred language" icon="mdi:translate"
                     placeholder="Hindi" v-model="form.preferred_language"
-                    :error="form.errors.preferred_language" />
+                    :error="fieldErrors.preferred_language" />
 
                 <label class="auth-upload-label" for="user_profile_image">Profile photo</label>
                 <input id="user_profile_image" type="file" accept="image/jpeg,image/png,image/webp"
                     class="auth-file-input" @change="setProfileImage($event, 'user_profile_image', userImageName)" />
                 <p v-if="userImageName" class="auth-hint">{{ userImageName }}</p>
-                <p v-if="form.errors.user_profile_image" class="auth-field-error">{{ form.errors.user_profile_image }}</p>
+                <p v-if="fieldErrors.user_profile_image" class="auth-field-error">{{ fieldErrors.user_profile_image }}</p>
             </template>
 
             <template v-else>
@@ -161,16 +188,16 @@ const submit = () => {
                     <label class="auth-select-label" for="bio">Professional bio</label>
                     <textarea id="bio" v-model="form.bio" class="auth-textarea" rows="4"
                         placeholder="Tell clients about your background and approach" required />
-                    <p v-if="form.errors.bio" class="auth-field-error">{{ form.errors.bio }}</p>
+                    <p v-if="fieldErrors.bio" class="auth-field-error">{{ fieldErrors.bio }}</p>
                 </div>
 
                 <AuthField id="expertise" label="Areas of expertise" icon="mdi:star-outline"
                     placeholder="Vedic astrology, Tarot (separate with commas)" v-model="form.expertise"
-                    :error="form.errors.expertise" required />
+                    :error="fieldErrors.expertise" required />
 
                 <AuthField id="experience_years" label="Years of experience" type="number"
                     icon="mdi:briefcase-outline" placeholder="Years of experience"
-                    v-model="form.experience_years" :error="form.errors.experience_years"
+                    v-model="form.experience_years" :error="fieldErrors.experience_years"
                     required min="0" max="80" />
 
                 <label class="auth-upload-label" for="astrologer_profile_image">Profile image</label>
@@ -178,8 +205,8 @@ const submit = () => {
                     class="auth-file-input"
                     @change="setProfileImage($event, 'astrologer_profile_image', astrologerImageName)" required />
                 <p v-if="astrologerImageName" class="auth-hint">{{ astrologerImageName }}</p>
-                <p v-if="form.errors.astrologer_profile_image" class="auth-field-error">
-                    {{ form.errors.astrologer_profile_image }}
+                <p v-if="fieldErrors.astrologer_profile_image" class="auth-field-error">
+                    {{ fieldErrors.astrologer_profile_image }}
                 </p>
 
                 <div class="auth-documents">
@@ -195,14 +222,14 @@ const submit = () => {
                     <div v-for="(document, index) in form.documents" :key="index" class="auth-document-row">
                         <AuthField :id="`document-name-${index}`" label="Document name"
                             icon="mdi:file-document-outline" placeholder="Certificate name"
-                            v-model="document.name" :error="form.errors[`documents.${index}.name`]" required />
+                            v-model="document.name" :error="fieldErrors[`documents.${index}.name`]" required />
                         <div>
                             <label class="auth-upload-label" :for="`document-file-${index}`">File (PDF or image)</label>
                             <input :id="`document-file-${index}`" type="file" accept="application/pdf,image/jpeg,image/png"
                                 class="auth-file-input" required @change="setDocumentFile($event, index)" />
                             <p v-if="document.file" class="auth-hint">{{ document.file.name }}</p>
-                            <p v-if="form.errors[`documents.${index}.file`]" class="auth-field-error">
-                                {{ form.errors[`documents.${index}.file`] }}
+                            <p v-if="fieldErrors[`documents.${index}.file`]" class="auth-field-error">
+                                {{ fieldErrors[`documents.${index}.file`] }}
                             </p>
                         </div>
                         <button type="button" class="auth-remove-document" :aria-label="`Remove document ${index + 1}`"
@@ -212,12 +239,12 @@ const submit = () => {
             </template>
 
             <AuthField id="password" label="Password" type="password" icon="mdi:lock-outline"
-                placeholder="Create a password" v-model="form.password" :error="form.errors.password" required
+                placeholder="Create a password" v-model="form.password" :error="fieldErrors.password" required
                 autocomplete="new-password" />
 
             <AuthField id="password_confirmation" label="Confirm Password" type="password"
                 icon="mdi:lock-check-outline" placeholder="Re-enter your password" v-model="form.password_confirmation"
-                :error="form.errors.password_confirmation" required autocomplete="new-password" />
+                :error="fieldErrors.password_confirmation" required autocomplete="new-password" />
 
             <div>
                 <button type="submit" class="auth-btn" :disabled="form.processing || !otpSent">
@@ -311,6 +338,28 @@ const submit = () => {
     margin: 0.375rem 0 0;
     color: #dc2626;
     font-size: 0.875rem;
+}
+
+.auth-error-summary {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid #fca5a5;
+    border-radius: 0.625rem;
+    background: #fef2f2;
+    color: #b91c1c;
+    font-size: 0.875rem;
+}
+
+.auth-error-summary p {
+    margin: 0;
+    font-weight: 600;
+}
+
+.auth-error-summary ul {
+    margin: 0.375rem 0 0;
+    padding-left: 1.25rem;
 }
 
 .auth-documents {
