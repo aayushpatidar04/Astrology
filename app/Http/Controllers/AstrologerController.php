@@ -8,6 +8,7 @@ use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\CallHistory;
 use App\Models\Chat;
 use App\Models\ChatMessage;
+use App\Models\ChatSession;
 use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -29,7 +30,7 @@ class AstrologerController extends Controller
     public function dashboard()
     {
         return Inertia::render('Dashboard/Astrologer/Dashboard', [
-            'user' => Auth::user()?->load('astrologer'),
+            'user' => Auth::user()?->load(['astrologer', 'wallet']),
         ]);
     }
 
@@ -88,7 +89,19 @@ class AstrologerController extends Controller
 
         if ($id) {
             $chat = Chat::with(['participants.user', 'messages.user'])->findOrFail($id);
+            abort_unless($chat->participants->contains('user_id', $user->id), 403);
             $messages = $chat->messages;
+        }
+
+        $sessionReference = null;
+        if ($chat) {
+            $userId = $chat->participants
+                ->firstWhere('user_id', '!=', $user->id)
+                ?->user_id;
+
+            if ($userId) {
+                $sessionReference = ChatSession::startFor($chat, $userId, $user->id)->session_reference;
+            }
         }
 
         return Inertia::render('Dashboard/Astrologer/Chats', [
@@ -96,6 +109,7 @@ class AstrologerController extends Controller
             'chats' => $chats,
             'chat'     => $chat,
             'messages' => $messages,
+            'sessionReference' => $sessionReference,
         ]);
     }
 

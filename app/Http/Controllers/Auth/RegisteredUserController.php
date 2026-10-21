@@ -113,6 +113,7 @@ class RegisteredUserController extends Controller
 
                 if ($validated['account_type'] === 'astrologer') {
                     $user->assignRole(Role::findOrCreate('Astrologer', 'web'));
+                    $user->ensureWallet();
 
                     $profileImage = $this->storeRegistrationFile(
                         $request->file('astrologer_profile_image'),

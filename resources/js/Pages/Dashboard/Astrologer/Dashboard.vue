@@ -105,6 +105,11 @@ onMounted(async () => {
                 tone="green" :hint="inr(stats.earnings_total) + ' all time'" />
         </div>
 
+        <div class="dsh-grid-4 dsh-rise" style="--d: 0.12s">
+            <StatCard title="Wallet balance" :value="+user.wallet?.balance || 0" prefix="₹"
+                icon="mdi:wallet-outline" tone="green" />
+        </div>
+
         <div class="dsh-grid-2">
             <!-- Availability -->
             <section class="adm-card dsh-pad dsh-rise" style="--d: 0.16s">

@@ -11,6 +11,7 @@ const props = defineProps({
     auth: Object,
     chat: Object,
     messages: Array,
+    sessionReference: String,
 })
 
 const newMessage = ref('')
@@ -69,7 +70,8 @@ async function endChat() {
 
         await axios.post(route('user.chat.end', props.chat.id), {
             reason: chatEndReason.value,   // 'user', 'astrologer', 'balance'
-            deduction: deduction           // exact fractional deduction
+            deduction: deduction,          // exact fractional deduction
+            session_reference: props.sessionReference,
         })
     } catch (e) {
         console.error('Error ending chat:', e)

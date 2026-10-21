@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Astrologer extends Model
 {
@@ -41,5 +42,17 @@ class Astrologer extends Model
     public function verifier()
     {
         return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    public function wallet(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            UserWallet::class,
+            User::class,
+            'id',
+            'user_id',
+            'user_id',
+            'id'
+        );
     }
 }

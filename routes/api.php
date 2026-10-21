@@ -50,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('role:Astrologer')->group(function () {
+        Route::get('/astrologer/wallet', [AstrologerController::class, 'wallet']);
         Route::get('/astrologer/chats', [AstrologerController::class, 'chats']);
         Route::get('astrologer/chats/{chatId}/messages', [AstrologerController::class, 'messages']);
         Route::get('/astrologers/{id}/stats', [AstrologerController::class, 'stats']);

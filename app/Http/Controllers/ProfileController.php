@@ -10,10 +10,14 @@ use App\Models\CallHistory;
 use App\Models\Chat;
 use App\Models\ChatSession;
 use App\Models\User;
+use App\Models\UserWallet;
+use App\Services\AstrologerWalletService;
+use App\Services\ChatSessionSettlementService;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -100,6 +104,15 @@ class ProfileController extends Controller
 
     public function chatEnd(Request $request, $chatId)
     {
+        $validated = $request->validate([
+            'deduction' => ['nullable', 'numeric', 'min:0'],
+            'elapsed_seconds' => ['nullable', 'integer', 'min:0'],
+            'session_reference' => ['nullable', 'uuid'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $sessionReference = $validated['session_reference'] ?? null;
+
         $chat = Chat::with('participants.user.roles')->findOrFail($chatId);
 
         // Find the paying participant (role: User)
@@ -117,46 +130,31 @@ class ProfileController extends Controller
             return response()->json(['error' => 'Participants missing'], 404);
         }
 
+        abort_unless(
+            in_array(Auth::id(), [$userParticipant->user_id, $astrologerParticipant->user_id], true),
+            403
+        );
+
         $user = $userParticipant->user->load('wallet');
         $astrologer = $astrologerParticipant->user->astrologer;
-
-        $deduction = 0;
         $elapsedSeconds = 0;
+        $chargedRate = (float) ($astrologer?->charged_text_price ?? 0);
 
-        // Case 1: Deduction provided directly
-        if ($request->filled('deduction')) {
-            $deduction = (float) $request->input('deduction', 0);
-            $ratePerMinute = $astrologer?->charged_text_price ?? 0;
-            if ($ratePerMinute > 0) {
-                $elapsedSeconds = (int) round(($deduction / $ratePerMinute) * 60);
-            }
-        }
-        // Case 2: Elapsed seconds provided
-        elseif ($request->filled('elapsed_seconds')) {
-            $elapsedSeconds = (int) $request->input('elapsed_seconds', 0);
-            $ratePerMinute = $astrologer?->charged_text_price ?? 0;
-            $deduction = ($elapsedSeconds / 60) * $ratePerMinute;
+        if (isset($validated['deduction']) && $chargedRate > 0) {
+            $elapsedSeconds = (int) round(($validated['deduction'] / $chargedRate) * 60);
+        } elseif (isset($validated['elapsed_seconds'])) {
+            $elapsedSeconds = $validated['elapsed_seconds'];
         }
 
-        // Deduct from wallet if positive
-        if ($deduction > 0) {
-            $currentBalance = $user->wallet?->balance;
-            $finalDeduction = min($deduction, $currentBalance); // cap deduction at current balance
-
-            if ($finalDeduction > 0) {
-                $user->wallet?->decrement('balance', $finalDeduction);
-            }
-        }
-
-        ChatSession::create([
-            'chat_id'         => $chat->id,
-            'user_id'         => $user->id,
-            'astrologer_id'   => $astrologerParticipant->user->id,
-            'duration_seconds' => $elapsedSeconds,
-            'deduction'       => $deduction,
-            'ended_by'        => $request->input('reason'),
-            'ended_at'        => now(),
-        ]);
+        $deduction = app(ChatSessionSettlementService::class)->settle(
+            $chat,
+            $user,
+            $astrologer,
+            $astrologerParticipant->user->id,
+            $elapsedSeconds,
+            $sessionReference,
+            $validated['reason'] ?? null
+        );
 
         return response()->json([
             'success'   => true,
@@ -166,6 +164,13 @@ class ProfileController extends Controller
 
     public function callEnd(Request $request, $chatId)
     {
+        $validated = $request->validate([
+            'elapsed_seconds' => ['nullable', 'integer', 'min:0'],
+            'deduction' => ['nullable', 'numeric', 'min:0'],
+            'status' => ['required', 'in:answered,ended,missed,rejected,failed'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
         $chat = Chat::with('participants.user.roles')->findOrFail($chatId);
 
         // Find the paying participant (role: User)
@@ -183,53 +188,71 @@ class ProfileController extends Controller
             return response()->json(['error' => 'Participants missing'], 404);
         }
 
+        abort_unless(
+            in_array(Auth::id(), [$userParticipant->user_id, $astrologerParticipant->user_id], true),
+            403
+        );
+
         $user = $userParticipant->user->load('wallet');
         $astrologer = $astrologerParticipant->user->astrologer;
+        $chargedRate = (float) ($astrologer?->charged_call_price ?? 0);
+        $elapsedSeconds = (int) ($validated['elapsed_seconds'] ?? 0);
+        if (isset($validated['deduction']) && ! isset($validated['elapsed_seconds']) && $chargedRate > 0) {
+            $elapsedSeconds = (int) round(($validated['deduction'] / $chargedRate) * 60);
+        }
 
-        $deduction = 0;
-        $elapsedSeconds = 0;
+        $deduction = DB::transaction(function () use (
+            $user,
+            $astrologer,
+            $astrologerParticipant,
+            $chargedRate,
+            $elapsedSeconds,
+            $validated
+        ): float {
+            $callHistory = CallHistory::where('user_id', $user->id)
+                ->where('astrologer_id', $astrologerParticipant->user->id)
+                ->whereNull('ended_at')
+                ->latest()
+                ->lockForUpdate()
+                ->first();
 
-        // Case 1: Deduction provided directly
-        if ($request->filled('deduction')) {
-            $deduction = (float) $request->input('deduction', 0);
-            $ratePerMinute = $astrologer?->charged_call_price ?? 0;
-            if ($ratePerMinute > 0) {
-                $elapsedSeconds = (int) round(($deduction / $ratePerMinute) * 60);
+            if (! $callHistory) {
+                return 0;
             }
-        }
-        // Case 2: Elapsed seconds provided (fallback, though we expect deduction)
-        elseif ($request->filled('elapsed_seconds')) {
-            $elapsedSeconds = (int) $request->input('elapsed_seconds', 0);
-            $ratePerMinute = $astrologer?->charged_call_price ?? 0;
-            $deduction = ($elapsedSeconds / 60) * $ratePerMinute;
-        }
 
-        // Deduct from wallet if positive
-        if ($deduction > 0) {
-            $currentBalance = $user->wallet?->balance;
-            $finalDeduction = min($deduction, $currentBalance); // cap deduction at current balance
+            $user->ensureWallet();
+            $userWallet = UserWallet::where('user_id', $user->id)->lockForUpdate()->firstOrFail();
+            $requestedDeduction = round(($elapsedSeconds / 60) * $chargedRate, 2);
+            $deduction = min($requestedDeduction, (float) $userWallet->balance);
 
-            if ($finalDeduction > 0) {
-                $user->wallet?->decrement('balance', $finalDeduction);
+            if ($deduction > 0) {
+                $userWallet->decrement('balance', $deduction);
             }
-        }
 
-        // Find the latest call history record
-        $callHistory = CallHistory::where('user_id', $user->id)
-            ->where('astrologer_id', $astrologerParticipant->user->id)
-            ->whereNull('ended_at')
-            ->latest()
-            ->first();
-
-        if ($callHistory) {
             $callHistory->update([
                 'ended_at' => now(),
                 'duration' => $elapsedSeconds,
                 'cost' => $deduction,
-                'status' => $request->status,
-                'notes' => $request->input('reason'),
+                'status' => $validated['status'],
+                'notes' => $validated['reason'] ?? null,
             ]);
-        }
+
+            if ($astrologer && $validated['status'] === 'answered') {
+                $earning = min(
+                    $deduction,
+                    round(($elapsedSeconds / 60) * (float) $astrologer->asked_call_price, 2)
+                );
+                app(AstrologerWalletService::class)->recordEarning(
+                    $astrologer,
+                    'call_history',
+                    $callHistory->id,
+                    'Call session earnings',
+                    $earning
+                );
+            }
+
+            return $deduction;
+        });
 
         return response()->json([
             'success' => true,

@@ -9,6 +9,7 @@ const props = defineProps({
   user: Object,
   chat: Object,
   messages: Array,
+  sessionReference: String,
 })
 
 const newMessage = ref('')
@@ -107,7 +108,8 @@ async function endChat(elapsedSeconds, reason) {
   try {
     await axios.post(route('user.chat.end', props.chat.id), {
       reason: reason,
-      elapsed_seconds: elapsedSeconds
+      elapsed_seconds: elapsedSeconds,
+      session_reference: props.sessionReference,
     })
   } catch (e) {
     console.error('Error ending chat:', e)

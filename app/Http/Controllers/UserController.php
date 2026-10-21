@@ -19,6 +19,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -82,6 +83,8 @@ class UserController extends Controller
             ->findOrFail($id);
 
         $user = auth()->user()->load('wallet');
+        abort_unless($chat->participants->contains('user_id', $user->id), 403);
+
         $astrologer = $chat->participants
             ->where('user_id', '!=', $user->id)
             ->first()
@@ -97,10 +100,13 @@ class UserController extends Controller
                 ->with('error', 'You need at least 4 minutes balance to start a chat.');
         }
 
+        $session = ChatSession::startFor($chat, $user->id, $astrologer->user_id);
+
         return Inertia::render('User/ChatWindow', [
             'auth'     => ['user' => $user],
             'chat'     => $chat,
             'messages' => $chat->messages,
+            'sessionReference' => $session->session_reference,
         ]);
     }
 

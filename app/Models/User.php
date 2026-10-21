@@ -58,12 +58,17 @@ class User extends Authenticatable
     {
         static::created(function ($user) {
             if ($user->hasRole('User')) {
-                UserWallet::create([
-                    'user_id' => $user->id,
-                    'balance' => 0,
-                ]);
+                $user->ensureWallet();
             }
         });
+    }
+
+    public function ensureWallet(): UserWallet
+    {
+        return UserWallet::firstOrCreate(
+            ['user_id' => $this->id],
+            ['balance' => 0]
+        );
     }
 
 

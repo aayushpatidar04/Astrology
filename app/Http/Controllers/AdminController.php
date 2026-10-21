@@ -10,13 +10,16 @@ use App\Models\Horoscope;
 use App\Models\RechargePackage;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\AstrologerWalletService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Pusher\PushNotifications\PushNotifications;
 
@@ -629,7 +632,7 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'astrologer_id' => 'required|exists:astrologers,id',
-            'amount' => 'required|numeric',
+            'amount' => 'required|numeric|min:0.01',
             'mode' => 'required|string',
             'reference_no' => 'nullable|string',
             'remarks' => 'nullable|string',
@@ -650,14 +653,29 @@ class AdminController extends Controller
         }
 
 
-        $transaction = Transaction::create([
-            'astrologer_id' => $validated['astrologer_id'],
-            'amount' => $validated['amount'],
-            'mode' => $validated['mode'],
-            'reference_no' => $validated['reference_no'] ?? null,
-            'remarks' => $validated['remarks'] ?? null,
-            'proof' => $proofPath, // store relative path
-        ]);
+        try {
+            $transaction = DB::transaction(function () use ($validated, $proofPath): Transaction {
+                $astrologer = Astrologer::findOrFail($validated['astrologer_id']);
+                $transaction = Transaction::create([
+                    'astrologer_id' => $astrologer->id,
+                    'amount' => $validated['amount'],
+                    'mode' => $validated['mode'],
+                    'reference_no' => $validated['reference_no'] ?? null,
+                    'remarks' => $validated['remarks'] ?? null,
+                    'proof' => $proofPath,
+                ]);
+
+                app(AstrologerWalletService::class)->recordPayout($astrologer, $transaction);
+
+                return $transaction;
+            });
+        } catch (ValidationException $exception) {
+            if ($proofPath && File::exists(public_path($proofPath))) {
+                File::delete(public_path($proofPath));
+            }
+
+            throw $exception;
+        }
 
         return response()->json([
             'message' => 'Transaction recorded successfully',
@@ -681,7 +699,7 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'astrologer_id' => 'required|exists:astrologers,id',
-            'amount' => 'required|numeric',
+            'amount' => 'required|numeric|min:0.01',
             'mode' => 'required|string',
             'reference_no' => 'nullable|string',
             'remarks' => 'nullable|string',
@@ -696,14 +714,27 @@ class AdminController extends Controller
             $proofPath = 'transaction_proofs/' . $filename;
         }
 
-        Transaction::create([
-            'astrologer_id' => $validated['astrologer_id'],
-            'amount' => $validated['amount'],
-            'mode' => $validated['mode'],
-            'reference_no' => $validated['reference_no'] ?? null,
-            'remarks' => $validated['remarks'] ?? null,
-            'proof' => $proofPath,
-        ]);
+        try {
+            DB::transaction(function () use ($validated, $proofPath): void {
+                $astrologer = Astrologer::findOrFail($validated['astrologer_id']);
+                $transaction = Transaction::create([
+                    'astrologer_id' => $astrologer->id,
+                    'amount' => $validated['amount'],
+                    'mode' => $validated['mode'],
+                    'reference_no' => $validated['reference_no'] ?? null,
+                    'remarks' => $validated['remarks'] ?? null,
+                    'proof' => $proofPath,
+                ]);
+
+                app(AstrologerWalletService::class)->recordPayout($astrologer, $transaction);
+            });
+        } catch (ValidationException $exception) {
+            if ($proofPath && File::exists(public_path($proofPath))) {
+                File::delete(public_path($proofPath));
+            }
+
+            throw $exception;
+        }
 
         return redirect()->route('admin.transactions.index')->with('success', 'Transaction recorded successfully.');
     }

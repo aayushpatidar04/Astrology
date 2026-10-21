@@ -156,6 +156,7 @@ class AuthController extends Controller
             ]);
 
             $user->assignRole('Astrologer');
+            $user->ensureWallet();
 
             $image = null;
             if ($request->hasFile('profile_image')) {
@@ -243,6 +244,7 @@ class AuthController extends Controller
             ]);
 
             $user->assignRole('User');
+            $user->ensureWallet();
 
             $image = null;
             if ($request->hasFile('profile_image')) {

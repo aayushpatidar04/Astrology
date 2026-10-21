@@ -204,7 +204,7 @@ const content = computed(() => [
             </div>
             <div class="dsh-rise" style="--d: 0.42s">
                 <StatCard title="Wallet balance held" :value="+totals.wallet_balance || 0" prefix="₹"
-                    icon="mdi:wallet-outline" tone="green" hint="Across all user wallets" />
+                    icon="mdi:wallet-outline" tone="green" hint="Across customer and astrologer wallets" />
             </div>
         </div>
 

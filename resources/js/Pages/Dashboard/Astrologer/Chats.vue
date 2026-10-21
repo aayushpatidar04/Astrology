@@ -9,6 +9,7 @@ const props = defineProps({
     chats: Array,
     chat: Object,
     messages: Array,
+    sessionReference: String,
 })
 
 const partnerName = (c) =>
@@ -51,7 +52,8 @@ const partnerName = (c) =>
                 </Link>
 
                 <div class="ast-pane-body">
-                    <ChatWindow v-if="chat" :user="user" :chat="chat" :messages="messages" />
+                    <ChatWindow v-if="chat" :user="user" :chat="chat" :messages="messages"
+                        :session-reference="sessionReference" />
                     <div v-else class="ast-pane-empty">
                         <Icon icon="mdi:chat-processing-outline" width="44" height="44" />
                         <span>Select a chat to start messaging</span>

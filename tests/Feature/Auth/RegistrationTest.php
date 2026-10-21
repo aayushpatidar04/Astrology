@@ -99,12 +99,12 @@ test('astrologers can register with a profile and supporting documents', functio
     expect($astrologer->documents)->toHaveCount(1);
     expect($astrologer->documents[0]['name'])->toBe('Certificate');
     expect($astrologer->documents[0]['document_path'])->toStartWith('uploads/documents/');
-    $this->assertDatabaseMissing('user_wallets', ['user_id' => $user->id]);
+    $this->assertDatabaseHas('user_wallets', ['user_id' => $user->id]);
 
-    File::delete(
+    File::delete([
         public_path($astrologer->profile_image),
         public_path($astrologer->documents[0]['document_path'])
-    );
+    ]);
 });
 
 test('registration rejects an invalid OTP', function () {

@@ -16,6 +16,22 @@ use Illuminate\Support\Facades\DB;
 
 class AstrologerController extends Controller
 {
+    public function wallet()
+    {
+        $user = Auth::user();
+        $wallet = $user->ensureWallet();
+
+        return response()->json([
+            'status' => 'success',
+            'wallet' => [
+                'balance' => $wallet->balance,
+                'transactions' => $wallet->transactions()
+                    ->latest()
+                    ->paginate(20),
+            ],
+        ]);
+    }
+
     public function chats()
     {
         $userId = Auth::id();
