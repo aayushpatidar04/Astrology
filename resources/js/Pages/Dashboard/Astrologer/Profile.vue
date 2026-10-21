@@ -25,29 +25,25 @@ defineProps({
 
     <AstrologerLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                Profile
-            </h2>
+            <h2 class="adm-title">Profile</h2>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8 grid grid-cols-2 gap-5">
-                <div>
-                    <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <UpdateProfileInformationForm :must-verify-email="mustVerifyEmail" :status="status"
-                            class="max-w-xl" />
-                    </div>
-                    <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8 mt-5">
-                        <UpdatePasswordForm class="max-w-xl" />
-                    </div>
+        <div class="ast-grid">
+            <div class="ast-stack">
+                <div class="adm-card ast-pad">
+                    <UpdateProfileInformationForm :must-verify-email="mustVerifyEmail" :status="status"
+                        class="max-w-xl" />
                 </div>
-                <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                    <UpdateAstrologerInformationForm :status="status" class="max-w-xl" />
+                <div class="adm-card ast-pad">
+                    <UpdatePasswordForm class="max-w-xl" />
                 </div>
-
-                <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8">
+                <div class="adm-card ast-pad">
                     <DeleteUserForm class="max-w-xl" />
                 </div>
+            </div>
+
+            <div class="adm-card ast-pad">
+                <UpdateAstrologerInformationForm :status="status" class="max-w-xl" />
             </div>
         </div>
     </AstrologerLayout>

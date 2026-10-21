@@ -1,9 +1,6 @@
 <script setup>
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
+import { Icon } from '@iconify/vue';
 
 defineProps({
     mustVerifyEmail: {
@@ -24,86 +21,54 @@ const form = useForm({
 
 <template>
     <section>
-        <header>
-            <h2 class="text-lg font-medium text-gray-900">
-                Profile Information
-            </h2>
-
-            <p class="mt-1 text-sm text-gray-600">
-                Update your account's profile information and email address.
-            </p>
+        <header class="pf-head">
+            <span class="pf-head-icon"><Icon icon="mdi:account-edit-outline" width="24" height="24" /></span>
+            <div>
+                <h2>Profile Information</h2>
+                <p>Update your account's profile information and email address.</p>
+            </div>
         </header>
 
-        <form
-            @submit.prevent="form.patch(route('user.profile.update'))"
-            class="mt-6 space-y-6"
-        >
+        <form @submit.prevent="form.patch(route('user.profile.update'))" class="pf-fields">
             <div>
-                <InputLabel for="name" value="Name" />
-
-                <TextInput
-                    id="name"
-                    type="text"
-                    class="mt-1 block w-full"
-                    v-model="form.name"
-                    required
-                    autofocus
-                    autocomplete="name"
-                />
-
-                <InputError class="mt-2" :message="form.errors.name" />
+                <label for="name" class="usr-label">Name</label>
+                <input id="name" type="text" class="usr-input" :class="{ 'is-error': form.errors.name }"
+                    v-model="form.name" required autofocus autocomplete="name" />
+                <p v-if="form.errors.name" class="usr-error">{{ form.errors.name }}</p>
             </div>
 
             <div>
-                <InputLabel for="email" value="Email" />
-
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required readonly
-                    autocomplete="username"
-                />
-
-                <InputError class="mt-2" :message="form.errors.email" />
+                <label for="email" class="usr-label">Email</label>
+                <div class="pf-input-wrap">
+                    <input id="email" type="email" class="usr-input" :class="{ 'is-error': form.errors.email }"
+                        v-model="form.email" required readonly autocomplete="username" />
+                    <span class="pf-input-icon" title="Email can't be changed">
+                        <Icon icon="mdi:lock-outline" width="18" height="18" />
+                    </span>
+                </div>
+                <p v-if="form.errors.email" class="usr-error">{{ form.errors.email }}</p>
             </div>
 
-            <div v-if="mustVerifyEmail && user.email_verified_at === null">
-                <p class="mt-2 text-sm text-gray-800">
-                    Your email address is unverified.
-                    <Link
-                        :href="route('verification.send')"
-                        method="post"
-                        as="button"
-                        class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >
-                        Click here to re-send the verification email.
-                    </Link>
-                </p>
+            <div v-if="mustVerifyEmail && user.email_verified_at === null" class="pf-notice">
+                Your email address is unverified.
+                <Link :href="route('verification.send')" method="post" as="button">
+                    Click here to re-send the verification email.
+                </Link>
 
-                <div
-                    v-show="status === 'verification-link-sent'"
-                    class="mt-2 text-sm font-medium text-green-600"
-                >
+                <div v-show="status === 'verification-link-sent'" class="is-ok">
                     A new verification link has been sent to your email address.
                 </div>
             </div>
 
-            <div class="flex items-center gap-4">
-                <PrimaryButton :disabled="form.processing">Save</PrimaryButton>
+            <div class="pf-actions">
+                <button type="submit" class="usr-btn" :disabled="form.processing">
+                    <Icon v-if="form.processing" icon="mdi:loading" width="18" height="18" class="usr-spin" />
+                    Save
+                </button>
 
-                <Transition
-                    enter-active-class="transition ease-in-out"
-                    enter-from-class="opacity-0"
-                    leave-active-class="transition ease-in-out"
-                    leave-to-class="opacity-0"
-                >
-                    <p
-                        v-if="form.recentlySuccessful"
-                        class="text-sm text-gray-600"
-                    >
-                        Saved.
+                <Transition name="pf-saved">
+                    <p v-if="form.recentlySuccessful" class="pf-saved">
+                        <Icon icon="mdi:check-circle" width="18" height="18" /> Saved.
                     </p>
                 </Transition>
             </div>

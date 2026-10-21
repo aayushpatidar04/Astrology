@@ -1,11 +1,7 @@
 <script setup>
-import DangerButton from '@/Components/DangerButton.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
 import Modal from '@/Components/Modal.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 import { useForm } from '@inertiajs/vue3';
+import { Icon } from '@iconify/vue';
 import { nextTick, ref } from 'vue';
 
 const confirmingUserDeletion = ref(false);
@@ -39,68 +35,53 @@ const closeModal = () => {
 </script>
 
 <template>
-    <section class="space-y-6">
-        <header>
-            <h2 class="text-lg font-medium text-gray-900">
-                Delete Account
-            </h2>
-
-            <p class="mt-1 text-sm text-gray-600">
-                Once your account is deleted, all of its resources and data will
-                be permanently deleted. Before deleting your account, please
-                download any data or information that you wish to retain.
-            </p>
+    <section>
+        <header class="pf-head">
+            <span class="pf-head-icon"><Icon icon="mdi:alert-outline" width="24" height="24" /></span>
+            <div>
+                <h2>Delete Account</h2>
+                <p>
+                    Once your account is deleted, all of its resources and data will be permanently deleted. Before
+                    deleting your account, please download any data or information that you wish to retain.
+                </p>
+            </div>
         </header>
 
-        <DangerButton @click="confirmUserDeletion">Delete Account</DangerButton>
+        <button type="button" class="usr-btn usr-btn-danger" @click="confirmUserDeletion">
+            <Icon icon="mdi:trash-can-outline" width="18" height="18" /> Delete Account
+        </button>
 
         <Modal :show="confirmingUserDeletion" @close="closeModal">
-            <div class="p-6">
-                <h2
-                    class="text-lg font-medium text-gray-900"
-                >
+            <div style="padding: 1.75rem">
+                <div class="usr-modal-icon is-red" style="margin-left: 0">
+                    <Icon icon="mdi:trash-can-outline" />
+                </div>
+
+                <h2 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #1f2937">
                     Are you sure you want to delete your account?
                 </h2>
 
-                <p class="mt-1 text-sm text-gray-600">
-                    Once your account is deleted, all of its resources and data
-                    will be permanently deleted. Please enter your password to
-                    confirm you would like to permanently delete your account.
+                <p style="margin: 0.5rem 0 0; font-size: 0.9rem; line-height: 1.5; color: #6b7280">
+                    Once your account is deleted, all of its resources and data will be permanently deleted. Please
+                    enter your password to confirm you would like to permanently delete your account.
                 </p>
 
-                <div class="mt-6">
-                    <InputLabel
-                        for="password"
-                        value="Password"
-                        class="sr-only"
-                    />
-
-                    <TextInput
-                        id="password"
-                        ref="passwordInput"
-                        v-model="form.password"
-                        type="password"
-                        class="mt-1 block w-3/4"
-                        placeholder="Password"
-                        @keyup.enter="deleteUser"
-                    />
-
-                    <InputError :message="form.errors.password" class="mt-2" />
+                <div style="margin-top: 1.25rem">
+                    <label for="password" class="usr-label" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Password</label>
+                    <input id="password" ref="passwordInput" v-model="form.password" type="password"
+                        class="usr-input" :class="{ 'is-error': form.errors.password }" placeholder="Password"
+                        @keyup.enter="deleteUser" />
+                    <p v-if="form.errors.password" class="usr-error">{{ form.errors.password }}</p>
                 </div>
 
-                <div class="mt-6 flex justify-end">
-                    <SecondaryButton @click="closeModal">
-                        Cancel
-                    </SecondaryButton>
+                <div style="display: flex; justify-content: flex-end; gap: 0.7rem; margin-top: 1.5rem">
+                    <button type="button" class="usr-btn usr-btn-ghost" @click="closeModal">Cancel</button>
 
-                    <DangerButton
-                        class="ms-3"
-                        :class="{ 'opacity-25': form.processing }"
-                        :disabled="form.processing"
-                        @click="deleteUser"
-                    >
+                    <button type="button" class="usr-btn usr-btn-danger" :disabled="form.processing"
+                        @click="deleteUser">
+                        <Icon v-if="form.processing" icon="mdi:loading" width="18" height="18" class="usr-spin" />
                         Delete Account
-                    </DangerButton>
+                    </button>
                 </div>
             </div>
         </Modal>

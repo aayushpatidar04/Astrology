@@ -1,43 +1,63 @@
 <script setup>
 import AstrologerLayout from '@/Layouts/AstrologerLayout.vue'
-import { Head } from '@inertiajs/vue3';
-import ChatWindow from './ChatWindow.vue';
+import { Head, Link } from '@inertiajs/vue3'
+import { Icon } from '@iconify/vue'
+import ChatWindow from './ChatWindow.vue'
 
-defineProps({
+const props = defineProps({
     user: Object,
     chats: Array,
     chat: Object,
     messages: Array,
 })
+
+const partnerName = (c) =>
+    c.participants.find((p) => p.user_id !== props.user.id)?.user?.name ?? 'Unknown'
 </script>
 
 <template>
 
     <Head title="Chats" />
-    <AstrologerLayout>
-        <div class="flex h-[calc(100vh-4rem)] bg-white border rounded shadow">
-            <!-- Sidebar -->
-            <div class="w-1/4 border-r overflow-y-auto">
-                <div v-for="(chat, index) in chats" :key="chat.id" @click="$inertia.visit(route('astrologer.chats', chat.id))"
-                    class="p-4 cursor-pointer hover:bg-gray-300 border-b last:border-b-0"
-                    :class="index % 2 === 0 ? 'bg-white' : 'bg-gray-200'">
-                    <p class="font-semibold">
-                        {{chat.participants.find(p => p.user_id !== user.id)?.user?.name ?? 'Unknown'}}
-                    </p>
-                    <p class="text-sm text-gray-500">
-                        Last: {{ chat.messages[0]?.message ?? 'No messages yet' }}
-                    </p>
+    <AstrologerLayout flush>
+        <template #header>
+            <h2 class="adm-title">Chats</h2>
+        </template>
+
+        <div class="ast-split">
+            <!-- Chat list -->
+            <aside class="ast-list" :class="{ 'has-active': chat }">
+                <div class="ast-list-head">
+                    <h3>Conversations</h3>
+                    <span class="adm-chip">{{ chats.length }}</span>
                 </div>
 
-            </div>
+                <div v-if="!chats.length" class="adm-empty">No chats yet</div>
 
-            <!-- Placeholder -->
-            <div class="flex-1">
-                <ChatWindow v-if="chat" :user="user" :chat="chat" :messages="messages" />
-                <div v-else class="flex h-full items-center justify-center text-gray-500">
-                    Select a chat to start messaging
+                <button v-for="c in chats" :key="c.id" type="button" class="ast-item"
+                    :class="{ 'is-active': chat?.id === c.id }"
+                    @click="$inertia.visit(route('astrologer.chats', c.id))">
+                    <span class="adm-avatar ast-av">{{ partnerName(c).charAt(0).toUpperCase() }}</span>
+                    <span class="ast-item-main">
+                        <span class="adm-strong ast-trunc">{{ partnerName(c) }}</span>
+                        <span class="adm-muted ast-trunc">{{ c.messages[0]?.message ?? 'No messages yet' }}</span>
+                    </span>
+                </button>
+            </aside>
+
+            <!-- Conversation -->
+            <section class="ast-pane" :class="{ 'has-active': chat }">
+                <Link v-if="chat" :href="route('astrologer.chats')" class="ast-back">
+                    <Icon icon="mdi:arrow-left" width="18" height="18" /> All chats
+                </Link>
+
+                <div class="ast-pane-body">
+                    <ChatWindow v-if="chat" :user="user" :chat="chat" :messages="messages" />
+                    <div v-else class="ast-pane-empty">
+                        <Icon icon="mdi:chat-processing-outline" width="44" height="44" />
+                        <span>Select a chat to start messaging</span>
+                    </div>
                 </div>
-            </div>
+            </section>
         </div>
     </AstrologerLayout>
 </template>

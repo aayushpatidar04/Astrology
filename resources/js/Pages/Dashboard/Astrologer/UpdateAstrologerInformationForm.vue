@@ -1,11 +1,7 @@
 <script setup>
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import { Link, useForm, usePage } from '@inertiajs/vue3';
-import { ref } from 'vue';
-import { inject, watch } from 'vue';
+import { useForm, usePage } from '@inertiajs/vue3';
+import { Icon } from '@iconify/vue';
+import { ref, inject, watch } from 'vue';
 
 defineProps({
     status: {
@@ -23,7 +19,6 @@ const form = useForm({
     documents: Array.isArray(astrologer.documents) ? astrologer.documents : [],
     profile_image: astrologer.profile_image,
 });
-
 
 const previewImage = ref(
     astrologer.profile_image
@@ -53,101 +48,110 @@ function handleDocumentFile(event, index) {
 
 // Watch for recentlySuccessful changes
 watch(() => form.recentlySuccessful, (newVal) => {
-  if (newVal) {
-    alertRef.value?.showAlert('Profile Info updated successfully!', 'success')
-  }
+    if (newVal) {
+        alertRef.value?.showAlert('Profile Info updated successfully!', 'success')
+    }
 })
 </script>
 
 <template>
     <section>
-        <header>
-            <h2 class="text-lg font-medium text-gray-900">
-                Profile Information
-            </h2>
-
-            <p class="mt-1 text-sm text-gray-600">
-                Update your account's profile information.
-            </p>
+        <header class="ast-form-head">
+            <h2>Profile Information</h2>
+            <p>Update your astrologer profile shown to users.</p>
         </header>
 
-        <form @submit.prevent="form.post(route('astrologer.astrologer.update'))" class="mt-6 space-y-6"
-            enctype="multipart/form-data">
+        <form @submit.prevent="form.post(route('astrologer.astrologer.update'))" enctype="multipart/form-data">
 
             <!-- Profile Image -->
-            <div>
-                <InputLabel for="profile_image" value="Profile Image" />
-                <div class="flex gap-5 items-center">
-                    <div v-if="previewImage" class="mt-2">
-                        <img :src="previewImage" alt="Preview" class="w-32 h-auto rounded object-cover" />
-                    </div>
-                    <input id="profile_image" type="file" accept="image/*" @change="handleProfileImage" class="block w-1/2 text-sm text-gray-500
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-full file:border-0
-                        file:text-sm file:font-semibold
-                        file:bg-blue-50 file:text-blue-700
-                        hover:file:bg-blue-100" />
+            <div class="adm-field">
+                <label for="profile_image" class="adm-label">Profile Image</label>
+                <div class="ast-photo-row">
+                    <img v-if="previewImage" :src="previewImage" alt="Preview" class="ast-photo" />
+                    <span v-else class="ast-photo ast-photo-empty">
+                        <Icon icon="mdi:account-star-outline" />
+                    </span>
+                    <input id="profile_image" type="file" accept="image/*" class="adm-file" style="flex: 1 1 12rem; width: auto"
+                        @change="handleProfileImage" />
                 </div>
-                <InputError class="mt-2" :message="form.errors.profile_image" />
+                <Transition name="adm-err">
+                    <p v-if="form.errors.profile_image" class="adm-error">{{ form.errors.profile_image }}</p>
+                </Transition>
             </div>
 
-            <!-- Expertise -->
-            <div>
-                <InputLabel for="expertise" value="Expertise" />
-                <TextInput id="expertise" type="text" class="mt-1 block w-full" v-model="form.expertise" required />
-                <InputError class="mt-2" :message="form.errors.expertise" />
-            </div>
+            <div class="adm-grid-2">
+                <!-- Expertise -->
+                <div class="adm-field">
+                    <label for="expertise" class="adm-label">Expertise</label>
+                    <input id="expertise" type="text" class="adm-input" v-model="form.expertise" required />
+                    <Transition name="adm-err">
+                        <p v-if="form.errors.expertise" class="adm-error">{{ form.errors.expertise }}</p>
+                    </Transition>
+                </div>
 
-            <!-- Experience -->
-            <div>
-                <InputLabel for="experience_years" value="Years of Experience" />
-                <TextInput id="experience_years" type="number" inputmode="numeric" class="mt-1 block w-full"
-                    v-model="form.experience_years" required />
-                <InputError class="mt-2" :message="form.errors.experience_years" />
+                <!-- Experience -->
+                <div class="adm-field">
+                    <label for="experience_years" class="adm-label">Years of Experience</label>
+                    <input id="experience_years" type="number" inputmode="numeric" class="adm-input"
+                        v-model="form.experience_years" required />
+                    <Transition name="adm-err">
+                        <p v-if="form.errors.experience_years" class="adm-error">{{ form.errors.experience_years }}</p>
+                    </Transition>
+                </div>
             </div>
 
             <!-- Bio -->
-            <div>
-                <InputLabel for="bio" value="Bio" />
-                <textarea id="bio"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    v-model="form.bio" required placeholder="Brief about yourself..."></textarea>
-                <InputError class="mt-2" :message="form.errors.bio" />
+            <div class="adm-field">
+                <label for="bio" class="adm-label">Bio</label>
+                <textarea id="bio" class="adm-input" v-model="form.bio" required
+                    placeholder="Brief about yourself..."></textarea>
+                <Transition name="adm-err">
+                    <p v-if="form.errors.bio" class="adm-error">{{ form.errors.bio }}</p>
+                </Transition>
             </div>
 
             <!-- Documents -->
-            <div>
-                <InputLabel value="Documents" />
-                <div v-for="(doc, index) in form.documents" :key="index" class="mt-2">
-                    <div class="flex items-center gap-2 ">
-                        <TextInput type="text" placeholder="Document Name" v-model="doc.name" class="w-1/3" />
-                        <div>
-                            <input type="file" @change="handleDocumentFile($event, index)"
-                                class="w-2/3 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
-                            <div v-if="doc.document_path" class="mt-1 text-center">
-                                <a :href="`/${doc.document_path}`" target="_blank" class="text-blue-600 underline">
-                                    View {{ doc.name }}
+            <div class="adm-field">
+                <p class="adm-section-label">Documents</p>
+
+                <div class="ast-docs">
+                    <div v-for="(doc, index) in form.documents" :key="index">
+                        <div class="ast-doc">
+                            <input type="text" placeholder="Document name" v-model="doc.name" class="adm-input" />
+                            <div class="ast-doc-file">
+                                <input type="file" class="adm-file" @change="handleDocumentFile($event, index)" />
+                                <a v-if="doc.document_path" :href="`/${doc.document_path}`" target="_blank"
+                                    class="adm-link" style="margin-top: 0.3rem">
+                                    <Icon icon="mdi:open-in-new" width="14" height="14" /> View {{ doc.name }}
                                 </a>
                             </div>
+                            <button type="button" class="adm-icon-btn adm-icon-del" aria-label="Remove document"
+                                @click="removeDocument(index)">
+                                <Icon icon="mdi:close" />
+                            </button>
                         </div>
-                        <button type="button" @click="removeDocument(index)" class="text-red-600 font-bold">−</button>
+                        <p v-if="form.errors[`documents.${index}.file`]" class="adm-error">
+                            {{ form.errors[`documents.${index}.file`] }}
+                        </p>
+                        <p v-if="form.errors[`documents.${index}.name`]" class="adm-error">
+                            {{ form.errors[`documents.${index}.name`] }}
+                        </p>
                     </div>
-                    <InputError :message="form.errors[`documents.${index}.file`]" />
-                    <InputError :message="form.errors[`documents.${index}.name`]" />
-
                 </div>
-                <button type="button" @click="addDocument" class="mt-2 text-green-600 font-bold">＋ Add Document</button>
+
+                <button type="button" class="adm-btn adm-btn-ghost adm-btn-sm" style="margin-top: 0.75rem"
+                    @click="addDocument">
+                    <Icon icon="mdi:plus" width="16" height="16" /> Add document
+                </button>
             </div>
 
             <!-- Save -->
-            <div class="flex items-center gap-4">
-                <PrimaryButton :disabled="form.processing">Save</PrimaryButton>
-                <Transition enter-active-class="transition ease-in-out" enter-from-class="opacity-0"
-                    leave-active-class="transition ease-in-out" leave-to-class="opacity-0">
-                    <p v-if="form.recentlySuccessful" class="text-sm text-green-600">Saved.</p>
+            <div class="ast-form-foot">
+                <button type="submit" class="adm-btn" :disabled="form.processing">Save</button>
+                <Transition name="adm-err">
+                    <p v-if="form.recentlySuccessful" class="ast-saved">Saved.</p>
                 </Transition>
             </div>
         </form>
-
     </section>
 </template>

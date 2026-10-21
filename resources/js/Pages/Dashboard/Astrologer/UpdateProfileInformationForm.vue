@@ -1,8 +1,4 @@
 <script setup>
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { inject, watch } from 'vue';
 
@@ -26,75 +22,65 @@ const form = useForm({
 
 // Watch for recentlySuccessful changes
 watch(() => form.recentlySuccessful, (newVal) => {
-  if (newVal) {
-    alertRef.value?.showAlert('Account Info updated successfully!', 'success')
-  }
+    if (newVal) {
+        alertRef.value?.showAlert('Account Info updated successfully!', 'success')
+    }
 })
 </script>
 
 <template>
     <section>
-        <header>
-            <h2 class="text-lg font-medium text-gray-900">
-                Account Information
-            </h2>
-
-            <p class="mt-1 text-sm text-gray-600">
-                Update your account's information.
-            </p>
+        <header class="ast-form-head">
+            <h2>Account Information</h2>
+            <p>Update your account's information.</p>
         </header>
 
-        <form @submit.prevent="form.patch(route('astrologer.profile.update'))" class="mt-6 space-y-6">
-            <div>
-                <InputLabel for="name" value="Name" />
-
-                <TextInput id="name" type="text" class="mt-1 block w-full" v-model="form.name" required autofocus
+        <form @submit.prevent="form.patch(route('astrologer.profile.update'))">
+            <div class="adm-field">
+                <label for="name" class="adm-label">Name</label>
+                <input id="name" type="text" class="adm-input" v-model="form.name" required autofocus
                     autocomplete="name" />
-
-                <InputError class="mt-2" :message="form.errors.name" />
+                <Transition name="adm-err">
+                    <p v-if="form.errors.name" class="adm-error">{{ form.errors.name }}</p>
+                </Transition>
             </div>
 
-            <div>
-                <InputLabel for="email" value="Email" />
-
-                <TextInput id="email" type="email" class="mt-1 block w-full" v-model="form.email" required readonly
+            <div class="adm-field">
+                <label for="email" class="adm-label">Email</label>
+                <input id="email" type="email" class="adm-input" v-model="form.email" required readonly
                     autocomplete="username" />
-
-                <InputError class="mt-2" :message="form.errors.email" />
+                <Transition name="adm-err">
+                    <p v-if="form.errors.email" class="adm-error">{{ form.errors.email }}</p>
+                </Transition>
             </div>
 
-            <div>
-                <InputLabel for="phone" value="Phone" />
-
-                <TextInput id="phone" type="text" inputmode="numeric" pattern="^[6-9][0-9]{9}$" minlength="10"
-                    maxlength="10" class="mt-1 block w-full" v-model="form.phone" required autocomplete="tel" />
-
-
-                <InputError class="mt-2" :message="form.errors.phone" />
+            <div class="adm-field">
+                <label for="phone" class="adm-label">Phone</label>
+                <input id="phone" type="text" inputmode="numeric" pattern="^[6-9][0-9]{9}$" minlength="10"
+                    maxlength="10" class="adm-input" v-model="form.phone" required autocomplete="tel" />
+                <Transition name="adm-err">
+                    <p v-if="form.errors.phone" class="adm-error">{{ form.errors.phone }}</p>
+                </Transition>
             </div>
 
-            <div v-if="mustVerifyEmail && user.email_verified_at === null">
-                <p class="mt-2 text-sm text-gray-800">
+            <div v-if="mustVerifyEmail && user.email_verified_at === null" class="adm-field">
+                <p class="adm-sub">
                     Your email address is unverified.
-                    <Link :href="route('verification.send')" method="post" as="button"
-                        class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    <Link :href="route('verification.send')" method="post" as="button" class="adm-link-btn">
                         Click here to re-send the verification email.
                     </Link>
                 </p>
 
-                <div v-show="status === 'verification-link-sent'" class="mt-2 text-sm font-medium text-green-600">
+                <p v-show="status === 'verification-link-sent'" class="ast-saved" style="margin-top: 0.5rem">
                     A new verification link has been sent to your email address.
-                </div>
+                </p>
             </div>
 
-            <div class="flex items-center gap-4">
-                <PrimaryButton :disabled="form.processing">Save</PrimaryButton>
+            <div class="ast-form-foot">
+                <button type="submit" class="adm-btn" :disabled="form.processing">Save</button>
 
-                <Transition enter-active-class="transition ease-in-out" enter-from-class="opacity-0"
-                    leave-active-class="transition ease-in-out" leave-to-class="opacity-0">
-                    <p v-if="form.recentlySuccessful" class="text-sm text-green-600">
-                        Saved.
-                    </p>
+                <Transition name="adm-err">
+                    <p v-if="form.recentlySuccessful" class="ast-saved">Saved.</p>
                 </Transition>
             </div>
         </form>
