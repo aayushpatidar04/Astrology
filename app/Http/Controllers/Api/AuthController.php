@@ -24,7 +24,6 @@ class AuthController extends Controller
                 'phone' => [
                     'required',
                     'digits:10',
-                    'exists:users,phone',
                 ],
             ]);
 
