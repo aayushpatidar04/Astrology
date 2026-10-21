@@ -298,9 +298,10 @@ class MainController extends Controller
             ]);
         } catch (ValidationException $e) {
             return response()->json([
-                'errors' => $e->errors(),
+                'status' => 'error',
                 'message' => 'Validation failed',
-            ], 200);
+                'errors' => $e->errors(),
+            ], 422);
         }
         $userId = Auth::id();
 

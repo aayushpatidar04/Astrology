@@ -107,6 +107,33 @@ test('API OTP login works for every role', function (string $role) {
         ->assertJsonStructure(['user', 'token']);
 })->with(['Admin', 'Astrologer', 'User']);
 
+test('API errors are returned as JSON without an Accept header', function () {
+    $this->post('/api/verifyOtp', [])
+        ->assertStatus(422)
+        ->assertJsonPath('status', 'error')
+        ->assertJsonPath('message', 'Validation failed')
+        ->assertJsonStructure(['errors' => ['phone', 'otp']]);
+
+    $this->get('/api/wallet')
+        ->assertUnauthorized()
+        ->assertJsonStructure(['message']);
+});
+
+test('astrologer API validation errors use the standard JSON response', function () {
+    $user = User::factory()->create();
+    Role::findOrCreate('Astrologer', 'web');
+    $user->assignRole('Astrologer');
+
+    $this->actingAs($user, 'sanctum')
+        ->post('/api/astrologers/1/bank-details', [])
+        ->assertStatus(422)
+        ->assertJsonPath('status', 'error')
+        ->assertJsonPath('message', 'Validation failed')
+        ->assertJsonStructure([
+            'errors' => ['account_holder', 'account_number', 'ifsc_code', 'bank_name'],
+        ]);
+});
+
 test('users can logout', function () {
     $user = User::factory()->create();
 

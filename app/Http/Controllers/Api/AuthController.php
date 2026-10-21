@@ -12,19 +12,39 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 class AuthController extends Controller
 {
 
     public function sendOtp(Request $request, WhatsAppOtpService $otpService)
     {
-        $validated = $request->validate([
-            'phone' => ['required', 'digits:10'],
-        ]);
-
         try {
+            $validated = $request->validate([
+                'phone' => [
+                    'required',
+                    'digits:10',
+                    'exists:users,phone',
+                ],
+            ]);
+
             $otpService->send($validated['phone']);
-        } catch (\RuntimeException $exception) {
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'OTP sent successfully',
+            ]);
+
+        } catch (ValidationException $e) {
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+
+        } catch (RuntimeException $exception) {
+
             report($exception);
 
             return response()->json([
@@ -32,11 +52,6 @@ class AuthController extends Controller
                 'message' => 'Unable to send an OTP right now.',
             ], 503);
         }
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'OTP sent successfully',
-        ]);
     }
 
     public function verifyOtp(Request $request, WhatsAppOtpService $otpService)
@@ -124,9 +139,10 @@ class AuthController extends Controller
             ]);
         } catch (ValidationException $e) {
             return response()->json([
-                'errors' => $e->errors(),
+                'status' => 'error',
                 'message' => 'Validation failed',
-            ], 200);
+                'errors' => $e->errors(),
+            ], 422);
         }
 
         DB::beginTransaction();
@@ -210,9 +226,10 @@ class AuthController extends Controller
             ]);
         } catch (ValidationException $e) {
             return response()->json([
-                'errors' => $e->errors(),
+                'status' => 'error',
                 'message' => 'Validation failed',
-            ], 200);
+                'errors' => $e->errors(),
+            ], 422);
         }
 
         DB::beginTransaction();
@@ -275,9 +292,10 @@ class AuthController extends Controller
             ]);
         } catch (ValidationException $e) {
             return response()->json([
-                'errors' => $e->errors(),
+                'status' => 'error',
                 'message' => 'Validation failed',
-            ], 200);
+                'errors' => $e->errors(),
+            ], 422);
         }
 
         $user = Auth::user();

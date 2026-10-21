@@ -219,10 +219,10 @@ class UserController extends Controller
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'success' => false,
+                'status' => 'error',
                 'message' => 'Validation failed',
                 'errors' => $e->errors(),
-            ]);
+            ], 422);
         }
         $chat = Chat::with('participants.user.roles')->findOrFail($chatId);
 
