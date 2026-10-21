@@ -75,7 +75,7 @@ class RegisteredUserController extends Controller
             'bio' => ['required_if:account_type,astrologer', 'nullable', 'string', 'max:5000'],
             'expertise' => ['required_if:account_type,astrologer', 'nullable', 'string', 'max:1000'],
             'experience_years' => ['required_if:account_type,astrologer', 'nullable', 'integer', 'min:0', 'max:80'],
-            'astrologer_profile_image' => ['required_if:account_type,astrologer', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'astrologer_profile_image' => ['required_if:account_type,astrologer','nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'documents' => ['nullable', 'array', 'max:10'],
             'documents.*.name' => ['required', 'string', 'max:255'],
             'documents.*.file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
