@@ -6,6 +6,7 @@ import DropdownLink from "@/Components/DropdownLink.vue";
 import { Link, usePage } from "@inertiajs/vue3";
 import { Icon } from "@iconify/vue";
 import axios from "axios";
+import echo from "@/echo";
 
 // `flush` removes the content padding so full-height screens (Chats / Calls) can fill the area
 defineProps({ flush: { type: Boolean, default: false } });
@@ -46,6 +47,17 @@ const page = usePage();
 const initial = computed(() =>
     (page.props.auth?.user?.name || "A").charAt(0).toUpperCase(),
 );
+const incomingRequests = ref([]);
+const currentRequest = computed(() => incomingRequests.value[0] ?? null);
+const astrologerUserId = page.props.auth?.user?.id;
+
+const dismissIncomingRequest = () => {
+    incomingRequests.value.shift();
+};
+
+const openIncomingRequest = () => {
+    dismissIncomingRequest();
+};
 
 // ---------- online / offline status ----------
 const online = ref(!!page.props.auth.user.astrologer?.online);
@@ -88,12 +100,57 @@ function onKey(e) {
     if (e.key === "Escape") sidebarOpen.value = false;
 }
 
-onMounted(() => document.addEventListener("keydown", onKey));
-onBeforeUnmount(() => document.removeEventListener("keydown", onKey));
+onMounted(() => {
+    document.addEventListener("keydown", onKey);
+
+    if (astrologerUserId) {
+        echo.private(`astrologer-inbox.${astrologerUserId}`)
+            .listen("IncomingAstrologerRequest", (request) => {
+                const duplicate = incomingRequests.value.some(
+                    (item) => item.requestType === request.requestType && item.chatId === request.chatId,
+                );
+                if (!duplicate) incomingRequests.value.push(request);
+            });
+    }
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener("keydown", onKey);
+    if (astrologerUserId) {
+        echo.leave(`astrologer-inbox.${astrologerUserId}`);
+    }
+});
 </script>
 
 <template>
     <Alert ref="alertRef" />
+
+    <Transition name="adm-fade">
+        <div v-if="currentRequest" class="ast-incoming-request" role="status">
+            <Icon
+                :icon="currentRequest.requestType === 'call' ? 'mdi:phone-incoming' : 'mdi:chat-processing-outline'"
+                width="22"
+                height="22"
+            />
+            <div class="ast-incoming-request-copy">
+                <strong>{{ currentRequest.requestType === 'call' ? 'Incoming call' : 'New chat request' }}</strong>
+                <span>{{ currentRequest.userName }} is {{ currentRequest.requestType === 'call' ? 'calling' : 'waiting to chat' }}.</span>
+            </div>
+            <Link
+                :href="currentRequest.requestType === 'call'
+                    ? route('astrologer.calls', currentRequest.userId)
+                    : route('astrologer.chats', currentRequest.chatId)"
+                class="ast-incoming-request-action"
+                @click="openIncomingRequest"
+            >
+                {{ currentRequest.requestType === 'call' ? 'Answer' : 'Open chat' }}
+            </Link>
+            <button type="button" class="ast-incoming-request-close" aria-label="Dismiss notification"
+                @click="dismissIncomingRequest">
+                <Icon icon="mdi:close" width="18" height="18" />
+            </button>
+        </div>
+    </Transition>
 
     <div class="adm-page">
         <!-- Mobile overlay -->
@@ -226,6 +283,65 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKey));
     import that one file in both layouts and delete this block.
 -->
 <style>
+.ast-incoming-request {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 100;
+    display: flex;
+    max-width: min(30rem, calc(100vw - 2rem));
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid #fed7aa;
+    border-radius: 0.9rem;
+    background: #fff;
+    color: #9a3412;
+    box-shadow: 0 12px 30px rgba(124, 45, 18, 0.18);
+}
+
+.ast-incoming-request-copy {
+    display: grid;
+    flex: 1;
+    gap: 0.15rem;
+    color: #374151;
+    font-size: 0.85rem;
+}
+
+.ast-incoming-request-copy strong {
+    color: #9a3412;
+    font-size: 0.95rem;
+}
+
+.ast-incoming-request-action {
+    flex-shrink: 0;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.55rem;
+    background: #ff7010;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.ast-incoming-request-action:hover {
+    background: #ea580c;
+}
+
+.ast-incoming-request-close {
+    display: inline-flex;
+    flex-shrink: 0;
+    padding: 0.25rem;
+    border: 0;
+    background: transparent;
+    color: #9ca3af;
+    cursor: pointer;
+}
+
+.ast-incoming-request-close:hover {
+    color: #4b5563;
+}
+
 /* ---------- Shell ---------- */
 .adm-page {
     min-height: 100vh;

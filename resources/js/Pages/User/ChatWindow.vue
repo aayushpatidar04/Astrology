@@ -106,6 +106,8 @@ const sendMessage = async () => {
 }
 
 const showWaitingModal = ref(false)
+const startingChat = ref(false)
+const startChatError = ref('')
 
 onMounted(async () => {
     await nextTick()
@@ -208,12 +210,19 @@ const autoResize = (event) => {
 }
 
 const startChat = async () => {
+    if (startingChat.value) return
+
     try {
+        startingChat.value = true
+        startChatError.value = ''
         showWaitingModal.value = true
         await axios.post(`/user/chats/${props.chat.id}/start`)
     } catch (err) {
         console.error(err)
         showWaitingModal.value = false
+        startChatError.value = err.response?.data?.message ?? 'Unable to start the chat. Please try again.'
+    } finally {
+        startingChat.value = false
     }
 }
 
@@ -309,6 +318,12 @@ const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Mat
                         Astrologer is offline. You cannot send a message.
                     </div>
                 </Transition>
+                <Transition name="strip">
+                    <div v-if="startChatError" class="chat-strip is-off" role="alert">
+                        <Icon icon="mdi:alert-circle-outline" width="18" height="18" />
+                        {{ startChatError }}
+                    </div>
+                </Transition>
 
                 <!-- Messages -->
                 <div ref="messagesContainer" class="chat-body">
@@ -364,10 +379,12 @@ const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Mat
                     </button>
 
                     <!-- Start Chat Button -->
-                    <button type="button" @click="startChat" v-if="!joined" class="chat-start">
+                    <button type="button" @click="startChat" v-if="!joined" class="chat-start"
+                        :disabled="startingChat || !astrologerOnline">
                         <span class="chat-start-ring"></span>
-                        <Icon icon="mdi:chat-plus-outline" width="20" height="20" />
-                        Start Chat
+                        <Icon v-if="startingChat" icon="mdi:loading" width="20" height="20" class="chat-start-spin" />
+                        <Icon v-else icon="mdi:chat-plus-outline" width="20" height="20" />
+                        {{ startingChat ? 'Requesting…' : 'Start Chat' }}
                     </button>
                 </form>
             </div>
@@ -890,6 +907,22 @@ const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Mat
 
 .chat-start:hover {
     transform: translateY(-2px) scale(1.03);
+}
+
+.chat-start:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+    transform: none;
+}
+
+.chat-start-spin {
+    animation: chat-start-spin 1s linear infinite;
+}
+
+@keyframes chat-start-spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .chat-start-ring {

@@ -118,6 +118,8 @@ watch(liveMessages, async () => {
 
 const showCallScreen = ref(false)
 const callStatus = ref('ringing...')
+const startingCall = ref(false)
+const startCallError = ref('')
 const muted = ref(false)
 const remoteAudio = ref(null)
 const localConnected = ref(false)
@@ -166,28 +168,24 @@ const formatDuration = (seconds) => {
 
 
 const startCall = async () => {
+    if (startingCall.value) return
+
+    startingCall.value = true
+    startCallError.value = ''
     try {
         let currentMembers = []
         // Listen for astrologer joining
         echo.join(`call.${props.chat.id}`)
-            .here(async (users) => {
+            .here((users) => {
                 currentMembers = users
                 if (users.length === 2) {
                     callStatus.value = 'connecting...'
-                    const response = await axios.post('/call/start', { roomId: props.chat.id })
-                    if (response.data?.call_history) {
-                        liveMessages.value.push(response.data.call_history)
-                    }
                 }
             })
-            .joining(async (user) => {
+            .joining((user) => {
                 currentMembers.push(user)
                 if (currentMembers.length === 2) {
                     callStatus.value = 'connecting...'
-                    const response = await axios.post('/call/start', { roomId: props.chat.id })
-                    if (response.data?.call_history) {
-                        liveMessages.value.push(response.data.call_history)
-                    }
                 }
             })
             .leaving((user) => {
@@ -276,6 +274,11 @@ const startCall = async () => {
             }
         };
 
+        const response = await axios.post('/call/start', { roomId: props.chat.id })
+        if (response.data?.call_history) {
+            liveMessages.value.push(response.data.call_history)
+        }
+
         callStatus.value = 'waiting for astrologer...'
         showCallScreen.value = true
         callStartedAt.value = Date.now()
@@ -289,6 +292,18 @@ const startCall = async () => {
         }, 60000)
     } catch (error) {
         console.error('[USER:startCall] Failed to start call:', error)
+        startCallError.value = error.response?.data?.message ?? 'Unable to start call. Please try again.'
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop())
+            localStream = null
+        }
+        if (pc) {
+            pc.close()
+            pc = null
+        }
+        echo.leave(`call.${props.chat.id}`)
+    } finally {
+        startingCall.value = false
     }
 }
 
@@ -486,13 +501,15 @@ const bars = Array.from({ length: 24 }, (_, i) => ({ d: ((i * 37) % 11) / 10, h:
                                 <div><strong>{{ talkMinutes }} min</strong><span>you can talk</span></div>
                             </div>
 
-                            <button type="button" @click="startCall" :disabled="is_busy" class="call-btn"
+                            <button type="button" @click="startCall" :disabled="is_busy || startingCall" class="call-btn"
                                 :class="{ 'is-busy': is_busy }" :aria-label="is_busy ? 'Busy' : 'Call'">
                                 <span class="call-btn-ripple"></span>
                                 <span class="call-btn-ripple r2"></span>
-                                <Icon :icon="is_busy ? 'mdi:phone-lock' : 'mdi:phone'" width="30" height="30" />
+                                <Icon :icon="startingCall ? 'mdi:loading' : is_busy ? 'mdi:phone-lock' : 'mdi:phone'"
+                                    :class="{ 'call-spin': startingCall }" width="30" height="30" />
                             </button>
-                            <p class="call-btn-label">{{ is_busy ? 'Busy' : 'Tap to call' }}</p>
+                            <p class="call-btn-label">{{ startingCall ? 'Starting call…' : is_busy ? 'Busy' : 'Tap to call' }}</p>
+                            <p v-if="startCallError" class="call-ended-note" role="alert">{{ startCallError }}</p>
 
                             <Transition name="strip">
                                 <p v-if="callStatus === 'Call ended'" class="call-ended-note">
@@ -599,6 +616,16 @@ const bars = Array.from({ length: 24 }, (_, i) => ({ d: ((i * 37) % 11) / 10, h:
 </template>
 
 <style scoped>
+.call-spin {
+    animation: call-spin 1s linear infinite;
+}
+
+@keyframes call-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .call-stage {
     display: flex;
     height: 100%;

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\CallSignal;
+use App\Events\IncomingAstrologerRequest;
 use App\Events\MessageSent;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\Astrologer;
@@ -46,6 +47,11 @@ class UserController extends Controller
         $user = auth()->user()->load('wallet');
         $astrologer = Astrologer::findOrFail($astrologerId);
 
+        if (! $astrologer->online) {
+            return redirect()->route('user.chat-with-astrologers')
+                ->with('error', 'This astrologer is offline. Please choose someone who is available.');
+        }
+
         // Calculate minimum required balance (4 minutes)
         $ratePerMinute = $astrologer->charged_text_price;
         $minRequiredBalance = $ratePerMinute * 4;
@@ -75,6 +81,36 @@ class UserController extends Controller
 
         // Redirect to chat window (user side)
         return redirect()->route('user.chat.show', $chat->id);
+    }
+
+    public function startChatSession(int $chatId)
+    {
+        $chat = Chat::with('participants.user.astrologer')
+            ->whereKey($chatId)
+            ->whereHas('participants', fn ($participants) => $participants->where('user_id', Auth::id()))
+            ->firstOrFail();
+
+        $astrologerUser = $chat->participants
+            ->firstWhere('user_id', '!=', Auth::id())
+            ?->user;
+
+        abort_unless($astrologerUser?->hasRole('Astrologer') && $astrologerUser->astrologer, 422);
+
+        if (! $astrologerUser->astrologer->online) {
+            return response()->json([
+                'message' => 'This astrologer is offline. Please choose someone who is available.',
+            ], 409);
+        }
+
+        broadcast(new IncomingAstrologerRequest(
+            $astrologerUser->id,
+            'chat',
+            $chat->id,
+            Auth::id(),
+            Auth::user()->name
+        ));
+
+        return response()->json(['status' => 'requested']);
     }
 
     public function showChat($id)
@@ -112,46 +148,81 @@ class UserController extends Controller
 
     public function start(Request $request)
     {
-        $roomId = (int)$request->roomId;
+        $validated = $request->validate([
+            'roomId' => ['required', 'integer', 'exists:chats,id'],
+        ]);
 
-        // Broadcast signal for real-time channel updates
+        $chat = Chat::with('participants.user.astrologer')
+            ->whereKey($validated['roomId'])
+            ->whereHas('participants', fn ($participants) => $participants->where('user_id', Auth::id()))
+            ->firstOrFail();
+
+        $astrologerUser = $chat->participants
+            ->firstWhere('user_id', '!=', Auth::id())
+            ?->user;
+
+        abort_unless($astrologerUser?->hasRole('Astrologer') && $astrologerUser->astrologer, 422);
+
+        if (! $astrologerUser->astrologer->online) {
+            return response()->json([
+                'message' => 'This astrologer is offline. Please choose someone who is available.',
+            ], 409);
+        }
+
+        $user = Auth::user()->load('wallet');
+        $minimumBalance = $astrologerUser->astrologer->charged_call_price * 4;
+        if ($user->wallet?->balance < $minimumBalance) {
+            return response()->json([
+                'message' => 'You need at least 4 minutes balance to start a call.',
+            ], 422);
+        }
+
+        if ($astrologerUser->is_busy) {
+            return response()->json([
+                'message' => 'This astrologer is busy. Please try again later.',
+            ], 409);
+        }
+
+        $callHistory = CallHistory::create([
+            'user_id' => Auth::id(),
+            'astrologer_id' => $astrologerUser->id,
+            'call_type' => 'voice',
+            'status' => 'ringing',
+            'started_at' => now(),
+        ]);
+
+        broadcast(new IncomingAstrologerRequest(
+            $astrologerUser->id,
+            'call',
+            $chat->id,
+            Auth::id(),
+            Auth::user()->name
+        ));
+
         broadcast(new CallSignal(
-            $roomId,
+            $chat->id,
             'call_started',
             null,
             Auth::id()
         ))->toOthers();
 
-        // Create call history record
-        $chat = Chat::find($roomId);
-        if ($chat) {
-            $recipientId = $chat->participants()
-                ->where('user_id', '!=', Auth::id())
-                ->value('user_id');
-
-            if ($recipientId) {
-                $callHistory = CallHistory::create([
-                    'user_id' => Auth::id(),
-                    'astrologer_id' => $recipientId,
-                    'call_type' => 'voice',
-                    'status' => 'ringing',
-                    'started_at' => now(),
-                ]);
-
-                // Send Beams push to astrologer from this chat room
+        $beamsInstanceId = config('services.pusher_beams.instance_id');
+        $beamsSecretKey = config('services.pusher_beams.secret_key');
+        if ($beamsInstanceId && $beamsSecretKey) {
+            try {
                 $beamsClient = new PushNotifications([
-                    'instanceId' => config('services.pusher_beams.instance_id'),
-                    'secretKey' => config('services.pusher_beams.secret_key'),
+                    'instanceId' => $beamsInstanceId,
+                    'secretKey' => $beamsSecretKey,
                 ]);
 
                 $beamsClient->publishToUsers(
-                    [(string) $recipientId],
+                    [(string) $astrologerUser->id],
                     [
                         'web' => [
                             'notification' => [
                                 'title' => 'Incoming Call',
                                 'body' => 'A user has started a call. Tap to join.',
-                                'icon' => asset(Auth::user()?->details?->profile_image ?: '/images/favicon.png'),
+                                'icon' => asset($user->details?->profile_image ?: '/images/favicon.png'),
                                 'deep_link' => route('astrologer.calls', ['id' => Auth::id()]),
                                 'data' => [
                                     'type' => 'incoming_call',
@@ -162,10 +233,12 @@ class UserController extends Controller
                         ],
                     ]
                 );
+            } catch (\Exception $exception) {
+                report($exception);
             }
         }
 
-        return response()->json(['status' => 'ok', 'call_history' => $callHistory ?? null]);
+        return response()->json(['status' => 'ok', 'call_history' => $callHistory]);
     }
 
     public function storeMessage(Request $request, $id)
@@ -332,6 +405,19 @@ class UserController extends Controller
         $user = auth()->user()->load('wallet');
         $astrologer = Astrologer::with('user')->findOrFail($id);
 
+        if (! $astrologer->online) {
+            return redirect()->route('user.talk-to-astrologers')
+                ->with('error', 'This astrologer is offline. Please choose someone who is available.');
+        }
+
+        $ratePerMinute = $astrologer->charged_call_price;
+        $minRequiredBalance = $ratePerMinute * 4; // 4 minutes minimum
+
+        if ($user->wallet?->balance < $minRequiredBalance) {
+            return redirect()->route('user.talk-to-astrologers')
+                ->with('error', 'You need at least 4 minutes balance to start a call.');
+        }
+
         $chat = Chat::whereHas('participants', function ($q) use ($user) {
             $q->where('user_id', $user->id);
         })
@@ -340,14 +426,16 @@ class UserController extends Controller
             })
             ->first();
 
-        $ratePerMinute = $astrologer->charged_call_price;
-        $minRequiredBalance = $ratePerMinute * 4; // 4 minutes minimum
-
-        if ($user->wallet?->balance < $minRequiredBalance) {
-            // Redirect to recharge page or show a message
-            return redirect()->route('user.chat-with-astrologers')
-                ->with('error', 'You need at least 4 minutes balance to start a call.');
+        if (! $chat) {
+            $chat = Chat::create([
+                'name' => 'chat_' . $user->id . '_' . $astrologer->user->id,
+            ]);
+            $chat->participants()->createMany([
+                ['user_id' => $user->id],
+                ['user_id' => $astrologer->user->id],
+            ]);
         }
+
         $history = CallHistory::where('user_id', $user->id)->where('astrologer_id', $astrologer->user_id)->get();
         return Inertia::render('User/CallWindow', [
             'auth'     => ['user' => $user],

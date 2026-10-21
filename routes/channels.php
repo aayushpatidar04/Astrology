@@ -32,6 +32,12 @@ Broadcast::channel('astrologer.{userId}', function ($user, $userId) {
         ->exists();
 });
 
+Broadcast::channel('astrologer-inbox.{userId}', function ($user, $userId) {
+    return (int) $user->id === (int) $userId
+        && $user->hasRole('Astrologer')
+        && $user->astrologer()->exists();
+});
+
 
 Broadcast::channel('call.{roomId}', function ($user, $roomId) {
     // return $user !== null;

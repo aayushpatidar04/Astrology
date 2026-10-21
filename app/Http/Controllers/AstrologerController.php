@@ -73,7 +73,10 @@ class AstrologerController extends Controller
         $user = Auth::user();
 
         $chats = $user->chats()
-            ->whereHas('messages') // only chats that have at least one message
+            ->where(function ($query) {
+                $query->whereHas('messages')
+                    ->orWhereHas('sessions', fn ($sessions) => $sessions->whereNull('ended_at'));
+            })
             ->with([
                 'participants.user',
                 'messages' => function ($q) {
