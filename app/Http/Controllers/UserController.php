@@ -35,7 +35,7 @@ class UserController extends Controller
 
     public function chatWithAstrologers()
     {
-        $astrologers = Astrologer::with('user')->where('online', 1)->paginate(20);
+        $astrologers = Astrologer::with('user')->paginate(20);
         return Inertia::render('Astrologers/Index', [
             'user' => Auth::user()?->load(['details', 'wallet']),
             'astrologers' => $astrologers,
@@ -393,7 +393,7 @@ class UserController extends Controller
 
     public function talkToAstrologers()
     {
-        $astrologers = Astrologer::with('user')->where('online', 1)->paginate(20);
+        $astrologers = Astrologer::with('user')->paginate(20);
         return Inertia::render('Astrologers/Index2', [
             'user' => Auth::user()?->load(['details', 'wallet']),
             'astrologers' => $astrologers,

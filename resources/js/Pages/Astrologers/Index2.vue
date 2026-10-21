@@ -62,9 +62,10 @@ onMounted(() => {
         .listen('AstrologerStatusUpdated', (e) => {
             const idx = astrologers.value.findIndex(a => a.id === e.astrologerId)
             if (idx !== -1) {
-                astrologers.value[idx].is_busy = e.isBusy
-            } else {
-                console.warn(`Astrologer ${e.astrologerId} not found in list`)
+                astrologers.value[idx].user.is_busy = e.isBusy
+                if (typeof e.isOnline === 'boolean') {
+                    astrologers.value[idx].online = e.isOnline
+                }
             }
         })
 
@@ -87,13 +88,13 @@ onMounted(() => {
                     <div class="flex-shrink-0 text-center">
                         <img :src="`/${astrologer.profile_image}`" alt="Astrologer image"
                             class="w-24 h-24 object-cover rounded-full border-2 border-orange-500 transform transition-transform duration-300 hover:scale-105" />
-                        <span v-if="astrologer.is_busy"
-                            class="inline-flex items-center px-5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 mt-1">
-                            Busy
-                        </span>
-                        <span v-else
-                            class="inline-flex items-center px-5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 mt-1">
-                            Available
+                        <span class="inline-flex items-center px-5 py-1 rounded-full text-xs font-semibold mt-1"
+                            :class="!astrologer.online
+                                ? 'bg-gray-100 text-gray-700'
+                                : astrologer.user?.is_busy
+                                    ? 'bg-red-100 text-red-700'
+                                    : 'bg-green-100 text-green-700'">
+                            {{ !astrologer.online ? 'Offline' : astrologer.user?.is_busy ? 'Busy' : 'Available' }}
                         </span>
 
                     </div>
@@ -117,9 +118,11 @@ onMounted(() => {
                         <!-- Chat Now button -->
                         <div class="mt-3 flex justify-between items-center">
                             <p class="font-bold">₹ {{ astrologer.charged_call_price }} / min</p>
-                            <button @click.prevent="checkWalletAndStartChat(astrologer)" :disabled="astrologer.is_busy"
+                            <button @click.prevent="checkWalletAndStartChat(astrologer)"
+                                :disabled="!astrologer.online || astrologer.user?.is_busy"
+                                :title="!astrologer.online ? 'Astrologer is offline' : astrologer.user?.is_busy ? 'Astrologer is busy' : 'Call now'"
                                 class="inline-block bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed">
-                                Call Now
+                                {{ !astrologer.online ? 'Offline' : astrologer.user?.is_busy ? 'Busy' : 'Call Now' }}
                             </button>
                         </div>
                     </div>

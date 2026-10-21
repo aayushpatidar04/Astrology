@@ -32,6 +32,7 @@ class Astrologer extends Model
     protected $casts = [
         'expertise' => 'array',
         'documents' => 'array',
+        'online' => 'boolean',
     ];
 
     public function user()

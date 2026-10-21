@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\AstrologerStatusChanged;
+use App\Events\AstrologerStatusUpdated;
 use App\Events\MessageSent;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\CallHistory;
@@ -54,6 +55,11 @@ class AstrologerController extends Controller
             ]);
 
             broadcast(new AstrologerStatusChanged($astrologer->user_id, $request->online))->toOthers();
+            broadcast(new AstrologerStatusUpdated(
+                $astrologer->id,
+                (bool) Auth::user()->is_busy,
+                (bool) $astrologer->online
+            ))->toOthers();
 
             return response()->json([
                 'status' => 'success',

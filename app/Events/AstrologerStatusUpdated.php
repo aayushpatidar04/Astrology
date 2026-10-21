@@ -16,11 +16,13 @@ class AstrologerStatusUpdated implements ShouldBroadcastNow
 
     public $astrologerId;
     public $isBusy;
+    public $isOnline;
 
-    public function __construct($astrologerId, $isBusy)
+    public function __construct($astrologerId, $isBusy, $isOnline = null)
     {
         $this->astrologerId = $astrologerId;
         $this->isBusy = $isBusy;
+        $this->isOnline = $isOnline;
     }
 
     /**
