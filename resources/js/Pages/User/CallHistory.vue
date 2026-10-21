@@ -82,7 +82,7 @@ const statusMeta = (s) => ({
                             <span class="usr-avatar">
                                 <img
                                     v-if="props.row.astrologer.astrologer?.profile_image"
-                                    :src="props.row.astrologer.astrologer.profile_image"
+                                    :src="'/' + props.row.astrologer.astrologer.profile_image"
                                     :alt="props.row.astrologer?.name"
                                     class="w-full h-full rounded-full object-cover"
                                 />
