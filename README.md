@@ -71,6 +71,13 @@ The configured template must accept the OTP as its first body variable (`{{1}}`)
 
 The API endpoints remain `POST /api/sendOtp` and `POST /api/verifyOtp`. The browser login screen sends a code and then verifies it at `POST /login`.
 
+## API documentation
+
+See [the API reference](docs/API.md) for the authenticated endpoint inventory, request formats,
+chat creation/session flow, and response/error behavior. Import
+[`docs/postman/Astrology API.postman_collection.json`](docs/postman/Astrology%20API.postman_collection.json)
+into Postman to try the API.
+
 ## Push notifications
 
 Web push notifications use Pusher Beams. Configure `VITE_PUSHER_BEAMS_INSTANCE_ID` and `PUSHER_BEAMS_SECRET_KEY`; authenticated web users subscribe through the `/beams-auth` endpoint.

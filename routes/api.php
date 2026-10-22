@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Api\AstrologerController;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\Controller as ApiController;
 use App\Http\Controllers\Api\MainController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Broadcast;
@@ -35,9 +34,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/banners', [MainController::class, 'getBanners']);
     Route::get('/testimonials', [MainController::class, 'getTestimonials']);
 
-
     Route::middleware('role:User')->group(function () {
         Route::get('/astrologers', [UserController::class, 'astrologers']);
+        Route::post('/chats', [UserController::class, 'createChat']);
+        Route::post('/chats/{chatId}/start', [UserController::class, 'startChatSession']);
         Route::get('/start-chat/{astrologerId}', [UserController::class, 'startChat']);
         Route::get('/chats', [UserController::class, 'chats']);
         Route::get('/chats/{chatId}/messages', [UserController::class, 'messages']);

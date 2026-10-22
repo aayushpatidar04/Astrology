@@ -17,7 +17,6 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class MainController extends Controller
@@ -34,6 +33,7 @@ class MainController extends Controller
 
         try {
             app(FirebaseNotificationService::class)->sendNotification($fcmToken, $title, $body, $data);
+
             return true;
         } catch (Throwable $exception) {
             Log::warning('Firebase notification delivery failed.', [
@@ -95,15 +95,9 @@ class MainController extends Controller
 
     public function blogsByCategory($id)
     {
-        $category = BlogCategory::find($id);
-        if (!$category) {
-            return response()->json([
-                'status' => 'error',
-                'error' => 'Category not found!',
-                'message' => 'Category not found!',
-            ]);
-        }
+        BlogCategory::findOrFail($id);
         $blogs = Blog::with('category')->where('blog_category_id', $id)->latest()->paginate(10);
+
         return response()->json([
             'status' => 'success',
             'message' => 'Blogs fetched successfully!',
@@ -113,14 +107,8 @@ class MainController extends Controller
 
     public function showBlog($id)
     {
-        $blog = Blog::with('category')->find($id);
-        if (!$blog) {
-            return response()->json([
-                'status' => 'error',
-                'error' => 'Blog not found!',
-                'message' => 'Blog not found!',
-            ]);
-        }
+        $blog = Blog::with('category')->findOrFail($id);
+
         return response()->json([
             'status' => 'success',
             'message' => 'Blog fetched successfully!',
@@ -131,7 +119,7 @@ class MainController extends Controller
     public function horoscopesByType($type)
     {
         $query = Horoscope::query();
-        $now   = Carbon::now();
+        $now = Carbon::now();
 
         switch (strtolower($type)) {
             case 'today':
@@ -172,7 +160,7 @@ class MainController extends Controller
                     'status' => 'error',
                     'message' => 'Invalid horoscope type provided.',
                     'error' => 'Invalid horoscope type provided.',
-                ], 200);
+                ], 422);
         }
 
         $horoscopes = $query->latest()->get();
@@ -187,7 +175,7 @@ class MainController extends Controller
     public function horoscopesByTypeAndSign($type, $sign)
     {
         $query = Horoscope::query();
-        $now   = Carbon::now();
+        $now = Carbon::now();
 
         switch (strtolower($type)) {
             case 'today':
@@ -228,7 +216,7 @@ class MainController extends Controller
                     'status' => 'error',
                     'message' => 'Invalid horoscope type provided.',
                     'error' => 'Invalid horoscope type provided.',
-                ], 200);
+                ], 422);
         }
 
         $horoscopes = $query->latest()->get();
@@ -247,16 +235,8 @@ class MainController extends Controller
         ]);
         $userId = Auth::id();
 
-        $chat = Chat::whereHas('participants', fn($q) => $q->where('user_id', $userId))
-            ->find($chatId);
-
-        if (!$chat) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Chat not found!',
-                'error' => 'Chat not found!',
-            ]);
-        }
+        $chat = Chat::whereHas('participants', fn ($q) => $q->where('user_id', $userId))
+            ->findOrFail($chatId);
 
         $message = $chat->messages()->create([
             'user_id' => $userId,
@@ -286,49 +266,35 @@ class MainController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Message sent successfully!',
-            'data' => $message
-        ]);
+            'data' => $message,
+        ], 201);
     }
 
     public function typing(Request $request, $chatId)
     {
-        try{
-            $validated = $request->validate([
-                'typing' => 'required|boolean',
-            ]);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Validation failed',
-                'errors' => $e->errors(),
-            ], 422);
-        }
+        $validated = $request->validate([
+            'typing' => ['required', 'boolean'],
+        ]);
         $userId = Auth::id();
 
-        $chat = Chat::whereHas('participants', fn($q) => $q->where('user_id', $userId))
-            ->find($chatId);
-
-        if (!$chat) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Chat not found!',
-                'error' => 'Chat not found!',
-            ]);
-        }
+        $chat = Chat::whereHas('participants', fn ($q) => $q->where('user_id', $userId))
+            ->findOrFail($chatId);
         // Broadcast typing event
-        broadcast(new TypingEvent($chatId, $userId, $request->typing))->toOthers();
+        broadcast(new TypingEvent($chatId, $userId, $validated['typing']))->toOthers();
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Typing event broadcasted!'
+            'message' => 'Typing event broadcasted!',
         ]);
     }
 
-    public function chogdiya(){
+    public function chogdiya()
+    {
         $year = date('Y');
         $day = date('l');
 
         $chogdiya = Chogdiya::where('year', $year)->where('day', $day)->first();
+
         return response()->json([
             'status' => 'success',
             'message' => 'Chogdiya fetched successfully!',
@@ -336,21 +302,25 @@ class MainController extends Controller
         ]);
     }
 
-    public function getBanners(){
+    public function getBanners()
+    {
         $banners = Banner::where('active', 1)->latest()->get();
+
         return response()->json([
             'status' => 'success',
             'message' => 'Banners fetched successfully!',
-            'banners' => $banners
+            'banners' => $banners,
         ]);
     }
 
-    public function getTestimonials(){
+    public function getTestimonials()
+    {
         $testimonials = Testimonial::latest()->get();
+
         return response()->json([
             'status' => 'success',
             'message' => 'Testimonials fetched successfully!',
-            'testimonials' => $testimonials
+            'testimonials' => $testimonials,
         ]);
     }
 }

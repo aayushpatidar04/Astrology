@@ -5,14 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Astrologer;
 use App\Models\BankDetail;
+use App\Models\CallHistory;
 use App\Models\Chat;
 use App\Models\ChatSession;
-use App\Models\CallHistory;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class AstrologerController extends Controller
 {
@@ -55,6 +56,7 @@ class AstrologerController extends Controller
                         } elseif ($p->user->hasRole('Astrologer')) {
                             $profileImage = $p->user->astrologer->profile_image ?? null;
                         }
+
                         return [
                             'id' => $p->user->id,
                             'name' => $p->user->name,
@@ -105,6 +107,7 @@ class AstrologerController extends Controller
             } elseif ($msg->user->hasRole('Astrologer')) {
                 $profileImage = $msg->user->astrologer->profile_image ?? null;
             }
+
             return [
                 'id' => $msg->id,
                 'sender' => [
@@ -127,39 +130,40 @@ class AstrologerController extends Controller
 
     public function stats($id)
     {
+        $astrologer = $this->authorizedAstrologer($id);
+        $astrologerUserId = $astrologer->user_id;
         $today = Carbon::today();
         $monthStart = Carbon::now()->startOfMonth();
 
-        $astrologer = Astrologer::with('user')->where('user_id', $id)->first();
         // --- Chats ---
-        $todayChats = ChatSession::where('astrologer_id', $id)
+        $todayChats = ChatSession::where('astrologer_id', $astrologerUserId)
             ->whereDate('created_at', $today)
             ->distinct('chat_id')
             ->count('chat_id');
 
-        $monthChats = ChatSession::where('astrologer_id', $id)
+        $monthChats = ChatSession::where('astrologer_id', $astrologerUserId)
             ->whereBetween('created_at', [$monthStart, Carbon::now()])
             ->distinct('chat_id')
             ->count('chat_id');
 
         // --- Calls ---
-        $todayCalls = CallHistory::where('astrologer_id', $id)
+        $todayCalls = CallHistory::where('astrologer_id', $astrologerUserId)
             ->whereDate('created_at', $today)
             ->distinct('id')
             ->count('id');
 
-        $monthCalls = CallHistory::where('astrologer_id', $id)
+        $monthCalls = CallHistory::where('astrologer_id', $astrologerUserId)
             ->whereBetween('created_at', [$monthStart, Carbon::now()])
             ->distinct('id')
             ->count('id');
 
         // --- Earnings based on asked prices ---
         // Calls: duration (seconds) → minutes → multiply by asked_call_price
-        $callDurationToday = CallHistory::where('astrologer_id', $id)
+        $callDurationToday = CallHistory::where('astrologer_id', $astrologerUserId)
             ->whereDate('created_at', $today)
             ->sum('duration');
 
-        $callDurationMonth = CallHistory::where('astrologer_id', $id)
+        $callDurationMonth = CallHistory::where('astrologer_id', $astrologerUserId)
             ->whereBetween('created_at', [$monthStart, Carbon::now()])
             ->sum('duration');
 
@@ -167,11 +171,11 @@ class AstrologerController extends Controller
         $callEarningMonth = ($callDurationMonth / 60) * $astrologer->asked_call_price;
 
         // Chats: duration_seconds → minutes → multiply by asked_text_price
-        $chatDurationToday = ChatSession::where('astrologer_id', $id)
+        $chatDurationToday = ChatSession::where('astrologer_id', $astrologerUserId)
             ->whereDate('created_at', $today)
             ->sum('duration_seconds');
 
-        $chatDurationMonth = ChatSession::where('astrologer_id', $id)
+        $chatDurationMonth = ChatSession::where('astrologer_id', $astrologerUserId)
             ->whereBetween('created_at', [$monthStart, Carbon::now()])
             ->sum('duration_seconds');
 
@@ -179,7 +183,7 @@ class AstrologerController extends Controller
         $chatEarningMonth = ($chatDurationMonth / 60) * $astrologer->asked_text_price;
 
         // --- Last 3 consultations (chat or call) ---
-        $lastChats = ChatSession::where('astrologer_id', $id)
+        $lastChats = ChatSession::where('astrologer_id', $astrologerUserId)
             ->join('users', 'chat_sessions.user_id', '=', 'users.id')
             ->select(
                 'chat_sessions.id',
@@ -194,7 +198,7 @@ class AstrologerController extends Controller
             ->orderBy('chat_sessions.created_at', 'desc')
             ->limit(3);
 
-        $lastCalls = CallHistory::where('astrologer_id', $id)
+        $lastCalls = CallHistory::where('astrologer_id', $astrologerUserId)
             ->join('users', 'call_histories.user_id', '=', 'users.id')
             ->select(
                 'call_histories.id',
@@ -214,8 +218,6 @@ class AstrologerController extends Controller
             ->orderBy('created_at', 'desc')
             ->limit(3)
             ->get();
-
-
 
         return response()->json([
             'today' => [
@@ -237,16 +239,26 @@ class AstrologerController extends Controller
 
     public function storeBankDetails(Request $request, $id)
     {
-        $validated = $request->validate([
-            'account_holder' => 'required|string',
-            'account_number' => 'required|string',
-            'ifsc_code' => 'required|string',
-            'bank_name' => 'required|string',
-            'branch_name' => 'nullable|string',
-        ]);
+        try {
+            $validated = $request->validate([
+                'account_holder' => 'required|string',
+                'account_number' => 'required|string',
+                'ifsc_code' => 'required|string',
+                'bank_name' => 'required|string',
+                'branch_name' => 'nullable|string',
+            ]);
+        } catch (ValidationException $exception) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $exception->errors(),
+            ], 422);
+        }
+
+        $astrologer = $this->authorizedAstrologer($id);
 
         $details = BankDetail::updateOrCreate(
-            ['astrologer_id' => $id],
+            ['astrologer_id' => $astrologer->id],
             $validated
         );
 
@@ -255,20 +267,36 @@ class AstrologerController extends Controller
 
     public function getBankDetails($id)
     {
-        $details = BankDetail::where('astrologer_id', $id)->first();
+        $astrologer = $this->authorizedAstrologer($id);
+        $details = BankDetail::where('astrologer_id', $astrologer->id)->first();
+
         return response()->json($details);
     }
 
     public function getAstrologerTransactions($id)
     {
-        $transactions = Transaction::where('astrologer_id', $id)
+        $astrologer = $this->authorizedAstrologer($id);
+        $transactions = Transaction::where('astrologer_id', $astrologer->id)
             ->orderBy('transacted_at', 'desc')
             ->get()
             ->map(function ($txn) {
                 $txn->proof_url = $txn->proof ? asset($txn->proof) : null;
+
                 return $txn;
             });
 
         return response()->json($transactions);
+    }
+
+    private function authorizedAstrologer($id): Astrologer
+    {
+        $astrologer = Auth::user()->astrologer()->with('user')->first();
+
+        abort_unless(
+            $astrologer && $astrologer->id === (int) $id,
+            404
+        );
+
+        return $astrologer;
     }
 }

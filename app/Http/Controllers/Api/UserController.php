@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-
+use App\Events\IncomingAstrologerRequest;
 use App\Http\Controllers\Controller;
 use App\Models\Astrologer;
 use App\Models\Chat;
@@ -13,14 +13,14 @@ use App\Models\User;
 use App\Services\ChatSessionSettlementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-
 
 class UserController extends Controller
 {
     protected array $middleware = [
         'auth',
-        'role' => 'User'
+        'role' => 'User',
     ];
 
     public function astrologers()
@@ -54,34 +54,119 @@ class UserController extends Controller
 
     public function startChat($astrologerId)
     {
-        $user = Auth::user();
-        $astrologer = User::findOrFail($astrologerId);
+        // Compatibility endpoint: this legacy route takes an astrologer user ID.
+        $astrologer = Astrologer::where('user_id', $astrologerId)->firstOrFail();
+        $chat = $this->findOrCreateChat(Auth::user(), $astrologer);
 
-        $chat = Chat::whereHas('participants', function ($q) use ($user) {
-            $q->where('user_id', $user->id);
-        })->whereHas('participants', function ($q) use ($astrologer) {
-            $q->where('user_id', $astrologer->id);
-        })->first();
+        return $this->startChatSession($chat->id);
+    }
 
-        if (! $chat) {
-            $chat = Chat::create([
-                'name' => 'chat_' . $user->id . '_' . $astrologer->id,
-            ]);
+    public function createChat(Request $request)
+    {
+        $validated = $request->validate([
+            'astrologer_id' => ['required', 'integer', 'exists:astrologers,id'],
+        ]);
 
-            $chat->participants()->createMany([
-                ['user_id' => $user->id],
-                ['user_id' => $astrologer->id],
-            ]);
-        }
-
-        $session = ChatSession::startFor($chat, $user->id, $astrologer->id);
+        $astrologer = Astrologer::with('user')->findOrFail($validated['astrologer_id']);
+        $chat = $this->findOrCreateChat(Auth::user(), $astrologer);
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Chat fetched successfully',
-            'chat' => $chat,
+            'message' => 'Chat created or retrieved successfully.',
+            'chat' => [
+                'id' => $chat->id,
+                'name' => $chat->name,
+                'astrologer' => [
+                    'id' => $astrologer->id,
+                    'user_id' => $astrologer->user_id,
+                    'name' => $astrologer->user->name,
+                    'profile_image' => $astrologer->profile_image,
+                    'online' => $astrologer->online,
+                ],
+            ],
+        ], $chat->wasRecentlyCreated ? 201 : 200);
+    }
+
+    public function startChatSession($chatId)
+    {
+        $user = Auth::user();
+        $chat = Chat::with('participants.user.astrologer')
+            ->whereKey($chatId)
+            ->whereHas('participants', fn ($participants) => $participants->where('user_id', $user->id))
+            ->firstOrFail();
+
+        $astrologerUser = $chat->participants
+            ->firstWhere('user_id', '!=', $user->id)
+            ?->user;
+
+        abort_unless($astrologerUser?->hasRole('Astrologer') && $astrologerUser->astrologer, 404);
+
+        $astrologer = $astrologerUser->astrologer;
+        if (! $astrologer->online) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'This astrologer is offline.',
+            ], 409);
+        }
+
+        $wallet = $user->ensureWallet();
+        $minimumBalance = (float) $astrologer->charged_text_price * 4;
+        if ((float) $wallet->balance < $minimumBalance) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'You need at least four minutes of wallet balance to start a chat.',
+            ], 422);
+        }
+
+        $session = ChatSession::startFor($chat, $user->id, $astrologerUser->id);
+        if ($session->wasRecentlyCreated) {
+            broadcast(new IncomingAstrologerRequest(
+                $astrologerUser->id,
+                'chat',
+                $chat->id,
+                $user->id,
+                $user->name
+            ));
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Chat request sent successfully.',
+            'chat' => [
+                'id' => $chat->id,
+                'name' => $chat->name,
+            ],
             'session_reference' => $session->session_reference,
         ]);
+    }
+
+    private function findOrCreateChat(User $user, Astrologer $astrologer): Chat
+    {
+        abort_unless($astrologer->user?->hasRole('Astrologer'), 404);
+
+        return DB::transaction(function () use ($user, $astrologer): Chat {
+            $participantIds = [$user->id, $astrologer->user_id];
+            $chat = Chat::query()
+                ->has('participants', '=', 2)
+                ->whereHas('participants', fn ($participants) => $participants->where('user_id', $user->id))
+                ->whereHas('participants', fn ($participants) => $participants->where('user_id', $astrologer->user_id))
+                ->whereDoesntHave('participants', fn ($participants) => $participants->whereNotIn('user_id', $participantIds))
+                ->first();
+
+            if ($chat) {
+                return $chat;
+            }
+
+            $chat = Chat::create([
+                'name' => 'chat_'.$user->id.'_'.$astrologer->user_id,
+            ]);
+            $chat->participants()->createMany([
+                ['user_id' => $user->id],
+                ['user_id' => $astrologer->user_id],
+            ]);
+
+            return $chat;
+        });
     }
 
     public function chats()
@@ -107,6 +192,7 @@ class UserController extends Controller
                         } elseif ($p->user->hasRole('Astrologer')) {
                             $profileImage = $p->user->astrologer->profile_image ?? null;
                         }
+
                         return [
                             'id' => $p->user->id,
                             'name' => $p->user->name,
@@ -157,6 +243,7 @@ class UserController extends Controller
             } elseif ($msg->user->hasRole('Astrologer')) {
                 $profileImage = $msg->user->astrologer->profile_image ?? null;
             }
+
             return [
                 'id' => $msg->id,
                 'sender' => [
@@ -182,24 +269,24 @@ class UserController extends Controller
         $user = Auth::user()->load('wallet');
 
         $firstTimeOffers = collect();
-        $regularOffers   = collect();
-        $specialOffers   = collect();
+        $regularOffers = collect();
+        $specialOffers = collect();
 
         if ($user) {
-            if (!$user->orders()->exists()) {
+            if (! $user->orders()->exists()) {
                 $firstTimeOffers = RechargePackage::where('type', 'first_time')->get();
-                $specialOffers   = RechargePackage::where('type', 'special')->get();
+                $specialOffers = RechargePackage::where('type', 'special')->get();
             } else {
-                $regularOffers   = RechargePackage::where('type', 'regular')->get();
-                $specialOffers   = RechargePackage::where('type', 'special')->get();
+                $regularOffers = RechargePackage::where('type', 'regular')->get();
+                $specialOffers = RechargePackage::where('type', 'special')->get();
             }
         }
 
         return response()->json([
             'firstTimeOffers' => $firstTimeOffers,
-            'regularOffers'   => $regularOffers,
-            'specialOffers'   => $specialOffers,
-            'walletBalance'   => $user->wallet?->balance,
+            'regularOffers' => $regularOffers,
+            'specialOffers' => $specialOffers,
+            'walletBalance' => $user->wallet?->balance,
         ]);
     }
 
@@ -274,7 +361,7 @@ class UserController extends Controller
         );
 
         return response()->json([
-            'success'   => true,
+            'success' => true,
             'deduction' => $deduction,
         ]);
     }
@@ -292,13 +379,13 @@ class UserController extends Controller
         $totalPayable = $package->amount + $gst;
 
         $tempOrder = TempOrder::create([
-            'user_id'        => $user->id,
-            'phone'        => $user->phone,
-            'recharge_package_id'     => $package_id,
-            'amount'         => $package->amount,
-            'bonus_amount'   => $package->bonus_amount ?? 0,
-            'payable_amount'   => $totalPayable ?? 0,
-            'status'         => 'pending',
+            'user_id' => $user->id,
+            'phone' => $user->phone,
+            'recharge_package_id' => $package_id,
+            'amount' => $package->amount,
+            'bonus_amount' => $package->bonus_amount ?? 0,
+            'payable_amount' => $totalPayable ?? 0,
+            'status' => 'pending',
             'payment_gateway' => 'phonepe',
             'transaction_ref' => uniqid('txn_'),
         ]);
@@ -306,7 +393,7 @@ class UserController extends Controller
             'merchantId' => 'MYASTROSATHIONLINE',
             // 'merchantId' => 'PGTESTPAYUAT86',
             'merchantOrderId' => $tempOrder->transaction_ref,
-            'merchantUserId' => 'MUID' . $user->id,
+            'merchantUserId' => 'MUID'.$user->id,
             'amount' => intval($totalPayable * 100),
             'redirectMode' => 'GET',
             'mobileNumber' => $user->phone ?? '9999999999',
@@ -317,13 +404,13 @@ class UserController extends Controller
                 ],
             ],
         ];
-        
+
         $tokenResponse = Http::asForm()->post(
             'https://api.phonepe.com/apis/identity-manager/v1/oauth/token',
             [
-                'client_id'     => 'SU2605291038460969015418',
+                'client_id' => 'SU2605291038460969015418',
                 'client_secret' => 'b074e043-6df9-459a-84b3-a0d9bbca5e5d',
-                'grant_type'    => 'client_credentials',
+                'grant_type' => 'client_credentials',
             ]
         );
 
@@ -331,12 +418,12 @@ class UserController extends Controller
 
         // Sandbox URL
         // $url = "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay";
-        $url = "https://api.phonepe.com/apis/pg/checkout/v2/pay";
+        $url = 'https://api.phonepe.com/apis/pg/checkout/v2/pay';
 
         // Send request using Laravel HTTP client
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
-            'Authorization' => 'O-Bearer ' . $token,
+            'Authorization' => 'O-Bearer '.$token,
         ])->post($url, $data);
 
         $rData = $response->json();

@@ -72,7 +72,8 @@ class AuthController extends Controller
         if ($user) {
             // Existing user → login and return user + token
             $token = $user->createToken('myastrosathi')->plainTextToken;
-
+            $user->web_token = $token;
+            $user->save();
             return response()->json([
                 'status' => 'success',
                 'message' => 'Phone verified successfully. Logged in.',
@@ -185,12 +186,12 @@ class AuthController extends Controller
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
+            report($e);
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Registration failed',
-                'error' => $e->getMessage(),
-            ], 200);
+                'message' => 'Registration failed. Please try again.',
+            ], 500);
         }
     }
 
@@ -256,7 +257,7 @@ class AuthController extends Controller
 
             $details = UserDetail::create([
                 'user_id' => $user->id,
-                'profile_image' => 'uploads/user_profile/' . $image,
+                'profile_image' => $image ? 'uploads/user_profile/' . $image : null,
                 'dob' => $data['dob'],
                 'birth_time' => $data['birth_time'],
                 'gender' => $data['gender'],
@@ -276,12 +277,12 @@ class AuthController extends Controller
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
+            report($e);
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Registration failed',
-                'error' => $e->getMessage(),
-            ], 200);
+                'message' => 'Registration failed. Please try again.',
+            ], 500);
         }
     }
 
