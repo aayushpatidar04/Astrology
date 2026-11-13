@@ -31,6 +31,15 @@ class MainController extends Controller
             return false;
         }
 
+        $configurationError = FirebaseNotificationService::credentialsConfigurationError();
+        if ($configurationError) {
+            Log::error('Firebase notification credentials are misconfigured.', [
+                'reason' => $configurationError,
+            ]);
+
+            return false;
+        }
+
         try {
             app(FirebaseNotificationService::class)->sendNotification($fcmToken, $title, $body, $data);
 
@@ -66,8 +75,8 @@ class MainController extends Controller
             $validated['data'] ?? []
         )) {
             return response()->json([
-                'message' => 'Unable to send the Firebase notification.',
-            ], 502);
+                'message' => 'Firebase notification service is unavailable or misconfigured.',
+            ], 503);
         }
 
         return response()->json([
