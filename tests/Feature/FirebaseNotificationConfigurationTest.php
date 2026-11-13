@@ -3,6 +3,13 @@
 use App\Models\User;
 use App\Services\FirebaseNotificationService;
 
+test('firebase credentials return an error when not configured', function () {
+    config(['firebase.projects.app.credentials' => null]);
+
+    expect(FirebaseNotificationService::credentialsConfigurationError())
+        ->toBe('Firebase credentials are not configured. Set FIREBASE_CREDENTIALS to a service-account key path.');
+});
+
 test('firebase credentials reject client configuration JSON', function () {
     $path = tempnam(sys_get_temp_dir(), 'firebase-config-');
     file_put_contents($path, json_encode([

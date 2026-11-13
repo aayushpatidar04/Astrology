@@ -14,7 +14,7 @@ class FirebaseNotificationService
         $credentials = config('firebase.projects.app.credentials');
 
         if (blank($credentials)) {
-            return null;
+            return 'Firebase credentials are not configured. Set FIREBASE_CREDENTIALS to a service-account key path.';
         }
 
         if (is_array($credentials) && isset($credentials['file']) && is_string($credentials['file'])) {
