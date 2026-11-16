@@ -31,15 +31,6 @@ class MainController extends Controller
             return false;
         }
 
-        $configurationError = FirebaseNotificationService::credentialsConfigurationError();
-        if ($configurationError) {
-            Log::error('Firebase notification credentials are misconfigured.', [
-                'reason' => $configurationError,
-            ]);
-
-            return false;
-        }
-
         try {
             app(FirebaseNotificationService::class)->sendNotification($fcmToken, $title, $body, $data);
 
@@ -47,6 +38,7 @@ class MainController extends Controller
         } catch (Throwable $exception) {
             Log::warning('Firebase notification delivery failed.', [
                 'exception' => $exception::class,
+                'message' => $exception->getMessage(),
             ]);
 
             return false;

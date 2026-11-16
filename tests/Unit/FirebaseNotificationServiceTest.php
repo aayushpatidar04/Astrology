@@ -4,7 +4,7 @@ use App\Services\FirebaseNotificationService;
 use Kreait\Firebase\Contract\Messaging;
 use Kreait\Firebase\Messaging\CloudMessage;
 
-test('firebase notifications are sent to the device token with string data', function () {
+test('firebase notifications are sent to the device token with notification and data', function () {
     $messaging = Mockery::mock(Messaging::class);
     $messaging->shouldReceive('send')
         ->once()
@@ -12,10 +12,11 @@ test('firebase notifications are sent to the device token with string data', fun
             $serialized = $message->jsonSerialize();
 
             expect($serialized['token'])->toBe('device-token');
-            expect($serialized['data'])->toBe([
+            expect($serialized['notification'])->toBe([
                 'title' => 'New message',
                 'body' => 'Hello',
-                'sound' => 'custom_sound',
+            ]);
+            expect($serialized['data'])->toBe([
                 'chat_id' => '12',
                 'details' => '{"kind":"chat"}',
             ]);
