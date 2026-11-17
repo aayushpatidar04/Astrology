@@ -29,8 +29,9 @@ class AstroToolController extends Controller
             ]);
 
             if ($request->filled('lat') && $request->filled('lng')) {
+                $cityOnly = trim(explode(',', $validated['birth_place'])[0]);
                 Location::updateOrCreate(
-                    ['city_name' => trim($validated['birth_place'])],
+                    ['city_name' => $cityOnly],
                     [
                         'latitude' => (float) $request->input('lat'),
                         'longitude' => (float) $request->input('lng'),
@@ -117,9 +118,9 @@ class AstroToolController extends Controller
                 'Referer' => 'https://astrotalk.com/',
                 'User-Agent' => 'Mozilla/5.0 (Linux; Android 16; Pixel 10) AppleWebKit/537.36',
             ])->get('https://api.supportchat.astrotalk.com/AstroChat/cities/allcountries/autocomplete', [
-                'limit' => 10,
-                'key' => $query,
-            ]);
+                        'limit' => 10,
+                        'key' => $query,
+                    ]);
 
             $data = $response->json();
             $cities = $data['data'] ?? [];
