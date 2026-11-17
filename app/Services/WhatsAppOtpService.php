@@ -55,6 +55,17 @@ class WhatsAppOtpService
                                     ],
                                 ],
                             ],
+                            [
+                                'type' => 'button',
+                                'sub_type' => 'url',
+                                'index' => '0',
+                                'parameters' => [
+                                    [
+                                        'type' => 'text',
+                                        'text' => $otp,
+                                    ],
+                                ],
+                            ],
                         ],
                     ],
                 ]);
@@ -67,8 +78,12 @@ class WhatsAppOtpService
         }
 
         if (! $response->successful()) {
-            Log::error('Meta WhatsApp OTP delivery was rejected.', [
-                'status' => $response->status(),
+            Log::error('Meta WhatsApp OTP delivery rejected - RAW RESPONSE', [
+                'http_status' => $response->status(),
+                'reason' => $response->reason(),
+                'content_type' => $response->header('Content-Type'),
+                'response_body' => $response->body(),
+                'response_headers' => $response->headers(),
             ]);
 
             throw new RuntimeException('Unable to send an OTP right now.');
