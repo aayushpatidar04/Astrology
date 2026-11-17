@@ -92,6 +92,7 @@ Route::middleware(['auth', 'verified', 'role:User'])->group(function () {
     Route::get('/user/profile', [UserController::class, 'editProfile'])->name('user.profile.edit');
     Route::patch('/user/profile', [UserController::class, 'updateProfile'])->name('user.profile.update');
     Route::delete('/user/profile', [UserController::class, 'destroyProfile'])->name('user.profile.destroy');
+    Route::post('/user/astrologers/{astrologer}/reviews', [UserController::class, 'storeReview'])->name('user.astrologer.review');
     
 });
 Route::any('user/response/{id}', [MainController::class, 'phonePeResponse'])->name('user.response');

@@ -279,12 +279,24 @@ class MainController extends Controller
                     'transaction_ref' => $tempOrder->transaction_ref,
                 ]);
 
-                // Credit wallet
-                $wallet = UserWallet::where('user_id', $user->id)->first();
-                if ($wallet) {
-                    $wallet->balance += $tempOrder->amount + $tempOrder->bonus_amount;
-                    $wallet->save();
-                }
+                // Credit wallet with concurrency lock
+                $wallet = UserWallet::firstOrCreate(
+                    ['user_id' => $user->id],
+                    ['balance' => 0]
+                );
+                $wallet = UserWallet::whereKey($wallet->id)->lockForUpdate()->firstOrFail();
+                $creditAmount = (float) $tempOrder->amount + (float) ($tempOrder->bonus_amount ?? 0);
+                $wallet->balance = (float) $wallet->balance + $creditAmount;
+                $wallet->save();
+
+                $wallet->transactions()->create([
+                    'type' => 'recharge',
+                    'amount' => $creditAmount,
+                    'balance_after' => $wallet->balance,
+                    'source_type' => 'order',
+                    'source_id' => $order->id,
+                    'description' => 'Recharge via PhonePe (Package #' . $tempOrder->recharge_package_id . ')',
+                ]);
 
                 DB::commit();
 

@@ -46,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/wallet', [UserController::class, 'wallet']);
         Route::post('/end-chat/{chatId}', [UserController::class, 'endChat']);
         Route::get('/user/phonepe/webview/{package_id}', [UserController::class, 'phonePeWebView']);
+        Route::post('/astrologers/{astrologerId}/reviews', [UserController::class, 'storeReview']);
 
     });
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\IncomingAstrologerRequest;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreReviewRequest;
 use App\Models\Astrologer;
 use App\Models\Chat;
 use App\Models\ChatSession;
@@ -23,11 +24,36 @@ class UserController extends Controller
         'role' => 'User',
     ];
 
-    public function astrologers()
+    public function astrologers(Request $request)
     {
-        $astrologers = Astrologer::with('user')
-            ->where('online', 1)
-            ->latest()
+        $query = Astrologer::with('user', 'reviews');
+
+        if ($search = trim($request->input('search'))) {
+            if ($search !== '' && $search !== 'null' && $search !== 'undefined') {
+                $query->where(function($q) use ($search) {
+                    $q->whereHas('user', function($uq) use ($search) {
+                        $uq->where('name', 'like', "%{$search}%");
+                    })->orWhere('bio', 'like', "%{$search}%");
+                });
+            }
+        }
+
+        if ($specialization = trim($request->input('specialization'))) {
+            if ($specialization !== '' && $specialization !== 'null' && $specialization !== 'undefined') {
+                $query->where(function($q) use ($specialization) {
+                    $q->whereJsonContains('expertise', $specialization)
+                      ->orWhere('expertise', 'like', "%{$specialization}%");
+                });
+            }
+        }
+
+        if ($online = $request->input('online')) {
+            if ($online !== '' && $online !== null && $online !== 'null' && $online !== 'undefined') {
+                $query->where('online', (bool) $online);
+            }
+        }
+
+        $astrologers = $query->latest()
             ->paginate(12)
             ->through(function ($astrologer) {
                 return [
@@ -42,6 +68,8 @@ class UserController extends Controller
                     'status' => $astrologer->status,
                     'charged_text_price' => $astrologer->charged_text_price,
                     'charged_call_price' => $astrologer->charged_call_price,
+                    'average_rating' => $astrologer->average_rating,
+                    'reviews_count' => $astrologer->reviews_count,
                 ];
             });
 
@@ -261,6 +289,27 @@ class UserController extends Controller
             'message' => 'Messages fetched successfully!',
             'chat_id' => $chat->id,
             'messages' => $messagesData,
+        ]);
+    }
+
+    public function storeReview(StoreReviewRequest $request, $astrologerId)
+    {
+        $astrologer = Astrologer::findOrFail($astrologerId);
+
+        \App\Models\AstrologerReview::updateOrCreate(
+            [
+                'astrologer_id' => $astrologer->id,
+                'user_id' => Auth::id(),
+            ],
+            [
+                'rating' => $request->validated('rating'),
+                'review' => $request->validated('review'),
+            ]
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Review submitted successfully.',
         ]);
     }
 

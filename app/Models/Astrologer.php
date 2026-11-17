@@ -35,6 +35,11 @@ class Astrologer extends Model
         'online' => 'boolean',
     ];
 
+    protected $appends = [
+        'average_rating',
+        'reviews_count',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
@@ -55,5 +60,20 @@ class Astrologer extends Model
             'user_id',
             'id'
         );
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(AstrologerReview::class, 'astrologer_id');
+    }
+
+    public function getAverageRatingAttribute(): float
+    {
+        return round($this->reviews()->avg('rating') ?? 0.0, 1);
+    }
+
+    public function getReviewsCountAttribute(): int
+    {
+        return $this->reviews()->count();
     }
 }

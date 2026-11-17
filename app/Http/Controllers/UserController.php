@@ -6,6 +6,7 @@ use App\Events\CallSignal;
 use App\Events\IncomingAstrologerRequest;
 use App\Events\MessageSent;
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Http\Requests\StoreReviewRequest;
 use App\Models\Astrologer;
 use App\Models\CallHistory;
 use App\Models\Chat;
@@ -33,12 +34,49 @@ class UserController extends Controller
         'role:User',
     ];
 
-    public function chatWithAstrologers()
+    public function chatWithAstrologers(Request $request)
     {
-        $astrologers = Astrologer::with('user')->paginate(20);
+        $query = Astrologer::with('user', 'reviews');
+
+        if ($search = trim($request->input('search'))) {
+            if ($search !== '' && $search !== 'null' && $search !== 'undefined') {
+                $query->where(function($q) use ($search) {
+                    $q->whereHas('user', function($uq) use ($search) {
+                        $uq->where('name', 'like', "%{$search}%");
+                    })->orWhere('bio', 'like', "%{$search}%");
+                });
+            }
+        }
+
+        if ($specialization = trim($request->input('specialization'))) {
+            if ($specialization !== '' && $specialization !== 'null' && $specialization !== 'undefined') {
+                $query->where(function($q) use ($specialization) {
+                    $q->whereJsonContains('expertise', $specialization)
+                      ->orWhere('expertise', 'like', "%{$specialization}%");
+                });
+            }
+        }
+
+        if ($online = $request->input('online')) {
+            if ($online !== '' && $online !== null && $online !== 'null' && $online !== 'undefined') {
+                $query->where('online', (bool) $online);
+            }
+        }
+
+        if ($minPrice = $request->input('min_price')) {
+            $query->where('charged_text_price', '>=', $minPrice);
+        }
+
+        if ($maxPrice = $request->input('max_price')) {
+            $query->where('charged_text_price', '<=', $maxPrice);
+        }
+
+        $astrologers = $query->paginate(20)->withQueryString();
+
         return Inertia::render('Astrologers/Index', [
             'user' => Auth::user()?->load(['details', 'wallet']),
             'astrologers' => $astrologers,
+            'filters' => $request->only(['search', 'specialization', 'online', 'min_price', 'max_price']),
         ]);
     }
 
@@ -391,12 +429,49 @@ class UserController extends Controller
         ]);
     }
 
-    public function talkToAstrologers()
+    public function talkToAstrologers(Request $request)
     {
-        $astrologers = Astrologer::with('user')->paginate(20);
+        $query = Astrologer::with('user', 'reviews');
+
+        if ($search = trim($request->input('search'))) {
+            if ($search !== '' && $search !== 'null' && $search !== 'undefined') {
+                $query->where(function($q) use ($search) {
+                    $q->whereHas('user', function($uq) use ($search) {
+                        $uq->where('name', 'like', "%{$search}%");
+                    })->orWhere('bio', 'like', "%{$search}%");
+                });
+            }
+        }
+
+        if ($specialization = trim($request->input('specialization'))) {
+            if ($specialization !== '' && $specialization !== 'null' && $specialization !== 'undefined') {
+                $query->where(function($q) use ($specialization) {
+                    $q->whereJsonContains('expertise', $specialization)
+                      ->orWhere('expertise', 'like', "%{$specialization}%");
+                });
+            }
+        }
+
+        if ($online = $request->input('online')) {
+            if ($online !== '' && $online !== null && $online !== 'null' && $online !== 'undefined') {
+                $query->where('online', (bool) $online);
+            }
+        }
+
+        if ($minPrice = $request->input('min_price')) {
+            $query->where('charged_call_price', '>=', $minPrice);
+        }
+
+        if ($maxPrice = $request->input('max_price')) {
+            $query->where('charged_call_price', '<=', $maxPrice);
+        }
+
+        $astrologers = $query->paginate(20)->withQueryString();
+
         return Inertia::render('Astrologers/Index2', [
             'user' => Auth::user()?->load(['details', 'wallet']),
             'astrologers' => $astrologers,
+            'filters' => $request->only(['search', 'specialization', 'online', 'min_price', 'max_price']),
         ]);
     }
 
@@ -459,6 +534,26 @@ class UserController extends Controller
         return Inertia::render('User/Transactions', [
             'transactions' => $transactions
         ]);
+    }
+
+    public function storeReview(StoreReviewRequest $request, Astrologer $astrologer)
+    {
+        \App\Models\AstrologerReview::updateOrCreate(
+            [
+                'astrologer_id' => $astrologer->id,
+                'user_id' => Auth::id(),
+            ],
+            [
+                'rating' => $request->validated('rating'),
+                'review' => $request->validated('review'),
+            ]
+        );
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Review submitted successfully.']);
+        }
+
+        return back()->with('success', 'Review submitted successfully.');
     }
 
     public function editProfile(Request $request): Response
