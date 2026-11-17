@@ -2,19 +2,28 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
     public function up(): void
     {
         if (Schema::hasTable('chat_messages')) {
-            Schema::table('chat_messages', function (Blueprint $table) {
-                $table->index(['chat_id', 'created_at'], 'chat_messages_chat_id_created_at_index');
-            });
+
+            $exists = collect(DB::select('SHOW INDEX FROM chat_messages'))
+                ->contains(fn($index) => $index->Key_name === 'chat_messages_chat_id_created_at_index');
+
+            if (!$exists) {
+                Schema::table('chat_messages', function (Blueprint $table) {
+                    $table->index(
+                        ['chat_id', 'created_at'],
+                        'chat_messages_chat_id_created_at_index'
+                    );
+                });
+            }
         }
 
         if (Schema::hasTable('call_histories')) {
