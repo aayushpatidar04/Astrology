@@ -172,6 +172,24 @@ onBeforeUnmount(() => {
                 -->
 
                 <li>
+                    <Link :href="route('tools.kundli')" class="nav-link inline-flex items-center"
+                        :class="route().current('tools.kundli') ? 'is-active text-primary font-bold' : 'hover:text-primary'">
+                        Free Kundli
+                    </Link>
+                </li>
+                <li>
+                    <Link :href="route('tools.matchmaking')" class="nav-link inline-flex items-center"
+                        :class="route().current('tools.matchmaking') ? 'is-active text-primary font-bold' : 'hover:text-primary'">
+                        Matchmaking
+                    </Link>
+                </li>
+                <li>
+                    <Link :href="route('tools.panchang')" class="nav-link inline-flex items-center"
+                        :class="route().current('tools.panchang') ? 'is-active text-primary font-bold' : 'hover:text-primary'">
+                        Panchang
+                    </Link>
+                </li>
+                <li>
                     <Link href="/contact" class="nav-link inline-flex items-center hover:text-primary">Contact Us</Link>
                 </li>
                 <li v-if="role === 'Astrologer'">

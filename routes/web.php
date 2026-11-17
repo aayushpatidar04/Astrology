@@ -3,6 +3,7 @@
 use App\Events\CallSignal;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AstrologerController;
+use App\Http\Controllers\AstroToolController;
 use App\Http\Controllers\MainController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
@@ -26,6 +27,13 @@ Route::get('/terms-conditions', [MainController::class, 'terms'])->name('terms')
 Route::get('/privacy-policy', [MainController::class, 'privacy'])->name('privacy');
 Route::get('/refund-policy', [MainController::class, 'refund'])->name('refund');
 Route::get('/contact', [MainController::class, 'contact'])->name('contact');
+
+Route::get('/tools/kundli', [AstroToolController::class, 'kundli'])->name('tools.kundli');
+Route::post('/tools/kundli', [AstroToolController::class, 'kundli'])->name('tools.kundli.generate');
+Route::get('/tools/matchmaking', [AstroToolController::class, 'matchMaking'])->name('tools.matchmaking');
+Route::post('/tools/matchmaking', [AstroToolController::class, 'matchMaking'])->name('tools.matchmaking.generate');
+Route::get('/tools/panchang', [AstroToolController::class, 'panchang'])->name('tools.panchang');
+Route::get('/api/cities/autocomplete', [AstroToolController::class, 'searchCities'])->name('api.cities.autocomplete');
 
 Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
