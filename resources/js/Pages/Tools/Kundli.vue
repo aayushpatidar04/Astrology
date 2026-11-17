@@ -155,7 +155,6 @@ function submit() {
                                 <th class="p-3">Degree</th>
                                 <th class="p-3">Nakshatra</th>
                                 <th class="p-3">Nak. Lord</th>
-                                <th class="p-3">Retro</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -167,7 +166,6 @@ function submit() {
                                 <td class="p-3 font-mono text-xs">{{ p.degree }}</td>
                                 <td class="p-3">{{ p.nakshatra }}</td>
                                 <td class="p-3 text-gray-600">{{ p.nakshatra_lord }}</td>
-                                <td class="p-3 text-gray-600">{{ p.status }}</td>
                             </tr>
                         </tbody>
                     </table>

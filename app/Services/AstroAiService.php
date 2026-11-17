@@ -4,11 +4,8 @@ namespace App\Services;
 
 class AstroAiService
 {
-    protected VedicAstrologyService $vedicService;
-
-    public function __construct(VedicAstrologyService $vedicService)
+    public function __construct(protected VedicAstrologyService $vedicService)
     {
-        $this->vedicService = $vedicService;
     }
 
     public function generateKundli(array $data): array
@@ -17,18 +14,21 @@ class AstroAiService
         $dob = $data['dob'] ?? '2000-05-04';
         $tob = $data['tob'] ?? '09:05';
         $birthPlace = $data['birth_place'] ?? 'Chhoti Sadri, Rajasthan, India';
-        $lat = (float) ($data['lat'] ?? 24.3833);
-        $lon = (float) ($data['lng'] ?? $data['lon'] ?? 74.7000);
-        $timezone = $data['timezone'] ?? 'Asia/Kolkata';
+        $lat = (float) ($data['lat'] ?? 24.3815);
+        $lon = (float) ($data['lng'] ?? $data['lon'] ?? 74.7012);
 
-        $chartData = $this->vedicService->calculateChart($dob, $tob, $timezone, $lat, $lon);
+        $chartResult = $this->vedicService->calculateChart($dob, $tob, $birthPlace);
+        $chartData = $chartResult['planets'] ?? $chartResult;
+        $tithiInfo = $chartResult['tithi_info'] ?? ['full_name' => 'Amavasya'];
+        $yogaName = $chartResult['yoga_name'] ?? 'Ayushman';
+        $karanaName = $chartResult['karana_name'] ?? 'Nag';
 
         $planetaryPositions = [];
-        $sunSign = 'Aries';
-        $moonSign = 'Aries';
-        $lagna = 'Gemini';
-        $nakshatra = 'Bharani';
-        $nakshatraLord = 'Venus';
+        $sunSign = '';
+        $moonSign = '';
+        $lagna = '';
+        $nakshatra = '';
+        $nakshatraLord = '';
 
         foreach ($chartData as $key => $body) {
             $isAsc = $key === 'Ascendant' || str_contains($key, 'Ascendant');
@@ -41,6 +41,7 @@ class AstroAiService
             if ($key === 'Moon') {
                 $moonSign = explode(' ', $body['rashi'])[0];
                 $nakshatra = $body['nakshatra'];
+                $nakshatraLord = $body['nakshatra_lord'];
             }
 
             $planetaryPositions[] = [
@@ -62,6 +63,7 @@ class AstroAiService
             }
         }
         $isManglik = \in_array($marsHouse, [1, 4, 7, 8, 12], true);
+        $tithiName = $tithiInfo['full_name'] ?? 'Amavasya';
 
         return [
             'native_name' => $name,
@@ -72,7 +74,7 @@ class AstroAiService
             'latitude' => $lat . '° N',
             'longitude' => $lon . '° E',
             'timezone' => 'GMT +05:30',
-            'ayanamsa' => 'Lahiri (23.51°)',
+            'ayanamsa' => 'Lahiri (23.85°)',
             'basic_details' => [
                 'sun_sign' => $sunSign,
                 'moon_sign' => $moonSign,
@@ -81,9 +83,9 @@ class AstroAiService
                 'nakshatra' => $nakshatra,
                 'nakshatra_lord' => $nakshatraLord,
                 'charan' => 2,
-                'tithi' => 'Amavasya',
-                'yoga' => 'Ayushman',
-                'karan' => 'Nag',
+                'tithi' => $tithiName,
+                'yoga' => $yogaName,
+                'karan' => $karanaName,
                 'varna' => 'Kshattriya',
                 'vashya' => 'Chatushpada',
                 'yoni' => 'Gaja',
