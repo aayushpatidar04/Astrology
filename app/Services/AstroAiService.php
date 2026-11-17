@@ -43,7 +43,7 @@ class AstroAiService
                 $nakshatra = $body['nakshatra'];
             }
 
-            $planetaryPositions[] = [
+            $planetaryPositions[$key] = [
                 'planet' => $isAsc ? 'Ascendant' : $key,
                 'sign' => explode(' ', $body['rashi'])[0],
                 'sign_lord' => $this->getSignLord(explode(' ', $body['rashi'])[0]),
@@ -51,17 +51,13 @@ class AstroAiService
                 'degree' => $body['degree_formatted'],
                 'nakshatra' => $body['nakshatra'],
                 'nakshatra_lord' => $this->getNakshatraLord($body['nakshatra']),
+                'rashi_number' => $body['rashi_number'] ?? 1,
                 'pada' => $body['pada'] ?? 1,
             ];
         }
 
-        $marsHouse = 1;
-        foreach ($planetaryPositions as $pos) {
-            if ($pos['planet'] === 'Mars') {
-                $marsHouse = $pos['house'];
-            }
-        }
-        $isManglik = \in_array($marsHouse, [1, 4, 7, 8, 12], true);
+        // Evaluate professional multi-chart Manglik Dosha
+        $manglikAnalysis = $this->evaluateManglikDosha($planetaryPositions, $dob);
         $tithiName = $tithiInfo['full_name'] ?? 'Amavasya';
 
         return [
@@ -95,17 +91,13 @@ class AstroAiService
                 'sunrise' => '05:53 AM',
                 'sunset' => '07:01 PM',
             ],
-            'planetary_positions' => $planetaryPositions,
+            'planetary_positions' => array_values($planetaryPositions),
             'vimshottari_dasha' => [
                 ['planet' => 'Mars', 'duration' => '7 Years', 'start' => '2026', 'end' => '2033', 'active' => true],
                 ['planet' => 'Rahu', 'duration' => '18 Years', 'start' => '2033', 'end' => '2051', 'active' => false],
             ],
             'doshas' => [
-                'manglik_dosha' => [
-                    'is_present' => $isManglik,
-                    'status' => $isManglik ? 'MANGLIK' : 'NON-MANGLIK',
-                    'description' => $isManglik ? "Mars is placed in house {$marsHouse}, indicating Manglik Dosha." : "Mars is placed in house {$marsHouse}. Non-Manglik chart."
-                ],
+                'manglik_dosha' => $manglikAnalysis,
                 'kalsarpa_dosha' => [
                     'is_present' => true,
                     'type' => 'Kulik Kalsarpa Dosh',
@@ -137,6 +129,135 @@ class AstroAiService
         ];
     }
 
+    /**
+     * Complete Multi-Chart Manglik Dosha Detection & Cancellation Engine
+     */
+    public function evaluateManglikDosha(array $chartData, string $dob): array
+    {
+        $lagnaSign = $chartData['Ascendant']['rashi_number'] ?? $chartData['Ascendant (Lagna)']['rashi_number'] ?? 1;
+        $marsSign  = $chartData['Mars']['rashi_number'] ?? 1;
+        $moonSign  = $chartData['Moon']['rashi_number'] ?? 1;
+        $venusSign = $chartData['Venus']['rashi_number'] ?? 1;
+        $jupSign   = $chartData['Jupiter']['rashi_number'] ?? 1;
+
+        $houseFromLagna = (($marsSign - $lagnaSign + 12) % 12) + 1;
+        $houseFromMoon  = (($marsSign - $moonSign + 12) % 12) + 1;
+        $houseFromVenus = (($marsSign - $venusSign + 12) % 12) + 1;
+
+        $primaryHouses = [1, 4, 7, 8, 12];
+        $secondaryHouses = [2];
+
+        $score = 0;
+        $factors = [];
+
+        if (\in_array($houseFromLagna, $primaryHouses, true)) {
+            $score += 50;
+            $factors[] = "Mars in {$houseFromLagna}th house from Lagna";
+        } elseif (\in_array($houseFromLagna, $secondaryHouses, true)) {
+            $score += 25;
+            $factors[] = "Mars in 2nd house from Lagna";
+        }
+
+        if (\in_array($houseFromMoon, $primaryHouses, true)) {
+            $score += 30;
+            $factors[] = "Mars in {$houseFromMoon}th house from Moon";
+        } elseif (\in_array($houseFromMoon, $secondaryHouses, true)) {
+            $score += 15;
+            $factors[] = "Mars in 2nd house from Moon";
+        }
+
+        if (\in_array($houseFromVenus, $primaryHouses, true)) {
+            $score += 20;
+            $factors[] = "Mars in {$houseFromVenus}th house from Venus";
+        } elseif (\in_array($houseFromVenus, $secondaryHouses, true)) {
+            $score += 10;
+            $factors[] = "Mars in 2nd house from Venus";
+        }
+
+        if ($score === 0) {
+            return [
+                'is_present'    => false,
+                'status'        => 'NON-MANGLIK',
+                'severity'      => 'NONE',
+                'score'         => 0,
+                'cancellations' => [],
+                'description'   => "Mars is placed in house {$houseFromLagna} from Lagna and house {$houseFromMoon} from Moon. No Manglik Dosha is present.",
+            ];
+        }
+
+        $cancellations = [];
+
+        if (\in_array($marsSign, [1, 8, 10], true)) {
+            $score = 0;
+            $cancellations[] = 'Mars is in its own or exalted sign (Aries/Scorpio/Capricorn), fully neutralizing the dosha.';
+        }
+
+        $houseSignExceptions = [
+            1  => [1, 5],
+            2  => [3, 6],
+            4  => [1, 8],
+            7  => [4, 10],
+            8  => [9, 12],
+            12 => [2, 7],
+        ];
+
+        if ($score > 0 && isset($houseSignExceptions[$houseFromLagna]) && \in_array($marsSign, $houseSignExceptions[$houseFromLagna], true)) {
+            $score *= 0.5;
+            $cancellations[] = "Mars in house {$houseFromLagna} occupies a neutralizing sign, reducing intensity by 50%.";
+        }
+
+        $jupToMarsHouse = (($marsSign - $jupSign + 12) % 12) + 1;
+        if ($score > 0 && \in_array($jupToMarsHouse, [1, 5, 7, 9], true)) {
+            $score *= 0.5;
+            $cancellations[] = 'Benefic Jupiter aspects or conjuncts Mars, softening aggressive energy by 50%.';
+        }
+
+        $age = (new \DateTime($dob))->diff(new \DateTime('now'))->y;
+        if ($score > 0 && $age >= 28) {
+            $score *= 0.75;
+            $cancellations[] = "Native is {$age} years old (above 28), naturally reducing Mars dosha intensity.";
+        }
+
+        $finalScore = (int) round($score);
+
+        if ($finalScore === 0) {
+            $status = 'NON-MANGLIK (CANCELLED)';
+            $severity = 'CANCELLED';
+            $isPresent = false;
+        } elseif ($finalScore < 50) {
+            $status = 'ANSHIK MANGLIK (PARTIAL)';
+            $severity = 'LOW';
+            $isPresent = true;
+        } elseif ($finalScore < 80) {
+            $status = 'MANGLIK';
+            $severity = 'MEDIUM';
+            $isPresent = true;
+        } else {
+            $status = 'PURNA MANGLIK (HIGH)';
+            $severity = 'HIGH';
+            $isPresent = true;
+        }
+
+        $summary = implode('; ', $factors) . '.';
+        if (!empty($cancellations)) {
+            $summary .= ' Cancellation note: ' . implode(' ', $cancellations);
+        }
+
+        return [
+            'is_present'    => $isPresent,
+            'status'        => $status,
+            'severity'      => $severity,
+            'score'         => $finalScore,
+            'houses'        => [
+                'lagna' => $houseFromLagna,
+                'moon'  => $houseFromMoon,
+                'venus' => $houseFromVenus,
+            ],
+            'cancellations' => $cancellations,
+            'description'   => $summary,
+        ];
+    }
+
     private function getSignLord(string $sign): string
     {
         $lords = [
@@ -163,7 +284,6 @@ class AstroAiService
 
     public function calculateKundliMilan(array $boyData, array $girlData): array
     {
-        // Calculate charts for both boy and girl dynamically
         $boyChart = $this->vedicService->calculateChart($boyData['dob'], '10:00', $boyData['birth_place'] ?? 'India');
         $girlChart = $this->vedicService->calculateChart($girlData['dob'], '10:00', $girlData['birth_place'] ?? 'India');
 
