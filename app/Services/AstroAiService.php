@@ -52,7 +52,6 @@ class AstroAiService
                 'nakshatra' => $body['nakshatra'],
                 'nakshatra_lord' => $this->getNakshatraLord($body['nakshatra']),
                 'pada' => $body['pada'] ?? 1,
-                'status' => \in_array($key, ['Rahu', 'Ketu'], true) ? 'Yes' : 'No',
             ];
         }
 

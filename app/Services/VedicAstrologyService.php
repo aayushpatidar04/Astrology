@@ -469,7 +469,6 @@ class VedicAstrologyService
                 'nakshatra_lord' => $this->nakshatras[$nakshatraIndex]['lord'],
                 'pada' => $pada,
                 'house' => $house,
-                'status' => in_array($name, ['Rahu', 'Ketu'], true) ? 'Yes' : 'No',
             ];
         }
         return $chart;

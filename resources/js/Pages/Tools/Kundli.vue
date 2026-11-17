@@ -73,7 +73,7 @@ const chartHouses = computed(() => {
             .filter(p => p.house === h)
             .map(p => {
                 const shortName = p.planet.includes('Ascendant') ? 'Asc' : (p.planet === 'Sun' ? 'Su' : (p.planet === 'Moon' ? 'Mo' : (p.planet === 'Mars' ? 'Ma' : (p.planet === 'Mercury' ? 'Me' : (p.planet === 'Jupiter' ? 'Ju' : (p.planet === 'Venus' ? 'Ve' : (p.planet === 'Saturn' ? 'Sa' : (p.planet === 'Rahu' ? 'Ra' : (p.planet === 'Ketu' ? 'Ke' : p.planet)))))))));
-                const degShort = p.degree ? p.degree.split(' ')[0] : '';
+                const degShort = p.degree ? p.degree.split(' ')[0] + ' ' + p.degree.split(' ')[1] : '';
                 return `${shortName}-${degShort}`;
             });
 
