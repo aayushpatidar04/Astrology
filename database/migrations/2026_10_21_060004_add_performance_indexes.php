@@ -52,7 +52,7 @@ return new class extends Migration
             if (!$this->indexExists('user_wallet_transactions', 'uwt_wallet_id_type_index')) {
                 Schema::table('user_wallet_transactions', function (Blueprint $table) {
                     $table->index(
-                        ['user_wallet_id', 'type'],
+                        ['wallet_id', 'type'],
                         'uwt_wallet_id_type_index'
                     );
                 });
