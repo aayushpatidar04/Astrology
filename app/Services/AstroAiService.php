@@ -627,7 +627,7 @@ class AstroAiService
         $gPada = $girlMoon['pada'] ?? 1;
 
         // --- 1. VARNA KOOTA (Max 1) ---
-        $varnaRanks = [3, 1, 3, 0, 3, 1, 3, 0, 3, 1, 3, 0]; // 3=Brahmin/Kshatriya, etc. Simplified rank map
+        $varnaRanks = [3, 1, 3, 0, 3, 1, 3, 0, 3, 1, 3, 0];
         $varnaNames = [0 => 'Shudra', 1 => 'Vaishya', 2 => 'Kshatriya', 3 => 'Brahmin'];
         $bVarna = $varnaRanks[$bSign] ?? 2;
         $gVarna = $varnaRanks[$gSign] ?? 2;
@@ -677,7 +677,7 @@ class AstroAiService
             'Gaja' => 'Simha', 'Simha' => 'Gaja',
             'Mesha' => 'Vanara', 'Vanara' => 'Mesha',
             'Sarpa' => 'Nakula', 'Nakula' => 'Sarpa',
-            'Shwan' => 'Mriga', 'Mriga' => 'Shwan',
+            'Shwan' => 'Mriga', 'Mrigash' => 'Shwan',
             'Marjara' => 'Mushaka', 'Mushaka' => 'Marjara',
             'Gau' => 'Vyaghra', 'Vyaghra' => 'Gau',
         ];
@@ -1216,6 +1216,17 @@ class AstroAiService
         $healthGood = !\in_array($marsH, [6, 8, 12], true);
         $travelGood = \in_array($mercH, [3, 7, 9, 11, 12], true) || \in_array($moonH, [3, 9, 12], true);
 
+        $transitContext = [
+            'moonH' => $moonH,
+            'sunH' => $sunH,
+            'venH' => $venH,
+            'marsH' => $marsH,
+            'jupH' => $jupH,
+            'satH' => $satH,
+        ];
+
+        $aiEnrichment = app(GeminiHoroscopeService::class)->enrichHoroscope($signName, $type, $transitContext);
+        
         return [
             'sign'            => $signName,
             'type'            => $type,
@@ -1223,34 +1234,18 @@ class AstroAiService
             'week_key'        => $weekKey,
             'month_key'       => $monthKey,
             'year_key'        => $yearKey,
-            'colors'          => $signColors[$signIdx],
+            'colors'          => $aiEnrichment['colors'] ?? $signColors[$signIdx],
             'numbers'         => implode(', ', $nums),
             'alphabets'       => "{$a1}, {$a2}",
-            'love'            => $loveGood
-                ? "Venus in your {$venH}th house brings warmth, mutual understanding, and smooth emotional connection."
-                : "Venus in your {$venH}th house calls for patience, gentle listening, and avoiding hasty assumptions.",
-            'tip_for_singles' => $loveGood
-                ? "Stay open to social introductions and genuine conversations—someone aligned with your values may stand out."
-                : "Focus on self-care and clarity about what you truly want before rushing into a new commitment.",
-            'tip_for_couples' => $loveGood
-                ? "Plan quality uninterrupted time together to strengthen your shared bond."
-                : "Keep communication calm and practical; small thoughtful gestures will diffuse minor tension.",
-            'career'          => $careerGood
-                ? "Strong planetary backing in your {$sunH}th/{$jupH}th houses favors leadership, smart decisions, and steady progress."
-                : "Focus on organizing existing workflows, double-checking details, and avoiding impulsive financial risks.",
-            'health'          => $healthGood
-                ? "Mars in your {$marsH}th house supports steady stamina; maintain balanced hydration and regular movement."
-                : "Mars in your {$marsH}th house advises pacing yourself, prioritizing sleep, and avoiding physical overexertion.",
-            'emotions'        => \in_array($moonH, [1, 3, 5, 7, 9, 11], true)
-                ? "With the Moon activating your {$moonH}th house, your mindset feels upbeat, clear, and socially receptive."
-                : "With the Moon moving through your {$moonH}th house, take quiet moments to process feelings and stay grounded.",
-            'travel'          => $travelGood
-                ? "Favorable alignment in your {$mercH}th/{$moonH}th houses supports productive short trips, errands, or travel planning."
-                : "Keep schedules flexible and double-check itineraries if stepping out for work or personal errands.",
-            'description'     => "For {$signName}, this {$type} cycle is anchored by transit activity in your {$primaryHouse}th house, highlighting personal growth, measured action, and clarity.",
-            'cosmic_tip'      => \in_array($jupH, [1, 2, 5, 9, 11], true)
-                ? "Jupiter aspects favor long-term planning—commit to one meaningful goal and act with confidence."
-                : "Saturn in your {$satH}th house rewards discipline and patience—focus on steady consistency over shortcuts.",
+            'love'            => $aiEnrichment['love'] ?? ($loveGood ? "Venus in your {$venH}th house brings warmth, mutual understanding, and smooth emotional connection." : "Venus in your {$venH}th house calls for patience, gentle listening, and avoiding hasty assumptions."),
+            'tip_for_singles' => $aiEnrichment['tip_for_singles'] ?? ($loveGood ? "Stay open to social introductions and genuine conversations—someone aligned with your values may stand out." : "Focus on self-care and clarity about what you truly want before rushing into a new commitment."),
+            'tip_for_couples' => $aiEnrichment['tip_for_couples'] ?? ($loveGood ? "Plan quality uninterrupted time together to strengthen your shared bond." : "Keep communication calm and practical; small thoughtful gestures will diffuse minor tension."),
+            'career'          => $aiEnrichment['career'] ?? ($careerGood ? "Strong planetary backing in your {$sunH}th/{$jupH}th houses favors leadership, smart decisions, and steady progress." : "Focus on organizing existing workflows, double-checking details, and avoiding impulsive financial risks."),
+            'health'          => $aiEnrichment['health'] ?? ($healthGood ? "Mars in your {$marsH}th house supports steady stamina; maintain balanced hydration and regular movement." : "Mars in your {$marsH}th house advises pacing yourself, prioritizing sleep, and avoiding physical overexertion."),
+            'emotions'        => $aiEnrichment['emotions'] ?? (\in_array($moonH, [1, 3, 5, 7, 9, 11], true) ? "With the Moon activating your {$moonH}th house, your mindset feels upbeat, clear, and socially receptive." : "With the Moon moving through your {$moonH}th house, take quiet moments to process feelings and stay grounded."),
+            'travel'          => $aiEnrichment['travel'] ?? ($travelGood ? "Favorable alignment in your {$mercH}th/{$moonH}th houses supports productive short trips, errands, or travel planning." : "Keep schedules flexible and double-check itineraries if stepping out for work or personal errands."),
+            'description'     => $aiEnrichment['description'] ?? "For {$signName}, this {$type} cycle is anchored by transit activity in your {$primaryHouse}th house, highlighting personal growth, measured action, and clarity.",
+            'cosmic_tip'      => $aiEnrichment['cosmic_tip'] ?? (\in_array($jupH, [1, 2, 5, 9, 11], true) ? "Jupiter aspects favor long-term planning—commit to one meaningful goal and act with confidence." : "Saturn in your {$satH}th house rewards discipline and patience—focus on steady consistency over shortcuts."),
         ];
     }
 }
