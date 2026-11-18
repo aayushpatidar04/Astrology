@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 
 class GeminiTarotService
 {
-    public function generateReading(string $spreadType = 'three_card', string $category = 'General', ?string $question = null): array
+    public function generateReading(string $spreadType = 'three_card', string $category = 'General', ?string $question = null, ?array $chosenCardIds = null): array
     {
         $positionsMap = [
             'single'     => ['Card of the Day'],
@@ -20,16 +20,20 @@ class GeminiTarotService
         $positions = $positionsMap[$spreadType] ?? $positionsMap['three_card'];
         $neededCount = count($positions);
 
-        $allCards = TarotCard::all()->all();
-        $total = count($allCards);
-
-        if ($total > 0) {
-            for ($i = $total - 1; $i > 0; $i--) {
-                $j = random_int(0, $i);
-                $temp = $allCards[$i];
-                $allCards[$i] = $allCards[$j];
-                $allCards[$j] = $temp;
+        if (!empty($chosenCardIds) && count($chosenCardIds) >= $neededCount) {
+            $cardModels = TarotCard::whereIn('id', array_slice($chosenCardIds, 0, $neededCount))->get()->keyBy('id');
+            $cardsList = [];
+            foreach (array_slice($chosenCardIds, 0, $neededCount) as $id) {
+                if (isset($cardModels[$id])) {
+                    $cardsList[] = $cardModels[$id];
+                }
             }
+            // Fallback if any missing
+            while (count($cardsList) < $neededCount) {
+                $cardsList[] = TarotCard::inRandomOrder()->first();
+            }
+        } else {
+            $cardsList = TarotCard::inRandomOrder()->limit($neededCount)->get()->all();
         }
 
         $drawnCards = [];
@@ -37,7 +41,7 @@ class GeminiTarotService
 
         foreach ($positions as $idx => $positionLabel) {
             /** @var TarotCard $cardModel */
-            $cardModel = $allCards[$idx] ?? TarotCard::first();
+            $cardModel = $cardsList[$idx] ?? TarotCard::inRandomOrder()->first();
             $isReversed = random_int(1, 100) <= 30;
             $orientation = $isReversed ? 'Reversed' : 'Upright';
 
@@ -102,6 +106,7 @@ class GeminiTarotService
                         ],
                     ]
                 );
+
                 if ($response->successful()) {
                     $rawText = $response->json('candidates.0.content.parts.0.text', '');
                     $parsed = json_decode(trim($rawText), true);

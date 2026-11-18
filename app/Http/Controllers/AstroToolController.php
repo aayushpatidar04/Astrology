@@ -173,20 +173,24 @@ class AstroToolController extends Controller
     {
         $readingData = null;
 
-        if ($request->filled('spread_type')) {
+        if ($request->has('spread_type') && $request->has('chosen_cards')) {
             $validated = $request->validate([
                 'spread_type' => 'required|in:single,three_card,love,career',
                 'category'    => 'required|string|max:50',
                 'question'    => 'nullable|string|max:300',
+                'chosen_cards' => 'required|array',
+                'chosen_cards.*' => 'integer|exists:tarot_cards,id',
             ]);
 
             $readingData = $tarotService->generateReading(
                 $validated['spread_type'],
                 $validated['category'],
-                $validated['question'] ?? null
+                $validated['question'] ?? null,
+                $validated['chosen_cards']
             );
         }
 
+        $allCards = \App\Models\TarotCard::select('id', 'name', 'arcana', 'suit')->get();
         $user = Auth::user();
         if ($user) {
             $user = $user->load('wallet');
@@ -194,6 +198,7 @@ class AstroToolController extends Controller
 
         return Inertia::render('Tools/TarotReading', [
             'readingData' => $readingData,
+            'allCards'    => $allCards,
             'filters'     => $request->only(['spread_type', 'category', 'question']),
             'user'        => $user,
         ]);
