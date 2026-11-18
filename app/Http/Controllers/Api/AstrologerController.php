@@ -2,21 +2,49 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\AstrologerStatusChanged;
+use App\Events\AstrologerStatusUpdated;
+use App\Events\MessageSent;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\Astrologer;
 use App\Models\BankDetail;
 use App\Models\CallHistory;
 use App\Models\Chat;
+use App\Models\ChatMessage;
 use App\Models\ChatSession;
 use App\Models\Transaction;
+use App\Models\User;
+use App\Services\FirebaseNotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class AstrologerController extends Controller
 {
+    private function sendNotification(?string $fcmToken, string $title, string $body, array $data): bool
+    {
+        if (blank($fcmToken)) {
+            return false;
+        }
+
+        try {
+            app(FirebaseNotificationService::class)->sendNotification($fcmToken, $title, $body, $data);
+
+            return true;
+        } catch (Throwable $exception) {
+            Log::warning('Firebase notification delivery failed.', [
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
     public function wallet()
     {
         $user = Auth::user();
@@ -298,5 +326,196 @@ class AstrologerController extends Controller
         );
 
         return $astrologer;
+    }
+
+    public function status(Request $request)
+    {
+        $request->validate([
+            'online' => 'required|boolean',
+        ]);
+        try {
+            $astrologer = Auth::user()->astrologer;
+
+            if (! $astrologer) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Astrologer profile not found',
+                ], 404);
+            }
+
+            $astrologer->update([
+                'online' => $request->online,
+            ]);
+
+            broadcast(new AstrologerStatusChanged($astrologer->user_id, $request->online))->toOthers();
+            broadcast(new AstrologerStatusUpdated(
+                $astrologer->id,
+                (bool) Auth::user()->is_busy,
+                (bool) $astrologer->online
+            ))->toOthers();
+
+            return response()->json([
+                'status' => 'success',
+                'online' => $astrologer->online,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to update status',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function storeMessage(Request $request, $id)
+    {
+        $request->validate([
+            'message' => 'required|string|max:1000',
+        ]);
+
+        $chat = Chat::findOrFail($id);
+        abort_unless($chat->participants()->where('user_id', Auth::id())->exists(), 403);
+
+        $message = ChatMessage::create([
+            'chat_id' => $chat->id,
+            'user_id' => Auth::id(),
+            'message' => $request->message,
+        ]);
+
+        broadcast(new MessageSent($message))->toOthers();
+
+        $recipientId = $chat->participants()
+            ->where('user_id', '!=', Auth::id())
+            ->value('user_id');
+
+        if ($recipientId) {
+            $recipient = User::find($recipientId);
+            $this->sendNotification(
+                $recipient?->device_token,
+                Auth::user()->name,
+                $message->message,
+                [
+                    'type' => 'chat_message',
+                    'chat_id' => $chat->id,
+                    'sender_id' => Auth::id(),
+                ]
+            );
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+        ]);
+    }
+
+    public function update(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users')->ignore($request->user()->id)],
+            'phone' => ['required', 'numeric', 'digits:10', \Illuminate\Validation\Rule::unique('users')->ignore($request->user()->id)],
+        ]);
+
+        $request->user()->fill($validated);
+
+        if ($request->user()->isDirty('email')) {
+            $request->user()->email_verified_at = null;
+        }
+
+        $request->user()->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Profile updated successfully.',
+            'user' => $request->user(),
+        ]);
+    }
+
+    public function updateAstrologer(Request $request)
+    {
+        $validated = $request->validate([
+            'bio' => ['required', 'string'],
+            'expertise' => ['required', 'array'],
+            'experience_years' => ['required', 'numeric'],
+            'profile_image' => ['nullable'],
+            'documents' => ['nullable', 'array'],
+            'documents.*.name' => ['required_with:documents', 'string'],
+            'documents.*.file' => ['nullable', 'file', 'mimes:pdf,jpg,png', 'max:2048'],
+            'documents.*.document_path' => ['nullable', 'string'],
+        ]);
+
+        $astrologer = Auth::user()->astrologer;
+        if (! $astrologer) {
+            return response()->json(['status' => 'error', 'message' => 'Astrologer not found'], 404);
+        }
+
+        if ($request->hasFile('profile_image')) {
+            $file = $request->profile_image;
+            $ext = $file->getClientOriginalExtension();
+            $filename = '_' . $request->user()->phone . '_.' . $ext;
+            $file->move(public_path('uploads/astrologer_profile/'), $filename);
+            $validated['profile_image'] = 'uploads/astrologer_profile/' . $filename;
+        }
+
+        $astrologer->update($validated);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Astrologer profile updated successfully.',
+            'astrologer' => $astrologer,
+        ]);
+    }
+
+    public function calls($id = null)
+    {
+        $user = Auth::user();
+        $astrologer = $user->astrologer;
+
+        $calls = CallHistory::where('astrologer_id', $user->id)
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->get()
+            ->unique('user_id')
+            ->values();
+
+        $selectedUser = null;
+        $chat = null;
+        $history = [];
+
+        if ($id) {
+            $selectedUser = User::findOrFail($id);
+            $chat = Chat::whereHas('participants', function ($q) use ($selectedUser) {
+                $q->where('user_id', $selectedUser->id);
+            })
+            ->whereHas('participants', function ($q) use ($astrologer) {
+                $q->where('user_id', $astrologer->user_id);
+            })
+            ->first();
+
+            $history = CallHistory::where('astrologer_id', $astrologer->user_id)
+                ->where('user_id', $selectedUser->id)
+                ->get();
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'calls' => $calls,
+            'selected_user' => $selectedUser,
+            'chat' => $chat,
+            'history' => $history,
+        ]);
+    }
+
+    public function setBusy(Request $request, $id)
+    {
+        $astrologerUser = User::findOrFail($id);
+        $astrologerUser->is_busy = $request->busy ? 1 : 0;
+        $astrologerUser->save();
+
+        if ($astrologerUser->astrologer) {
+            broadcast(new AstrologerStatusUpdated($astrologerUser->astrologer->id, $astrologerUser->is_busy));
+        }
+
+        return response()->json(['is_busy' => $astrologerUser->is_busy]);
     }
 }

@@ -2,20 +2,30 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\CallSignal;
 use App\Events\IncomingAstrologerRequest;
+use App\Events\MessageSent;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ProfileUpdateRequest;
 use App\Http\Requests\StoreReviewRequest;
 use App\Models\Astrologer;
+use App\Models\CallHistory;
 use App\Models\Chat;
+use App\Models\ChatMessage;
 use App\Models\ChatSession;
+use App\Models\Order;
 use App\Models\RechargePackage;
 use App\Models\TempOrder;
 use App\Models\User;
+use App\Services\AstrologerWalletService;
 use App\Services\ChatSessionSettlementService;
+use App\Services\FirebaseNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class UserController extends Controller
 {
@@ -23,6 +33,26 @@ class UserController extends Controller
         'auth',
         'role' => 'User',
     ];
+
+    private function sendNotification(?string $fcmToken, string $title, string $body, array $data): bool
+    {
+        if (blank($fcmToken)) {
+            return false;
+        }
+
+        try {
+            app(FirebaseNotificationService::class)->sendNotification($fcmToken, $title, $body, $data);
+
+            return true;
+        } catch (Throwable $exception) {
+            Log::warning('Firebase notification delivery failed.', [
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
 
     public function astrologers(Request $request)
     {
@@ -479,6 +509,280 @@ class UserController extends Controller
 
         return response()->json([
             'redirect_url' => $rData['redirectUrl'] ?? null,
+        ]);
+    }
+
+    public function start(Request $request)
+    {
+        $validated = $request->validate([
+            'roomId' => ['required', 'integer', 'exists:chats,id'],
+        ]);
+
+        $chat = Chat::with('participants.user.astrologer')
+            ->whereKey($validated['roomId'])
+            ->whereHas('participants', fn ($participants) => $participants->where('user_id', Auth::id()))
+            ->firstOrFail();
+
+        $astrologerUser = $chat->participants
+            ->firstWhere('user_id', '!=', Auth::id())
+            ?->user;
+
+        abort_unless($astrologerUser?->hasRole('Astrologer') && $astrologerUser->astrologer, 422);
+
+        if (! $astrologerUser->astrologer->online) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'This astrologer is offline. Please choose someone who is available.',
+            ], 409);
+        }
+
+        $user = Auth::user()->load('wallet');
+        $minimumBalance = $astrologerUser->astrologer->charged_call_price * 4;
+        if ($user->wallet?->balance < $minimumBalance) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'You need at least 4 minutes balance to start a call.',
+            ], 422);
+        }
+
+        if ($astrologerUser->is_busy) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'This astrologer is busy. Please try again later.',
+            ], 409);
+        }
+
+        $callHistory = CallHistory::create([
+            'user_id' => Auth::id(),
+            'astrologer_id' => $astrologerUser->id,
+            'call_type' => 'voice',
+            'status' => 'ringing',
+            'started_at' => now(),
+        ]);
+
+        broadcast(new IncomingAstrologerRequest(
+            $astrologerUser->id,
+            'call',
+            $chat->id,
+            Auth::id(),
+            Auth::user()->name
+        ));
+
+        broadcast(new CallSignal(
+            $chat->id,
+            'call_started',
+            null,
+            Auth::id()
+        ))->toOthers();
+
+        $this->sendNotification(
+            $astrologerUser->device_token,
+            'Incoming Call',
+            Auth::user()->name . ' has started a call. Tap to join.',
+            [
+                'type' => 'incoming_call',
+                'chat_id' => $chat->id,
+                'caller_id' => Auth::id(),
+            ]
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Call started successfully.',
+            'call_history' => $callHistory,
+        ]);
+    }
+
+    public function callEnd(Request $request, $chatId)
+    {
+        $validated = $request->validate([
+            'elapsed_seconds' => ['nullable', 'integer', 'min:0'],
+            'deduction' => ['nullable', 'numeric', 'min:0'],
+            'status' => ['required', 'in:answered,ended,missed,rejected,failed'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $chat = Chat::with('participants.user.roles')->findOrFail($chatId);
+
+        $userParticipant = $chat->participants
+            ->filter(fn ($p) => $p->user->hasRole('User'))
+            ->first();
+
+        $astrologerParticipant = $chat->participants
+            ->filter(fn ($p) => $p->user->hasRole('Astrologer'))
+            ->first();
+
+        if (! $userParticipant || ! $astrologerParticipant) {
+            return response()->json(['error' => 'Participants missing'], 404);
+        }
+
+        abort_unless(in_array(Auth::id(), [$userParticipant->user_id, $astrologerParticipant->user_id], true), 403);
+
+        $user = $userParticipant->user->load('wallet');
+        $astrologer = $astrologerParticipant->user->astrologer;
+        $chargedRate = (float) ($astrologer?->charged_call_price ?? 0);
+        $elapsedSeconds = (int) ($validated['elapsed_seconds'] ?? 0);
+        if (isset($validated['deduction']) && ! isset($validated['elapsed_seconds']) && $chargedRate > 0) {
+            $elapsedSeconds = (int) round(($validated['deduction'] / $chargedRate) * 60);
+        }
+
+        $deduction = DB::transaction(function () use (
+            $user,
+            $astrologer,
+            $astrologerParticipant,
+            $chargedRate,
+            $elapsedSeconds,
+            $validated
+        ): float {
+            $callHistory = CallHistory::where('user_id', $user->id)
+                ->where('astrologer_id', $astrologerParticipant->user->id)
+                ->whereNull('ended_at')
+                ->latest()
+                ->lockForUpdate()
+                ->first();
+
+            if (! $callHistory) {
+                return 0;
+            }
+
+            $user->ensureWallet();
+            $userWallet = \App\Models\UserWallet::where('user_id', $user->id)->lockForUpdate()->firstOrFail();
+            $requestedDeduction = round(($elapsedSeconds / 60) * $chargedRate, 2);
+            $deduction = min($requestedDeduction, (float) $userWallet->balance);
+
+            if ($deduction > 0) {
+                $userWallet->decrement('balance', $deduction);
+            }
+
+            $callHistory->update([
+                'ended_at' => now(),
+                'duration' => $elapsedSeconds,
+                'cost' => $deduction,
+                'status' => $validated['status'],
+                'notes' => $validated['reason'] ?? null,
+            ]);
+
+            if ($astrologer && $validated['status'] === 'answered') {
+                $earning = min(
+                    $deduction,
+                    round(($elapsedSeconds / 60) * (float) $astrologer->asked_call_price, 2)
+                );
+                app(AstrologerWalletService::class)->recordEarning(
+                    $astrologer,
+                    'call_history',
+                    $callHistory->id,
+                    'Call session earnings',
+                    $earning
+                );
+            }
+
+            return $deduction;
+        });
+
+        return response()->json([
+            'success' => true,
+            'deduction' => $deduction,
+        ]);
+    }
+
+    public function callHistory()
+    {
+        $history = CallHistory::with(['user', 'astrologer.astrologer'])
+            ->where('user_id', Auth::id())
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Call history fetched successfully!',
+            'history' => $history,
+        ]);
+    }
+
+    public function signal(Request $request)
+    {
+        broadcast(new CallSignal(
+            (int) $request->roomId,
+            $request->type,
+            $request->data,
+            Auth::id()
+        ))->toOthers();
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    public function updateCallStatus(Request $request)
+    {
+        $chat = Chat::with('participants.user.roles')->findOrFail($request->chatId);
+
+        $userParticipant = $chat->participants->filter(fn ($p) => $p->user->hasRole('User'))->first();
+        $astrologerParticipant = $chat->participants->filter(fn ($p) => $p->user->hasRole('Astrologer'))->first();
+
+        $callHistory = CallHistory::where('user_id', $userParticipant->user->id)
+            ->where('astrologer_id', $astrologerParticipant->user->id)
+            ->latest()
+            ->first();
+
+        if ($callHistory) {
+            $updateData = ['status' => $request->status];
+
+            if (in_array($request->status, ['ended', 'failed'])) {
+                $updateData['ended_at'] = now();
+                $updateData['duration'] = 0;
+                $updateData['cost'] = 0;
+            }
+
+            $callHistory->update($updateData);
+            $callHistory->refresh();
+        }
+
+        return response()->json([
+            'success' => true,
+            'call_history' => $callHistory ? $callHistory->toArray() : null,
+        ]);
+    }
+
+    public function transactions()
+    {
+        $transactions = Order::where('user_id', Auth::id())->latest()->get();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Transactions fetched successfully!',
+            'transactions' => $transactions,
+        ]);
+    }
+
+    public function updateProfile(ProfileUpdateRequest $request)
+    {
+        $request->user()->fill($request->validated());
+
+        if ($request->user()->isDirty('email')) {
+            $request->user()->email_verified_at = null;
+        }
+
+        $request->user()->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Profile updated successfully.',
+            'user' => $request->user(),
+        ]);
+    }
+
+    public function destroyProfile(Request $request)
+    {
+        $request->validate([
+            'password' => ['required', 'current_password'],
+        ]);
+
+        $user = $request->user();
+        Auth::logout();
+        $user->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Account deleted successfully.',
         ]);
     }
 }

@@ -48,6 +48,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/user/phonepe/webview/{package_id}', [UserController::class, 'phonePeWebView']);
         Route::post('/astrologers/{astrologerId}/reviews', [UserController::class, 'storeReview']);
 
+        Route::post('/call/start', [UserController::class, 'start']);
+        Route::post('/calls/{id}/end', [UserController::class, 'callEnd']);
+        Route::get('/user/call-history', [UserController::class, 'callHistory']);
+        Route::post('/call/signal', [UserController::class, 'signal']);
+        Route::post('/call/update-status', [UserController::class, 'updateCallStatus']);
+        Route::get('/user/transactions', [UserController::class, 'transactions']);
+        Route::patch('/user/profile', [UserController::class, 'updateProfile']);
+        Route::delete('/user/profile', [UserController::class, 'destroyProfile']);
     });
 
     Route::middleware('role:Astrologer')->group(function () {
@@ -61,6 +69,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/astrologers/{id}/transactions', [AstrologerController::class, 'getAstrologerTransactions']);
 
+        Route::post('/astrologer/status', [AstrologerController::class, 'status']);
+        Route::post('/astrologer/chats/{id}/messages', [AstrologerController::class, 'storeMessage']);
+        Route::patch('/astrologer/profile', [AstrologerController::class, 'update']);
+        Route::post('/astrologer/astrologer', [AstrologerController::class, 'updateAstrologer']);
+        Route::get('/astrologer/calls/{id?}', [AstrologerController::class, 'calls']);
+        Route::post('/astrologers/{id}/busy', [AstrologerController::class, 'setBusy']);
     });
 
 });
