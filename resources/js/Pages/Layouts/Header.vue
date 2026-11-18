@@ -14,16 +14,25 @@ const role = computed(() => props.user?.roles?.[0]?.name)
 const mobileMenuOpen = ref(false)
 const scrolled = ref(false)
 const showDropdown = ref(false)
+const showHoroscopeDropdown = ref(false)
 
 function closeDropdown() {
     showDropdown.value = false
 }
 
+function closeHoroscopeDropdown() {
+    showHoroscopeDropdown.value = false
+}
+
 // click-outside handler
 function handleClickOutside(event) {
-    const dropdown = document.getElementById('free-services-dropdown')
-    if (dropdown && !dropdown.contains(event.target)) {
+    const freeDropdown = document.getElementById('free-services-dropdown')
+    if (freeDropdown && !freeDropdown.contains(event.target)) {
         closeDropdown()
+    }
+    const horoDropdown = document.getElementById('horoscope-dropdown')
+    if (horoDropdown && !horoDropdown.contains(event.target)) {
+        closeHoroscopeDropdown()
     }
 }
 
@@ -158,6 +167,35 @@ onBeforeUnmount(() => {
                         </template>
                         Services
                     </Link>
+                </li>
+
+                <!-- Horoscope Dropdown -->
+                <li class="relative" id="horoscope-dropdown">
+                    <button @click="showHoroscopeDropdown = !showHoroscopeDropdown" type="button"
+                        class="nav-link inline-flex items-center hover:text-primary focus:outline-none"
+                        :class="route().current('horoscope*') ? 'is-active text-primary font-bold' : ''">
+                        Horoscope
+                        <Icon icon="mdi:chevron-down" width="16" height="16" class="ml-1" />
+                    </button>
+                    <div v-if="showHoroscopeDropdown"
+                        class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-100">
+                        <Link :href="route('horoscope-type', { type: 'daily' })" @click="closeHoroscopeDropdown"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition">
+                            Daily Horoscope
+                        </Link>
+                        <Link :href="route('horoscope-type', { type: 'weekly' })" @click="closeHoroscopeDropdown"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition">
+                            Weekly Horoscope
+                        </Link>
+                        <Link :href="route('horoscope-type', { type: 'monthly' })" @click="closeHoroscopeDropdown"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition">
+                            Monthly Horoscope
+                        </Link>
+                        <Link :href="route('horoscope-type', { type: 'yearly' })" @click="closeHoroscopeDropdown"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition">
+                            Yearly Horoscope
+                        </Link>
+                    </div>
                 </li>
 
                 <!-- Free Services Dropdown -->

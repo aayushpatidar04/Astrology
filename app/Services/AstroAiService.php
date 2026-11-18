@@ -1113,4 +1113,144 @@ class AstroAiService
         ];
     }
 
+    public function buildHoroscopePayload(string $sign, string $type = 'daily', ?string $targetDateStr = null): array
+    {
+        $signs = [
+            'Aries', 'Taurus', 'Gemini', 'Cancer',
+            'Leo', 'Virgo', 'Libra', 'Scorpio',
+            'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+        ];
+
+        $tz = new \DateTimeZone('Asia/Kolkata');
+        $dt = $targetDateStr
+            ? \DateTime::createFromFormat('Y-m-d', $targetDateStr, $tz) ?: new \DateTime('now', $tz)
+            : new \DateTime('now', $tz);
+
+        $dateKey  = null;
+        $weekKey  = null;
+        $monthKey = null;
+        $yearKey  = null;
+
+        if ($type === 'daily') {
+            $dateKey = $dt->format('Y-m-d');
+            $seed    = (int) $dt->format('z');
+        } elseif ($type === 'weekly') {
+            $weekKey = $dt->format('o-\WW');
+            $seed    = (int) $dt->format('W');
+            $dt->modify('wednesday this week');
+        } elseif ($type === 'monthly') {
+            $monthKey = $dt->format('Y-m');
+            $seed     = (int) $dt->format('n');
+            $dt->setDate((int) $dt->format('Y'), (int) $dt->format('m'), 15);
+        } else {
+            $type    = 'yearly';
+            $yearKey = $dt->format('Y');
+            $seed    = (int) $dt->format('Y');
+            $dt->setDate((int) $dt->format('Y'), 7, 1);
+        }
+
+        $chart   = $this->vedicService->calculateChart($dt->format('Y-m-d'), '06:00', 'Ujjain, India');
+        $planets = $chart['planets'] ?? $chart;
+
+        $signIdx = array_search(ucfirst(strtolower(trim($sign))), $signs, true);
+        if ($signIdx === false) {
+            $signIdx = 0;
+        }
+        $signName = $signs[$signIdx];
+
+        $houseOf = function (string $planet) use ($planets, $signIdx): int {
+            $pRashiIdx = ($planets[$planet]['rashi_number'] ?? 1) - 1;
+            return (($pRashiIdx - $signIdx + 12) % 12) + 1;
+        };
+
+        $moonH = $houseOf('Moon');
+        $sunH  = $houseOf('Sun');
+        $mercH = $houseOf('Mercury');
+        $venH  = $houseOf('Venus');
+        $marsH = $houseOf('Mars');
+        $jupH  = $houseOf('Jupiter');
+        $satH  = $houseOf('Saturn');
+
+        $primaryHouse = match ($type) {
+            'daily'   => $moonH,
+            'weekly'  => $mercH,
+            'monthly' => $sunH,
+            'yearly'  => $jupH,
+        };
+
+        $signAlphabets = [
+            0  => ['A', 'L', 'E', 'Chu', 'La'],
+            1  => ['B', 'V', 'U', 'Va', 'O'],
+            2  => ['K', 'Ch', 'Gh', 'Ka', 'Ha'],
+            3  => ['D', 'H', 'Hi', 'Da', 'Ho'],
+            4  => ['M', 'T', 'Ma', 'Ta', 'Me'],
+            5  => ['P', 'Th', 'N', 'Pa', 'To'],
+            6  => ['R', 'T', 'Ra', 'Ta', 'Re'],
+            7  => ['N', 'Y', 'Na', 'Ya', 'Ni'],
+            8  => ['Bh', 'Dh', 'Ph', 'Ye', 'Bha'],
+            9  => ['Kh', 'J', 'Ja', 'Kha', 'Ga'],
+            10 => ['G', 'S', 'Sh', 'Gu', 'Sa'],
+            11 => ['D', 'Ch', 'Z', 'Th', 'Di'],
+        ];
+
+        $rulerNumbers = [9, 6, 5, 2, 1, 5, 6, 9, 3, 8, 8, 3];
+        $signColors   = [
+            'Coral Red, Saffron', 'Pearl White, Pastel Pink', 'Emerald Green, Mint',
+            'Silver Mist, Sea Green', 'Golden Yellow, Ruby Red', 'Olive Green, Ivory',
+            'Rose Quartz, Cream', 'Crimson, Maroon', 'Turmeric Yellow, Amber',
+            'Royal Blue, Slate Grey', 'Electric Blue, Indigo', 'Seafoam, Marigold'
+        ];
+
+        $alphaList = $signAlphabets[$signIdx];
+        $a1 = $alphaList[$seed % \count($alphaList)];
+        $a2 = $alphaList[($seed + 2) % \count($alphaList)];
+
+        $nums = array_unique([
+            $rulerNumbers[$signIdx],
+            (($signIdx + $seed) % 9) + 1,
+            (($primaryHouse + $venH) % 9) + 1,
+        ]);
+
+        $loveGood   = \in_array($venH, [1, 2, 4, 5, 7, 9, 11], true);
+        $careerGood = \in_array($sunH, [1, 2, 3, 6, 10, 11], true) || \in_array($jupH, [1, 2, 5, 9, 10, 11], true);
+        $healthGood = !\in_array($marsH, [6, 8, 12], true);
+        $travelGood = \in_array($mercH, [3, 7, 9, 11, 12], true) || \in_array($moonH, [3, 9, 12], true);
+
+        return [
+            'sign'            => $signName,
+            'type'            => $type,
+            'date'            => $dateKey,
+            'week_key'        => $weekKey,
+            'month_key'       => $monthKey,
+            'year_key'        => $yearKey,
+            'colors'          => $signColors[$signIdx],
+            'numbers'         => implode(', ', $nums),
+            'alphabets'       => "{$a1}, {$a2}",
+            'love'            => $loveGood
+                ? "Venus in your {$venH}th house brings warmth, mutual understanding, and smooth emotional connection."
+                : "Venus in your {$venH}th house calls for patience, gentle listening, and avoiding hasty assumptions.",
+            'tip_for_singles' => $loveGood
+                ? "Stay open to social introductions and genuine conversations—someone aligned with your values may stand out."
+                : "Focus on self-care and clarity about what you truly want before rushing into a new commitment.",
+            'tip_for_couples' => $loveGood
+                ? "Plan quality uninterrupted time together to strengthen your shared bond."
+                : "Keep communication calm and practical; small thoughtful gestures will diffuse minor tension.",
+            'career'          => $careerGood
+                ? "Strong planetary backing in your {$sunH}th/{$jupH}th houses favors leadership, smart decisions, and steady progress."
+                : "Focus on organizing existing workflows, double-checking details, and avoiding impulsive financial risks.",
+            'health'          => $healthGood
+                ? "Mars in your {$marsH}th house supports steady stamina; maintain balanced hydration and regular movement."
+                : "Mars in your {$marsH}th house advises pacing yourself, prioritizing sleep, and avoiding physical overexertion.",
+            'emotions'        => \in_array($moonH, [1, 3, 5, 7, 9, 11], true)
+                ? "With the Moon activating your {$moonH}th house, your mindset feels upbeat, clear, and socially receptive."
+                : "With the Moon moving through your {$moonH}th house, take quiet moments to process feelings and stay grounded.",
+            'travel'          => $travelGood
+                ? "Favorable alignment in your {$mercH}th/{$moonH}th houses supports productive short trips, errands, or travel planning."
+                : "Keep schedules flexible and double-check itineraries if stepping out for work or personal errands.",
+            'description'     => "For {$signName}, this {$type} cycle is anchored by transit activity in your {$primaryHouse}th house, highlighting personal growth, measured action, and clarity.",
+            'cosmic_tip'      => \in_array($jupH, [1, 2, 5, 9, 11], true)
+                ? "Jupiter aspects favor long-term planning—commit to one meaningful goal and act with confidence."
+                : "Saturn in your {$satH}th house rewards discipline and patience—focus on steady consistency over shortcuts.",
+        ];
+    }
 }

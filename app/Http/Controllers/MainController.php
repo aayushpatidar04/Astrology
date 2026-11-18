@@ -11,6 +11,7 @@ use App\Models\RechargePackage;
 use App\Models\TempOrder;
 use App\Models\User;
 use App\Models\UserWallet;
+use App\Services\AstroAiService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -98,84 +99,63 @@ class MainController extends Controller
         $user = Auth::user();
         $key = $request->input('key');
 
+        $getOrCreateHoroscope = function (string $t, string $s, ?string $k, ?string $dStr = null) {
+            $query = Horoscope::where('sign', $s)->where('type', $t);
+            if ($t === 'daily' && $dStr) {
+                $query->whereDate('date', $dStr);
+            } elseif ($t === 'weekly' && $k) {
+                $query->where('week_key', $k);
+            } elseif ($t === 'monthly' && $k) {
+                $query->where('month_key', $k);
+            } elseif ($t === 'yearly' && $k) {
+                $query->where('year_key', $k);
+            }
+
+            return $query->first() ?? Horoscope::create(app(AstroAiService::class)->buildHoroscopePayload($s, $t === 'yesterday' || $t === 'tomorrow' ? 'daily' : $t, $dStr));
+        };
+
         if ($user && $user->hasRole('Admin') && $key) {
             // Admin can fetch specific key
             if ($type === 'daily' || $type === 'yesterday' || $type === 'tomorrow') {
                 $date = Carbon::parse($key);
-                $horoscope = Horoscope::where('type', 'daily')
-                    ->where('sign', $sign)
-                    ->whereDate('date', $key)
-                    ->firstOrFail();
-
+                $horoscope = $getOrCreateHoroscope('daily', $sign, null, $key);
                 $formattedDate = $date->format('d M, Y');
             } elseif ($type === 'weekly') {
-                $horoscope = Horoscope::where('type', 'weekly')
-                    ->where('sign', $sign)
-                    ->where('week_key', $key)
-                    ->firstOrFail();
+                $horoscope = $getOrCreateHoroscope('weekly', $sign, $key);
             } elseif ($type === 'monthly') {
-                $horoscope = Horoscope::where('type', 'monthly')
-                    ->where('sign', $sign)
-                    ->where('month_key', $key)
-                    ->firstOrFail();
+                $horoscope = $getOrCreateHoroscope('monthly', $sign, $key);
             } elseif ($type === 'yearly') {
-                $horoscope = Horoscope::where('type', 'yearly')
-                    ->where('sign', $sign)
-                    ->where('year_key', $key)
-                    ->firstOrFail();
+                $horoscope = $getOrCreateHoroscope('yearly', $sign, $key);
             }
         } else {
             if ($type === 'daily') {
-                $horoscope = Horoscope::where('type', 'daily')
-                    ->where('sign', $sign)
-                    ->whereDate('date', $today)
-                    ->firstOrFail();
-
+                $horoscope = $getOrCreateHoroscope('daily', $sign, null, $today->format('Y-m-d'));
                 $formattedDate = $today->format('d M, Y');
             } elseif ($type === 'yesterday') {
                 $yesterday = Carbon::yesterday();
-                $horoscope = Horoscope::where('type', 'daily')
-                    ->where('sign', $sign)
-                    ->whereDate('date', $yesterday)
-                    ->firstOrFail();
-
+                $horoscope = $getOrCreateHoroscope('daily', $sign, null, $yesterday->format('Y-m-d'));
                 $formattedDate = $yesterday->format('d M, Y');
             } elseif ($type === 'tomorrow') {
                 $tomorrow = Carbon::tomorrow();
-                $horoscope = Horoscope::where('type', 'daily')
-                    ->where('sign', $sign)
-                    ->whereDate('date', $tomorrow)
-                    ->firstOrFail();
-
+                $horoscope = $getOrCreateHoroscope('daily', $sign, null, $tomorrow->format('Y-m-d'));
                 $formattedDate = $tomorrow->format('d M, Y');
             } elseif ($type === 'weekly') {
                 $year = $today->year;
                 $week = $today->weekOfYear;
 
                 $weekKey = $year . '-' . $week;
-                $horoscope = Horoscope::where('type', 'weekly')
-                    ->where('sign', $sign)
-                    ->where('week_key', $weekKey)
-                    ->firstOrFail();
+                $horoscope = $getOrCreateHoroscope('weekly', $sign, $weekKey);
 
                 $startOfWeek = Carbon::now()->setISODate($year, $week)->startOfWeek();
                 $endOfWeek = Carbon::now()->setISODate($year, $week)->endOfWeek();
                 $formattedDate = $startOfWeek->format('d M, Y') . ' - ' . $endOfWeek->format('d M, Y');
             } elseif ($type === 'monthly') {
                 $monthKey = $today->format('Y-m');
-                $horoscope = Horoscope::where('type', 'monthly')
-                    ->where('sign', $sign)
-                    ->where('month_key', $monthKey)
-                    ->firstOrFail();
-
+                $horoscope = $getOrCreateHoroscope('monthly', $sign, $monthKey);
                 $formattedDate = Carbon::createFromFormat('Y-m', $monthKey)->format('F, Y');
             } elseif ($type === 'yearly') {
-                $yearKey = $today->year;
-                $horoscope = Horoscope::where('type', 'yearly')
-                    ->where('sign', $sign)
-                    ->where('year_key', $yearKey)
-                    ->firstOrFail();
-
+                $yearKey = (string) $today->year;
+                $horoscope = $getOrCreateHoroscope('yearly', $sign, $yearKey);
                 $formattedDate = $yearKey;
             }
         }
