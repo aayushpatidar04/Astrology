@@ -732,6 +732,17 @@ const zoomTransform = (o, s = 1.18) =>
                     </div>
                 </div>
 
+                <!-- Yoga Combinations Section -->
+                <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 pb-2 border-b">Yoga Combinations (Special Planetary Alignments)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div v-for="yoga in kundliData.yoga_combinations" :key="yoga.name" class="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                            <h4 class="font-bold text-gray-900 text-base text-orange-700">{{ yoga.name }}</h4>
+                            <p class="text-xs text-gray-600 mt-1 leading-relaxed">{{ yoga.desc }}</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Planetary Positions Table -->
                 <div
                     class="bg-white rounded-xl shadow-md p-6 border border-gray-100 overflow-x-auto"

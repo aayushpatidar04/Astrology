@@ -67,10 +67,11 @@ class AstroAiService
             ];
         }
 
-        // Evaluate professional multi-chart Manglik, Kalsarpa & Sade Sati Doshas
+        // Evaluate professional multi-chart Manglik, Kalsarpa, Sade Sati & Yogas
         $manglikAnalysis = $this->evaluateManglikDosha($planetaryPositions, $dob);
         $kalsarpaAnalysis = $this->evaluateKalsarpaDosha($planetaryPositions);
         $sadeSatiAnalysis = $this->evaluateSadeSati($moonFullDegree, $moonSign);
+        $yogaCombinations = $this->evaluateYogas($planetaryPositions);
         $tithiName = $tithiInfo['full_name'] ?? 'Amavasya';
 
         return [
@@ -111,10 +112,7 @@ class AstroAiService
                 'kalsarpa_dosha' => $kalsarpaAnalysis,
                 'sade_sati' => $sadeSatiAnalysis,
             ],
-            'yoga_combinations' => [
-                ['name' => 'Gajakesari Yoga', 'desc' => 'Jupiter in kendra from Moon, bringing wisdom and success.'],
-                ['name' => 'Budha-Aditya Yoga', 'desc' => 'Mercury combines with the Sun, bringing intellectual brilliance.'],
-            ],
+            'yoga_combinations' => $yogaCombinations,
             'remedies' => [
                 'rudraksha' => '7-Mukhi Rudraksha for wealth and Saturn pacification.',
                 'gemstones' => [
@@ -129,6 +127,144 @@ class AstroAiService
                 'gemstone_remedies' => "Consult a qualified Vedic astrologer for precise gemstone recommendations.",
             ]
         ];
+    }
+
+    /**
+     * Dynamically detect major Vedic Yogas from calculated chart data
+     */
+    public function evaluateYogas(array $chartData): array
+    {
+        $yogas = [];
+
+        $lagnaSign = $chartData['Ascendant']['rashi_number'] ?? $chartData['Ascendant (Lagna)']['rashi_number'] ?? 1;
+        $sunSign   = $chartData['Sun']['rashi_number'] ?? 1;
+        $moonSign  = $chartData['Moon']['rashi_number'] ?? 1;
+        $marsSign  = $chartData['Mars']['rashi_number'] ?? 1;
+        $mercSign  = $chartData['Mercury']['rashi_number'] ?? 1;
+        $jupSign   = $chartData['Jupiter']['rashi_number'] ?? 1;
+        $venSign   = $chartData['Venus']['rashi_number'] ?? 1;
+        $satSign   = $chartData['Saturn']['rashi_number'] ?? 1;
+
+        $marsHouse = $chartData['Mars']['house'] ?? 1;
+        $mercHouse = $chartData['Mercury']['house'] ?? 1;
+        $jupHouse  = $chartData['Jupiter']['house'] ?? 1;
+        $venHouse  = $chartData['Venus']['house'] ?? 1;
+        $satHouse  = $chartData['Saturn']['house'] ?? 1;
+
+        $rashiRulers = [
+            1 => 'Mars', 2 => 'Venus', 3 => 'Mercury', 4 => 'Moon',
+            5 => 'Sun', 6 => 'Mercury', 7 => 'Venus', 8 => 'Mars',
+            9 => 'Jupiter', 10 => 'Saturn', 11 => 'Saturn', 12 => 'Jupiter'
+        ];
+
+        // 1. Gajakesari Yoga (Jupiter in 1, 4, 7, 10 from Moon)
+        $jupFromMoon = (($jupSign - $moonSign + 12) % 12) + 1;
+        if (\in_array($jupFromMoon, [1, 4, 7, 10], true)) {
+            $yogas[] = [
+                'name' => 'Gajakesari Yoga',
+                'desc' => "Jupiter is in the {$jupFromMoon}th house from Moon (Kendra), bestowing wisdom, respect, leadership, and lasting reputation.",
+            ];
+        }
+
+        // 2. Budha-Aditya Yoga (Sun + Mercury conjunction)
+        if ($sunSign === $mercSign) {
+            $yogas[] = [
+                'name' => 'Budha-Aditya Yoga',
+                'desc' => "Sun and Mercury combine in sign {$sunSign}, sharpening analytical intelligence, communication skills, and administrative ability.",
+            ];
+        }
+
+        // 3. Chandra-Mangal Yoga (Moon + Mars conjunction or 7th mutual aspect)
+        if ($moonSign === $marsSign || abs($moonSign - $marsSign) === 6) {
+            $yogas[] = [
+                'name' => 'Chandra-Mangal Yoga',
+                'desc' => 'Moon and Mars form a direct connection, generating strong financial drive, entrepreneurial energy, and self-earned prosperity.',
+            ];
+        }
+
+        // 4. Pancha Mahapurusha Yogas (Planet in Kendra 1,4,7,10 in Own/Exalted Sign)
+        $kendras = [1, 4, 7, 10];
+        if (\in_array($marsHouse, $kendras, true) && \in_array($marsSign, [1, 8, 10], true)) {
+            $yogas[] = ['name' => 'Ruchaka Mahapurusha Yoga', 'desc' => 'Mars is strong in a Kendra house, conferring courage, physical vitality, and commanding leadership.'];
+        }
+        if (\in_array($mercHouse, $kendras, true) && \in_array($mercSign, [3, 6], true)) {
+            $yogas[] = ['name' => 'Bhadra Mahapurusha Yoga', 'desc' => 'Mercury is strong in a Kendra house, giving sharp intellect, eloquence, and business acumen.'];
+        }
+        if (\in_array($jupHouse, $kendras, true) && \in_array($jupSign, [4, 9, 12], true)) {
+            $yogas[] = ['name' => 'Hamsa Mahapurusha Yoga', 'desc' => 'Jupiter is strong in a Kendra house, bringing ethical wisdom, spiritual grace, and good fortune.'];
+        }
+        if (\in_array($venHouse, $kendras, true) && \in_array($venSign, [2, 7, 12], true)) {
+            $yogas[] = ['name' => 'Malavya Mahapurusha Yoga', 'desc' => 'Venus is strong in a Kendra house, granting artistic refinement, charm, luxury, and harmonious relationships.'];
+        }
+        if (\in_array($satHouse, $kendras, true) && \in_array($satSign, [7, 10, 11], true)) {
+            $yogas[] = ['name' => 'Sasha Mahapurusha Yoga', 'desc' => 'Saturn is strong in a Kendra house, providing discipline, organizational mastery, and enduring authority.'];
+        }
+
+        // 5. Dharma-Karma Adhipati Raja Yoga (9th Lord + 10th Lord conjunction)
+        $ninthRashi = (($lagnaSign - 1 + 8) % 12) + 1;
+        $tenthRashi = (($lagnaSign - 1 + 9) % 12) + 1;
+        $ninthLord = $rashiRulers[$ninthRashi];
+        $tenthLord = $rashiRulers[$tenthRashi];
+
+        if ($ninthLord !== $tenthLord && isset($chartData[$ninthLord], $chartData[$tenthLord])) {
+            if ($chartData[$ninthLord]['house'] === $chartData[$tenthLord]['house']) {
+                $h = $chartData[$ninthLord]['house'];
+                $yogas[] = [
+                    'name' => 'Dharma-Karma Adhipati Raja Yoga',
+                    'desc' => "9th Lord ({$ninthLord}) and 10th Lord ({$tenthLord}) unite in house {$h}, aligning fortune with career achievement.",
+                ];
+            }
+        }
+
+        // 6. Sunapha / Anapha / Durudhara Lunar Yogas (Planets in 2nd or 12th from Moon)
+        $otherPlanets = ['Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'];
+        $in2ndFromMoon = false;
+        $in12thFromMoon = false;
+
+        foreach ($otherPlanets as $p) {
+            $pSign = $chartData[$p]['rashi_number'] ?? 1;
+            $rel = (($pSign - $moonSign + 12) % 12) + 1;
+            if ($rel === 2) {
+                $in2ndFromMoon = true;
+            }
+            if ($rel === 12) {
+                $in12thFromMoon = true;
+            }
+        }
+
+        if ($in2ndFromMoon && $in12thFromMoon) {
+            $yogas[] = ['name' => 'Durudhara Yoga', 'desc' => 'Planets flank both sides of the Moon (2nd and 12th), providing balanced support, wealth, and stability.'];
+        } elseif ($in2ndFromMoon) {
+            $yogas[] = ['name' => 'Sunapha Yoga', 'desc' => 'A planet occupies the 2nd house from the Moon, indicating self-earned wealth, resourcefulness, and respect.'];
+        } elseif ($in12thFromMoon) {
+            $yogas[] = ['name' => 'Anapha Yoga', 'desc' => 'A planet occupies the 12th house from the Moon, supporting personal dignity, comfort, and inner peace.'];
+        }
+
+        // 7. Neechabhanga Raja Yoga
+        $debilitated = ['Sun' => 7, 'Moon' => 8, 'Mars' => 4, 'Mercury' => 12, 'Jupiter' => 10, 'Venus' => 6, 'Saturn' => 1];
+        $exalted = ['Sun' => 1, 'Moon' => 2, 'Mars' => 10, 'Mercury' => 6, 'Jupiter' => 4, 'Venus' => 12, 'Saturn' => 7];
+
+        foreach ($debilitated as $debPlanet => $debSign) {
+            if (($chartData[$debPlanet]['rashi_number'] ?? 0) === $debSign) {
+                foreach ($exalted as $exPlanet => $exSign) {
+                    if (($chartData[$exPlanet]['rashi_number'] ?? 0) === $exSign && $debSign === $exSign) {
+                        $yogas[] = [
+                            'name' => 'Neechabhanga Raja Yoga',
+                            'desc' => "{$debPlanet}'s debilitation is cancelled by conjunction with exalted {$exPlanet}, turning initial struggles into remarkable success.",
+                        ];
+                    }
+                }
+            }
+        }
+
+        if (empty($yogas)) {
+            $yogas[] = [
+                'name' => 'Sama Graha Yoga',
+                'desc' => 'Planets are evenly distributed across houses, supporting steady, balanced progress through personal effort.',
+            ];
+        }
+
+        return $yogas;
     }
 
     /**
