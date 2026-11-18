@@ -17,6 +17,18 @@ function normalizeType(t) {
   return t.toLowerCase()
 }
 
+function parseColors(colorString) {
+  if (!colorString) return []
+  return colorString.split(',').map(item => {
+    const trimmed = item.trim()
+    const match = trimmed.match(/^(.*?)\s*\((#[0-9a-fA-F]{3,8})\)$/)
+    if (match) {
+      return { name: match[1].trim(), hex: match[2].trim() }
+    }
+    return { name: trimmed, hex: trimmed }
+  })
+}
+
 const activeAspect = ref('love')
 
 const aspects = [
@@ -84,18 +96,20 @@ const timeframes = ['Yesterday', 'Today', 'Tomorrow', 'Weekly', 'Monthly', 'Year
     <h2 class="mt-6 text-lg font-semibold mb-2">Lucky items for you</h2>
     <div class="rounded-lg p-4">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-        <div class="bg-blue-50 py-3">
+        <div class="bg-blue-50 py-3 px-4 rounded-xl">
           <p class="font-bold">Colors</p>
-          <div class="flex gap-2 justify-center mt-2 flex-wrap">
-            <span v-for="color in props.horoscope.colors.split(',')" :key="color.trim()"
-              class="w-6 h-6 rounded-full border" :style="{ backgroundColor: color.trim() }"></span>
+          <div class="flex items-center justify-center gap-3 mt-2 flex-wrap">
+            <div v-for="c in parseColors(props.horoscope.colors)" :key="c.name" class="flex items-center gap-1.5">
+              <span class="w-5 h-5 rounded-full border shadow-sm" :style="{ backgroundColor: c.hex }"></span>
+              <span class="text-xs font-semibold text-gray-700">{{ c.name }}</span>
+            </div>
           </div>
         </div>
-        <div class="bg-green-50 py-3">
+        <div class="bg-green-50 py-3 rounded-xl">
           <p class="font-bold">Numbers</p>
           <p class="text-2xl font-bold">{{ props.horoscope.numbers }}</p>
         </div>
-        <div class="bg-red-50 py-3">
+        <div class="bg-red-50 py-3 rounded-xl">
           <p class="font-bold">Alphabets</p>
           <p class="text-2xl font-bold">{{ props.horoscope.alphabets }}</p>
         </div>
@@ -148,134 +162,6 @@ const timeframes = ['Yesterday', 'Today', 'Tomorrow', 'Weekly', 'Monthly', 'Year
 
 <style scoped>
 :deep(.quill-content p) {
-  margin: 1em 0;
-  line-height: 1.6;
-}
-
-:deep(.quill-content h1) {
-  font-size: 2em;
-  font-weight: bold;
-  margin: 0.67em 0;
-}
-
-:deep(.quill-content h2) {
-  font-size: 1.5em;
-  font-weight: bold;
-  margin: 0.75em 0;
-}
-
-:deep(.quill-content h3) {
-  font-size: 1.17em;
-  font-weight: bold;
-  margin: 0.83em 0;
-}
-
-:deep(.quill-content ul) {
-  list-style: disc;
-  margin: 1em 0 1em 1.5em;
-}
-
-:deep(.quill-content ol) {
-  list-style: decimal;
-  margin: 1em 0 1em 1.5em;
-}
-
-:deep(.quill-content li) {
-  margin: 0.5em 0;
-}
-
-:deep(.quill-content strong) {
-  font-weight: bold;
-}
-
-:deep(.quill-content em) {
-  font-style: italic;
-}
-
-:deep(.quill-content u) {
-  text-decoration: underline;
-}
-
-:deep(.quill-content s) {
-  text-decoration: line-through;
-}
-
-:deep(.quill-content a) {
-  color: #2563eb;
-  text-decoration: underline;
-}
-
-:deep(.quill-content a:hover) {
-  color: #1e40af;
-}
-
-:deep(.quill-content img) {
-  max-width: 100%;
-  height: auto;
-  border-radius: 0.5rem;
-  margin: 1em 0;
-}
-
-:deep(.quill-content blockquote) {
-  border-left: 4px solid #ccc;
-  padding-left: 1em;
-  color: #555;
-  font-style: italic;
-  margin: 1em 0;
-}
-
-/* Code blocks */
-:deep(.quill-content pre) {
-  background: #f3f4f6;
-  /* Tailwind gray-100 */
-  padding: 1em;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-  margin: 1em 0;
-}
-
-:deep(.quill-content code) {
-  font-family: monospace;
-  background: #f9fafb;
-  /* Tailwind gray-50 */
-  padding: 0.2em 0.4em;
-  border-radius: 0.25rem;
-}
-
-/* Quill custom classes */
-:deep(.quill-content .ql-align-center) {
-  text-align: center;
-}
-
-:deep(.quill-content .ql-align-right) {
-  text-align: right;
-}
-
-:deep(.quill-content .ql-align-justify) {
-  text-align: justify;
-}
-
-:deep(.quill-content .ql-size-small) {
-  font-size: 0.875rem;
-}
-
-:deep(.quill-content .ql-size-large) {
-  font-size: 1.5rem;
-}
-
-:deep(.quill-content .ql-size-huge) {
-  font-size: 2.25rem;
-}
-
-:deep(.quill-content .ql-indent-1) {
-  margin-left: 2em;
-}
-
-:deep(.quill-content .ql-indent-2) {
-  margin-left: 4em;
-}
-
-:deep(.quill-content .ql-indent-3) {
-  margin-left: 6em;
+  margin-bottom: 1rem;
 }
 </style>
