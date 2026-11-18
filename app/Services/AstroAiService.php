@@ -22,13 +22,14 @@ class AstroAiService
         $tithiInfo = $chartResult['tithi_info'] ?? ['full_name' => 'Amavasya'];
         $yogaName = $chartResult['yoga_name'] ?? 'Ayushman';
         $karanaName = $chartResult['karana_name'] ?? 'Nag';
+        $vimshottariDasha = $chartResult['vimshottari_dasha'] ?? [];
 
         $planetaryPositions = [];
-        $sunSign = 'Aries';
-        $moonSign = 'Aries';
-        $lagna = 'Gemini';
-        $nakshatra = 'Bharani';
-        $nakshatraLord = 'Venus';
+        $sunSign = '';
+        $moonSign = '';
+        $lagna = '';
+        $nakshatra = '';
+        $nakshatraLord = '';
 
         foreach ($chartData as $key => $body) {
             $isAsc = $key === 'Ascendant' || str_contains($key, 'Ascendant');
@@ -68,8 +69,8 @@ class AstroAiService
             'dob' => $dob,
             'tob' => $tob,
             'birth_place' => $birthPlace,
-            'latitude' => $lat . '° N',
-            'longitude' => $lon . '° E',
+            'latitude' => "{$lat}° N",
+            'longitude' => "{$lon}° E",
             'timezone' => 'GMT +05:30',
             'ayanamsa' => 'Lahiri (23.85°)',
             'basic_details' => [
@@ -94,10 +95,7 @@ class AstroAiService
                 'sunset' => '07:01 PM',
             ],
             'planetary_positions' => array_values($planetaryPositions),
-            'vimshottari_dasha' => [
-                ['planet' => 'Mars', 'duration' => '7 Years', 'start' => '2026', 'end' => '2033', 'active' => true],
-                ['planet' => 'Rahu', 'duration' => '18 Years', 'start' => '2033', 'end' => '2051', 'active' => false],
-            ],
+            'vimshottari_dasha' => $vimshottariDasha,
             'doshas' => [
                 'manglik_dosha' => $manglikAnalysis,
                 'kalsarpa_dosha' => $kalsarpaAnalysis,
@@ -138,9 +136,9 @@ class AstroAiService
         $venusSign = $chartData['Venus']['rashi_number'] ?? 1;
         $jupSign   = $chartData['Jupiter']['rashi_number'] ?? 1;
 
-        $houseFromLagna = (($marsSign - $lagnaSign + 12) % 12) + 1;
-        $houseFromMoon  = (($marsSign - $moonSign + 12) % 12) + 1;
-        $houseFromVenus = (($marsSign - $venusSign + 12) % 12) + 1;
+        $houseFromLagna = ($marsSign - $lagnaSign + 12) % 12 + 1;
+        $houseFromMoon  = ($marsSign - $moonSign + 12) % 12 + 1;
+        $houseFromVenus = ($marsSign - $venusSign + 12) % 12 + 1;
 
         $primaryHouses = [1, 4, 7, 8, 12];
         $secondaryHouses = [2];
@@ -204,7 +202,7 @@ class AstroAiService
             $cancellations[] = "Mars in house {$houseFromLagna} occupies a neutralizing sign, reducing intensity by 50%.";
         }
 
-        $jupToMarsHouse = (($marsSign - $jupSign + 12) % 12) + 1;
+        $jupToMarsHouse = ($marsSign - $jupSign + 12) % 12 + 1;
         if ($score > 0 && \in_array($jupToMarsHouse, [1, 5, 7, 9], true)) {
             $score *= 0.5;
             $cancellations[] = 'Benefic Jupiter aspects or conjuncts Mars, softening aggressive energy by 50%.';
@@ -281,8 +279,8 @@ class AstroAiService
             }
         }
 
-        $count1 = count($arcRahuToKetu);
-        $count2 = count($arcKetuToRahu);
+        $count1 = \count($arcRahuToKetu);
+        $count2 = \count($arcKetuToRahu);
 
         $kalsarpaDefinitions = [
             1 => ['name' => 'Anant', 'focus' => 'self-identity, health, and partnerships'],

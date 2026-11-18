@@ -604,19 +604,112 @@ const zoomTransform = (o, s = 1.18) =>
                                 </g>
                             </g>
                         </svg>
+                        <p class="text-xs text-gray-500 mt-3 text-center">
+                            <template v-if="hoveredHouse">
+                                House {{ hoveredHouse }} · Rashi
+                                {{ chartHouses[hoveredHouse]?.rashiNum }}
+                            </template>
+                            <template v-else
+                                >North Indian style D1 Chart. Hover (or tap) a
+                                house to zoom it. Orange numbers are Rashi signs
+                                (1=Aries ... 12=Pisces).</template
+                            >
+                        </p>
                     </div>
 
-                    <p class="text-xs text-gray-500 mt-3 text-center">
-                        <template v-if="hoveredHouse">
-                            House {{ hoveredHouse }} · Rashi
-                            {{ chartHouses[hoveredHouse]?.rashiNum }}
-                        </template>
-                        <template v-else
-                            >North Indian style D1 Chart. Hover (or tap) a house
-                            to zoom it. Orange numbers are Rashi signs (1=Aries
-                            ... 12=Pisces).</template
-                        >
-                    </p>
+                    <!-- Avakhada & Dosha Summary -->
+                    <div
+                        class="bg-white rounded-xl shadow-md p-6 border border-gray-100 flex flex-col justify-between"
+                    >
+                        <div>
+                            <h3
+                                class="text-lg font-bold text-gray-900 mb-4 pb-2 border-b"
+                            >
+                                Avakhada Details
+                            </h3>
+                            <div class="grid grid-cols-2 gap-3 text-sm mb-6">
+                                <div>
+                                    <strong class="text-gray-600"
+                                        >Varna:</strong
+                                    >
+                                    {{ kundliData.basic_details.varna }}
+                                </div>
+                                <div>
+                                    <strong class="text-gray-600"
+                                        >Vashya:</strong
+                                    >
+                                    {{ kundliData.basic_details.vashya }}
+                                </div>
+                                <div>
+                                    <strong class="text-gray-600">Yoni:</strong>
+                                    {{ kundliData.basic_details.yoni }}
+                                </div>
+                                <div>
+                                    <strong class="text-gray-600">Gan:</strong>
+                                    {{ kundliData.basic_details.gan }}
+                                </div>
+                                <div>
+                                    <strong class="text-gray-600">Nadi:</strong>
+                                    {{ kundliData.basic_details.nadi }}
+                                </div>
+                                <div>
+                                    <strong class="text-gray-600">Paya:</strong>
+                                    {{ kundliData.basic_details.paya }}
+                                </div>
+                            </div>
+
+                            <h3
+                                class="text-lg font-bold text-gray-900 mb-3 pb-2 border-b"
+                            >
+                                Dosha Analysis
+                            </h3>
+                            <div class="space-y-3 text-sm">
+                                <div class="bg-orange-50 p-3 rounded-lg border">
+                                    <span class="font-bold text-gray-800"
+                                        >Manglik Dosha:</span
+                                    >
+                                    <span
+                                        class="ml-2 font-semibold"
+                                        :class="
+                                            kundliData.doshas.manglik_dosha
+                                                .is_present
+                                                ? 'text-red-600'
+                                                : 'text-green-600'
+                                        "
+                                    >
+                                        {{
+                                            kundliData.doshas.manglik_dosha
+                                                .status
+                                        }}
+                                    </span>
+                                    <p class="text-xs text-gray-600 mt-1">
+                                        {{
+                                            kundliData.doshas.manglik_dosha
+                                                .description
+                                        }}
+                                    </p>
+                                </div>
+                                <div class="bg-orange-50 p-3 rounded-lg border">
+                                    <span class="font-bold text-gray-800"
+                                        >Kalsarpa Dosha:</span
+                                    >
+                                    <span
+                                        class="ml-2 font-semibold text-red-600"
+                                        >{{
+                                            kundliData.doshas.kalsarpa_dosha
+                                                .type
+                                        }}</span
+                                    >
+                                    <p class="text-xs text-gray-600 mt-1">
+                                        {{
+                                            kundliData.doshas.kalsarpa_dosha
+                                                .description
+                                        }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Planetary Positions Table -->

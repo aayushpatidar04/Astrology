@@ -5,18 +5,9 @@ namespace App\Services;
 class VedicAstrologyService
 {
     protected array $rashis = [
-        'Aries (Mesha)',
-        'Taurus (Vrishabha)',
-        'Gemini (Mithuna)',
-        'Cancer (Karka)',
-        'Leo (Simha)',
-        'Virgo (Kanya)',
-        'Libra (Tula)',
-        'Scorpio (Vrishchika)',
-        'Sagittarius (Dhanu)',
-        'Capricorn (Makara)',
-        'Aquarius (Kumbha)',
-        'Pisces (Meena)'
+        'Aries (Mesha)', 'Taurus (Vrishabha)', 'Gemini (Mithuna)', 'Cancer (Karka)',
+        'Leo (Simha)', 'Virgo (Kanya)', 'Libra (Tula)', 'Scorpio (Vrishchika)',
+        'Sagittarius (Dhanu)', 'Capricorn (Makara)', 'Aquarius (Kumbha)', 'Pisces (Meena)'
     ];
 
     protected array $nakshatras = [
@@ -50,43 +41,14 @@ class VedicAstrologyService
     ];
 
     protected array $nityaYogas = [
-        'Vishkambha',
-        'Priti',
-        'Ayushman',
-        'Saubhagya',
-        'Shobhana',
-        'Atiganda',
-        'Sukarma',
-        'Dhriti',
-        'Shoola',
-        'Ganda',
-        'Vriddhi',
-        'Dhruva',
-        'Vyaghata',
-        'Harshana',
-        'Vajra',
-        'Siddhi',
-        'Vyatipata',
-        'Variyan',
-        'Parigha',
-        'Shiva',
-        'Siddha',
-        'Sadhya',
-        'Shubha',
-        'Shukla',
-        'Brahma',
-        'Indra',
-        'Vaidhriti'
+        'Vishkumbha', 'Priti', 'Ayushman', 'Saubhagya', 'Shobhana', 'Atiganda', 'Sukarma', 'Dhriti',
+        'Shoola', 'Ganda', 'Vriddhi', 'Dhruva', 'Vyaghata', 'Harshana', 'Vajra', 'Siddhi',
+        'Vyatipata', 'Variyan', 'Parigha', 'Shiva', 'Siddha', 'Sadhya', 'Shubha', 'Shukla',
+        'Brahma', 'Indra', 'Vaidhriti'
     ];
 
     protected array $movableKaranas = [
-        'Bava',
-        'Balava',
-        'Kaulava',
-        'Taitila',
-        'Gara',
-        'Vanija',
-        'Vishti'
+        'Bava', 'Balava', 'Kaulava', 'Taitila', 'Gara', 'Vanija', 'Vishti'
     ];
 
     private function rev(float $x): float
@@ -112,31 +74,24 @@ class VedicAstrologyService
 
     private function tropicalToSidereal(float $tropicalDeg, float $ayanamsa): float
     {
-        return $this->rev($tropicalDeg - $ayanamsa);
+        $sidereal = fmod($tropicalDeg - $ayanamsa, 360);
+        if ($sidereal < 0) {
+            $sidereal += 360;
+        }
+        return $sidereal;
     }
 
     public function calculateTithi(float $sunDegree, float $moonDegree): array
     {
         $tithiNames = [
-            1 => 'Pratipada',
-            2 => 'Dwitiya',
-            3 => 'Tritiya',
-            4 => 'Chaturthi',
-            5 => 'Panchami',
-            6 => 'Shashthi',
-            7 => 'Saptami',
-            8 => 'Ashtami',
-            9 => 'Navami',
-            10 => 'Dashami',
-            11 => 'Ekadashi',
-            12 => 'Dwadashi',
-            13 => 'Trayodashi',
-            14 => 'Chaturdashi',
-            15 => 'Purnima',
+            1 => 'Pratipada', 2 => 'Dwitiya', 3 => 'Tritiya', 4 => 'Chaturthi',
+            5 => 'Panchami', 6 => 'Shashthi', 7 => 'Saptami', 8 => 'Ashtami',
+            9 => 'Navami', 10 => 'Dashami', 11 => 'Ekadashi', 12 => 'Dwadashi',
+            13 => 'Trayodashi', 14 => 'Chaturdashi', 15 => 'Purnima',
             30 => 'Amavasya'
         ];
 
-        $diff = $this->rev($moonDegree - $sunDegree);
+        $diff = fmod(($moonDegree - $sunDegree + 360.0), 360.0);
         $tithiNumber = (int) floor($diff / 12.0) + 1;
 
         if ($tithiNumber <= 15) {
@@ -155,23 +110,23 @@ class VedicAstrologyService
 
         return [
             'tithi_number' => $tithiNumber,
-            'paksha' => $paksha,
-            'name' => $name,
-            'full_name' => "$paksha $name",
-            'elapsed_pct' => $elapsedPercentage,
+            'paksha'       => $paksha,
+            'name'         => $name,
+            'full_name'    => "$paksha $name",
+            'elapsed_pct'  => $elapsedPercentage,
         ];
     }
 
     public function calculateYoga(float $sunDegree, float $moonDegree): string
     {
-        $total = $this->rev($sunDegree + $moonDegree);
+        $total = fmod($sunDegree + $moonDegree, 360.0);
         $yogaIndex = (int) floor($total / (360.0 / 27.0));
         return $this->nityaYogas[$yogaIndex % 27];
     }
 
     public function calculateKarana(float $sunDegree, float $moonDegree): string
     {
-        $diff = $this->rev($moonDegree - $sunDegree);
+        $diff = fmod(($moonDegree - $sunDegree + 360.0), 360.0);
         $karanaNumber = (int) floor($diff / 6.0) + 1;
 
         if ($karanaNumber === 1) {
@@ -192,51 +147,77 @@ class VedicAstrologyService
     public function calculateVimshottariDasha(float $moonSidereal, \DateTime $birthDate): array
     {
         $dashaOrder = [
-            ['planet' => 'Ketu', 'years' => 7],
-            ['planet' => 'Venus', 'years' => 20],
-            ['planet' => 'Sun', 'years' => 6],
-            ['planet' => 'Moon', 'years' => 10],
-            ['planet' => 'Mars', 'years' => 7],
-            ['planet' => 'Rahu', 'years' => 18],
+            ['planet' => 'Ketu',    'years' => 7],
+            ['planet' => 'Venus',   'years' => 20],
+            ['planet' => 'Sun',     'years' => 6],
+            ['planet' => 'Moon',    'years' => 10],
+            ['planet' => 'Mars',    'years' => 7],
+            ['planet' => 'Rahu',    'years' => 18],
             ['planet' => 'Jupiter', 'years' => 16],
-            ['planet' => 'Saturn', 'years' => 19],
+            ['planet' => 'Saturn',  'years' => 19],
             ['planet' => 'Mercury', 'years' => 17],
         ];
 
         $nakshatraSpan = 360.0 / 27.0;
         $nakshatraIndex = (int) floor($moonSidereal / $nakshatraSpan);
         $degInNakshatra = fmod($moonSidereal, $nakshatraSpan);
-        $remainingFraction = 1.0 - ($degInNakshatra / $nakshatraSpan);
+        $elapsedFraction = $degInNakshatra / $nakshatraSpan;
 
         $startIndex = $nakshatraIndex % 9;
-        $currentDate = clone $birthDate;
         $now = new \DateTime('now', $birthDate->getTimezone());
-        $dashas = [];
+
+        $firstPlanetYears = $dashaOrder[$startIndex]['years'];
+        $elapsedDaysBeforeBirth = (int) round($firstPlanetYears * $elapsedFraction * 365.2425);
+        $cursorDate = (clone $birthDate)->modify("-{$elapsedDaysBeforeBirth} days");
+
+        $mahadashas = [];
 
         for ($i = 0; $i < 9; $i++) {
-            $idx = ($startIndex + $i) % 9;
-            $planet = $dashaOrder[$idx]['planet'];
-            $fullYears = $dashaOrder[$idx]['years'];
+            $mIdx = ($startIndex + $i) % 9;
+            $mPlanet = $dashaOrder[$mIdx]['planet'];
+            $mYears = $dashaOrder[$mIdx]['years'];
 
-            $durationYears = ($i === 0) ? ($fullYears * $remainingFraction) : $fullYears;
-            $durationDays = (int) round($durationYears * 365.2425);
+            $mStart = ($i === 0) ? clone $birthDate : clone $cursorDate;
+            $antardashas = [];
 
-            $startDate = clone $currentDate;
-            $endDate = (clone $currentDate)->modify("+{$durationDays} days");
-            $isActive = ($now >= $startDate && $now <= $endDate);
+            for ($j = 0; $j < 9; $j++) {
+                $aIdx = ($mIdx + $j) % 9;
+                $aPlanet = $dashaOrder[$aIdx]['planet'];
+                $aFullYears = $dashaOrder[$aIdx]['years'];
 
-            $dashas[] = [
-                'planet' => $planet,
-                'duration' => round($durationYears, 1) . ' Years',
-                'start' => $startDate->format('d M Y'),
-                'end' => $endDate->format('d M Y'),
-                'active' => $isActive,
+                $antarYears = ($mYears * $aFullYears) / 120.0;
+                $antarDays = (int) round($antarYears * 365.2425);
+
+                $aStart = clone $cursorDate;
+                $aEnd = (clone $cursorDate)->modify("+{$antarDays} days");
+
+                if ($aEnd > $birthDate) {
+                    $effectiveStart = ($aStart < $birthDate) ? clone $birthDate : $aStart;
+                    $antardashas[] = [
+                        'planet' => "{$mPlanet}-{$aPlanet}",
+                        'start'  => $effectiveStart->format('d M Y'),
+                        'end'    => $aEnd->format('d M Y'),
+                        'active' => ($now >= $effectiveStart && $now <= $aEnd),
+                    ];
+                }
+
+                $cursorDate = $aEnd;
+            }
+
+            $mEnd = clone $cursorDate;
+            $actualDuration = ($i === 0) ? round($mYears * (1.0 - $elapsedFraction), 2) : $mYears;
+
+            $mahadashas[] = [
+                'planet'      => $mPlanet,
+                'duration'    => $actualDuration . ' Years',
+                'start'       => $mStart->format('d M Y'),
+                'end'         => $mEnd->format('d M Y'),
+                'active'      => ($now >= $mStart && $now <= $mEnd),
+                'antardashas' => $antardashas,
             ];
-
-            $currentDate = $endDate;
         }
 
-        return $dashas;
+        return $mahadashas;
     }
 
     public function getAvakhadaDetails(int $moonRashiIndex, int $nakshatraIndex, int $moonHouse): array
@@ -287,9 +268,9 @@ class VedicAstrologyService
     public function calculateChart(string $date, string $time, string $birthPlace, ?float $lat = null, ?float $lon = null): array
     {
         if ($lat === null || $lon === null) {
-            $coords = $this->getCoordinates($birthPlace);
-            $lat = $coords['lat'];
-            $lon = $coords['lon'];
+        $coords = $this->getCoordinates($birthPlace);
+        $lat = $coords['lat'];
+        $lon = $coords['lon'];
         }
         $timeNormalized = strlen($time) === 5 ? "$time:00" : $time;
         $localDt = \DateTime::createFromFormat('Y-m-d H:i:s', "$date $timeNormalized", new \DateTimeZone('Asia/Kolkata'))
@@ -412,6 +393,13 @@ class VedicAstrologyService
         $ascSidereal = $this->tropicalToSidereal($ascTropical, $ayanamsa);
         $sunSidereal = $this->tropicalToSidereal($lon_sun, $ayanamsa);
         $moonSidereal = $this->tropicalToSidereal($lon_moon, $ayanamsa);
+
+        // Calculate Tithi, Yoga, Karana dynamically
+        $tithiInfo = $this->calculateTithi($sunSidereal, $moonSidereal);
+        $yogaName = $this->calculateYoga($sunSidereal, $moonSidereal);
+        $karanaName = $this->calculateKarana($sunSidereal, $moonSidereal);
+        $vimshottariDasha = $this->calculateVimshottariDasha($moonSidereal, $localDt);
+
         $bodies = [
             'Ascendant' => $ascSidereal,
             'Sun' => $sunSidereal,
@@ -433,9 +421,9 @@ class VedicAstrologyService
         $ayanSec = (int) floor((($ayanamsa - $ayanDeg) * 60 - $ayanMin) * 60);
         $chart = [
             'planets' => [],
-            'tithi_info' => $this->calculateTithi($sunSidereal, $moonSidereal),
-            'yoga_name' => $this->calculateYoga($sunSidereal, $moonSidereal),
-            'karana_name' => $this->calculateKarana($sunSidereal, $moonSidereal),
+            'tithi_info' => $tithiInfo,
+            'yoga_name' => $yogaName,
+            'karana_name' => $karanaName,
             'ayanamsa_formatted' => sprintf(
                 "Lahiri (%02d° %02d' %02d\")",
                 $ayanDeg,
@@ -445,7 +433,7 @@ class VedicAstrologyService
             'sunrise' => $sunrise,
             'sunset' => $sunset,
             'avakhada' => $this->getAvakhadaDetails($moonRashiIndex, $moonNakshatraIndex, $moonHouse),
-            'vimshottari_dasha' => $this->calculateVimshottariDasha($moonSidereal, $localDt),
+            'vimshottari_dasha' => $vimshottariDasha,
         ];
         foreach ($bodies as $name => $sidDegree) {
             $rashiIndex = (int) floor($sidDegree / 30);
@@ -464,7 +452,7 @@ class VedicAstrologyService
                 'full_degree' => round($sidDegree, 4),
                 'rashi' => $this->rashis[$rashiIndex],
                 'rashi_number' => $rashiIndex + 1,
-                'degree_formatted' => sprintf('%02d° %02d\' %02d"', $deg, $min, $sec),
+                'degree_formatted' => \sprintf('%02d° %02d\' %02d"', $deg, $min, $sec),
                 'nakshatra' => $this->nakshatras[$nakshatraIndex]['name'],
                 'nakshatra_lord' => $this->nakshatras[$nakshatraIndex]['lord'],
                 'pada' => $pada,
