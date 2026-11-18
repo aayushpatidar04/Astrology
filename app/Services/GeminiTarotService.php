@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\TarotCard;
+use App\Models\TarotReadingCache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -28,7 +29,6 @@ class GeminiTarotService
                     $cardsList[] = $cardModels[$id];
                 }
             }
-            // Fallback if any missing
             while (count($cardsList) < $neededCount) {
                 $cardsList[] = TarotCard::inRandomOrder()->first();
             }
@@ -42,7 +42,7 @@ class GeminiTarotService
         foreach ($positions as $idx => $positionLabel) {
             /** @var TarotCard $cardModel */
             $cardModel = $cardsList[$idx] ?? TarotCard::inRandomOrder()->first();
-            $isReversed = random_int(1, 100) <= 30;
+            $isReversed = (abs(crc32($cardModel->id . $idx . ($question ?? ''))) % 100) < 30;
             $orientation = $isReversed ? 'Reversed' : 'Upright';
 
             $fixedMeaning = $cardModel->getMeaningFor($isReversed, $category);
@@ -66,8 +66,32 @@ class GeminiTarotService
         }
 
         $userQuestion = $question ? trim($question) : "General guidance for {$category}";
-        $apiKey = config('services.gemini.key');
 
+        // Generate cache key
+        $cardSignatures = [];
+        foreach ($drawnCards as $c) {
+            $cardSignatures[] = "{$c['id']}:{$c['orientation']}";
+        }
+        sort($cardSignatures);
+        $cleanQuestion = strtolower(trim($question ?? ''));
+        $cacheKeyString = "{$spreadType}|{$category}|{$cleanQuestion}|" . implode(',', $cardSignatures);
+        $cacheKey = md5($cacheKeyString);
+
+        // Check DB Cache first
+        $cached = TarotReadingCache::where('cache_key', $cacheKey)->first();
+        if ($cached) {
+            return [
+                'spread_type'       => $spreadType,
+                'category'          => $category,
+                'question'          => $userQuestion,
+                'overall_theme'     => $cached->overall_theme,
+                'cards'             => $cached->cards ?? $drawnCards,
+                'synthesis'         => $cached->synthesis,
+                'actionable_advice' => $cached->actionable_advice,
+            ];
+        }
+
+        $apiKey = config('services.gemini.key');
         $overallTheme = 'Clarity & Conscious Direction';
         $synthesis = '';
         $actionableAdvice = '';
@@ -131,6 +155,18 @@ class GeminiTarotService
             }
             $actionableAdvice = 'Reflect on the core keywords above and take one clear, intentional step forward today.';
         }
+
+        // Save to Database Cache including cards JSON
+        TarotReadingCache::create([
+            'cache_key'         => $cacheKey,
+            'spread_type'       => $spreadType,
+            'category'          => $category,
+            'question'          => $question,
+            'overall_theme'     => $overallTheme,
+            'cards'             => $drawnCards,
+            'synthesis'         => $synthesis,
+            'actionable_advice' => $actionableAdvice,
+        ]);
 
         return [
             'spread_type'       => $spreadType,
