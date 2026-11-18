@@ -520,90 +520,92 @@ const zoomTransform = (o, s = 1.18) =>
                 </div>
 
                 <!-- North Indian Lagna Chart & Avakhada Chakra -->
-                <div
-                    class="bg-white rounded-xl shadow-md p-6 border border-gray-100 flex flex-col items-center"
-                >
-                    <h3
-                        class="text-lg font-bold text-gray-900 mb-4 self-start w-full pb-2 border-b"
-                    >
-                        Lagna Kundli (D1 Chart)
-                    </h3>
-
-                    <!-- the ONLY outer border lives here -->
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     <div
-                        class="w-full max-w-sm overflow-hidden rounded-lg border-2 border-orange-600 bg-[#fefae0] shadow-md"
+                        class="bg-white rounded-xl shadow-md p-6 border border-gray-100 flex flex-col items-center"
                     >
-                        <svg
-                            viewBox="0 0 400 400"
-                            class="block w-full h-auto select-none"
-                            @pointerleave="hoveredHouse = null"
+                        <h3
+                            class="text-lg font-bold text-gray-900 mb-4 self-start w-full pb-2 border-b"
                         >
-                            <defs>
-                                <clipPath id="d1-chart-clip">
-                                    <rect
-                                        x="0"
-                                        y="0"
-                                        width="400"
-                                        height="400"
-                                    />
-                                </clipPath>
-                            </defs>
-
-                            <g
-                                v-for="h in chartLayers"
-                                :key="h.key"
-                                :clip-path="
-                                    h.zoom ? 'url(#d1-chart-clip)' : null
-                                "
-                                :class="h.zoom ? 'house-zoom' : 'house-base'"
-                                @pointerenter="!h.zoom && (hoveredHouse = h.n)"
-                                @click="!h.zoom && (hoveredHouse = h.n)"
+                            Lagna Kundli (D1 Chart)
+                        </h3>
+    
+                        <!-- the ONLY outer border lives here -->
+                        <div
+                            class="w-full max-w-sm overflow-hidden rounded-lg border-2 border-orange-600 bg-[#fefae0] shadow-md"
+                        >
+                            <svg
+                                viewBox="0 0 400 400"
+                                class="block w-full h-auto select-none"
+                                @pointerleave="hoveredHouse = null"
                             >
+                                <defs>
+                                    <clipPath id="d1-chart-clip">
+                                        <rect
+                                            x="0"
+                                            y="0"
+                                            width="400"
+                                            height="400"
+                                        />
+                                    </clipPath>
+                                </defs>
+    
                                 <g
-                                    :transform="
-                                        h.zoom ? zoomTransform(h.o, 1.15) : null
+                                    v-for="h in chartLayers"
+                                    :key="h.key"
+                                    :clip-path="
+                                        h.zoom ? 'url(#d1-chart-clip)' : null
                                     "
+                                    :class="h.zoom ? 'house-zoom' : 'house-base'"
+                                    @pointerenter="!h.zoom && (hoveredHouse = h.n)"
+                                    @click="!h.zoom && (hoveredHouse = h.n)"
                                 >
-                                    <polygon
-                                        :points="h.pts"
-                                        :fill="
-                                            h.zoom
-                                                ? '#fff4d6'
-                                                : h.n === 1
-                                                  ? '#fdecc8'
-                                                  : '#fefae0'
+                                    <g
+                                        :transform="
+                                            h.zoom ? zoomTransform(h.o, 1.15) : null
                                         "
-                                        :stroke="h.zoom ? '#c2410c' : '#ea580c'"
-                                        :stroke-width="h.zoom ? 2 : 1.25"
-                                        stroke-linejoin="round"
-                                    />
-                                    <text
-                                        :x="h.num[0]"
-                                        :y="h.num[1]"
-                                        font-size="13"
-                                        font-weight="700"
-                                        fill="#ea580c"
-                                        text-anchor="middle"
-                                        dominant-baseline="central"
                                     >
-                                        {{ h.rashi }}
-                                    </text>
-                                    <text
-                                        v-for="(p, i) in h.planets"
-                                        :key="i"
-                                        :x="p.x"
-                                        :y="p.y"
-                                        :font-size="p.fs"
-                                        font-weight="600"
-                                        :fill="p.color"
-                                        text-anchor="middle"
-                                        dominant-baseline="central"
-                                    >
-                                        {{ p.text }}
-                                    </text>
+                                        <polygon
+                                            :points="h.pts"
+                                            :fill="
+                                                h.zoom
+                                                    ? '#fff4d6'
+                                                    : h.n === 1
+                                                      ? '#fdecc8'
+                                                      : '#fefae0'
+                                            "
+                                            :stroke="h.zoom ? '#c2410c' : '#ea580c'"
+                                            :stroke-width="h.zoom ? 2 : 1.25"
+                                            stroke-linejoin="round"
+                                        />
+                                        <text
+                                            :x="h.num[0]"
+                                            :y="h.num[1]"
+                                            font-size="13"
+                                            font-weight="700"
+                                            fill="#ea580c"
+                                            text-anchor="middle"
+                                            dominant-baseline="central"
+                                        >
+                                            {{ h.rashi }}
+                                        </text>
+                                        <text
+                                            v-for="(p, i) in h.planets"
+                                            :key="i"
+                                            :x="p.x"
+                                            :y="p.y"
+                                            :font-size="p.fs"
+                                            font-weight="600"
+                                            :fill="p.color"
+                                            text-anchor="middle"
+                                            dominant-baseline="central"
+                                        >
+                                            {{ p.text }}
+                                        </text>
+                                    </g>
                                 </g>
-                            </g>
-                        </svg>
+                            </svg>
+                        </div>
                         <p class="text-xs text-gray-500 mt-3 text-center">
                             <template v-if="hoveredHouse">
                                 House {{ hoveredHouse }} · Rashi
@@ -615,8 +617,8 @@ const zoomTransform = (o, s = 1.18) =>
                                 (1=Aries ... 12=Pisces).</template
                             >
                         </p>
+    
                     </div>
-
                     <!-- Avakhada & Dosha Summary -->
                     <div
                         class="bg-white rounded-xl shadow-md p-6 border border-gray-100 flex flex-col justify-between"
@@ -781,7 +783,6 @@ const zoomTransform = (o, s = 1.18) =>
                                 <th class="p-3">Duration</th>
                                 <th class="p-3">Start Date</th>
                                 <th class="p-3">End Date</th>
-                                <th class="p-3">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -791,21 +792,15 @@ const zoomTransform = (o, s = 1.18) =>
                                 class="border-b hover:bg-gray-50"
                             >
                                 <td class="p-3 font-bold text-gray-900">
-                                    {{ dasha.planet }}
+                                    {{ dasha.planet }} <span
+                                        v-if="dasha.active"
+                                        class="px-2 mx-5 py-0.5 rounded text-xs bg-amber-100 text-amber-800 font-bold"
+                                        >ACTIVE</span
+                                    >
                                 </td>
                                 <td class="p-3">{{ dasha.duration }}</td>
                                 <td class="p-3">{{ dasha.start }}</td>
                                 <td class="p-3">{{ dasha.end }}</td>
-                                <td class="p-3">
-                                    <span
-                                        v-if="dasha.active"
-                                        class="px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-800 font-bold"
-                                        >ACTIVE</span
-                                    >
-                                    <span v-else class="text-gray-500 text-xs"
-                                        >Completed</span
-                                    >
-                                </td>
                             </tr>
                         </tbody>
                     </table>

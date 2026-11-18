@@ -23,13 +23,18 @@ class AstroAiService
         $yogaName = $chartResult['yoga_name'] ?? 'Ayushman';
         $karanaName = $chartResult['karana_name'] ?? 'Nag';
         $vimshottariDasha = $chartResult['vimshottari_dasha'] ?? [];
+        $avakhada = $chartResult['avakhada'] ?? [];
+        $sunrise = $chartResult['sunrise'] ?? '06:00 AM';
+        $sunset = $chartResult['sunset'] ?? '06:30 PM';
+        $ayanamsaStr = $chartResult['ayanamsa_formatted'] ?? 'Lahiri (23.85°)';
 
         $planetaryPositions = [];
-        $sunSign = '';
-        $moonSign = '';
-        $lagna = '';
-        $nakshatra = '';
-        $nakshatraLord = '';
+        $sunSign = 'Aries';
+        $moonSign = 'Aries';
+        $lagna = 'Gemini';
+        $nakshatra = 'Bharani';
+        $nakshatraLord = 'Venus';
+        $moonPada = 1;
 
         foreach ($chartData as $key => $body) {
             $isAsc = $key === 'Ascendant' || str_contains($key, 'Ascendant');
@@ -42,6 +47,8 @@ class AstroAiService
             if ($key === 'Moon') {
                 $moonSign = explode(' ', $body['rashi'])[0];
                 $nakshatra = $body['nakshatra'];
+                $nakshatraLord = $body['nakshatra_lord'];
+                $moonPada = $body['pada'] ?? 1;
             }
 
             $planetaryPositions[$key] = [
@@ -52,7 +59,7 @@ class AstroAiService
                 'degree' => $body['degree_formatted'],
                 'full_degree' => $body['full_degree'] ?? 0.0,
                 'nakshatra' => $body['nakshatra'],
-                'nakshatra_lord' => $this->getNakshatraLord($body['nakshatra']),
+                'nakshatra_lord' => $body['nakshatra_lord'],
                 'rashi_number' => $body['rashi_number'] ?? 1,
                 'pada' => $body['pada'] ?? 1,
             ];
@@ -72,7 +79,7 @@ class AstroAiService
             'latitude' => "{$lat}° N",
             'longitude' => "{$lon}° E",
             'timezone' => 'GMT +05:30',
-            'ayanamsa' => 'Lahiri (23.85°)',
+            'ayanamsa' => $ayanamsaStr,
             'basic_details' => [
                 'sun_sign' => $sunSign,
                 'moon_sign' => $moonSign,
@@ -80,19 +87,19 @@ class AstroAiService
                 'lagna_lord' => $this->getSignLord($lagna),
                 'nakshatra' => $nakshatra,
                 'nakshatra_lord' => $nakshatraLord,
-                'charan' => 2,
+                'charan' => $moonPada,
                 'tithi' => $tithiName,
                 'yoga' => $yogaName,
                 'karan' => $karanaName,
-                'varna' => 'Kshattriya',
-                'vashya' => 'Chatushpada',
-                'yoni' => 'Gaja',
-                'gan' => 'Manav',
-                'nadi' => 'Madhya',
-                'tatva' => 'Fire',
-                'paya' => 'Gold',
-                'sunrise' => '05:53 AM',
-                'sunset' => '07:01 PM',
+                'varna' => $avakhada['varna'] ?? 'Brahmin',
+                'vashya' => $avakhada['vashya'] ?? 'Manav',
+                'yoni' => $avakhada['yoni'] ?? 'Ashwa',
+                'gan' => $avakhada['gan'] ?? 'Dev',
+                'nadi' => $avakhada['nadi'] ?? 'Adi',
+                'tatva' => $avakhada['tatva'] ?? 'Fire',
+                'paya' => $avakhada['paya'] ?? 'Gold',
+                'sunrise' => $sunrise,
+                'sunset' => $sunset,
             ],
             'planetary_positions' => array_values($planetaryPositions),
             'vimshottari_dasha' => $vimshottariDasha,
