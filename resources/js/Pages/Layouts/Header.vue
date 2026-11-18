@@ -228,6 +228,11 @@ onBeforeUnmount(() => {
                             :class="route().current('tools.compatibility') ? 'font-bold text-orange-600 bg-orange-50' : ''">
                             Zodiac Compatibility
                         </Link>
+                        <Link :href="route('tools.tarot')" @click="closeDropdown"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition"
+                            :class="route().current('tools.tarot') ? 'font-bold text-orange-600 bg-orange-50' : ''">
+                            Tarot Reading
+                        </Link>
                     </div>
                 </li>
 

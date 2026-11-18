@@ -169,6 +169,36 @@ class AstroToolController extends Controller
         ]);
     }
 
+    public function tarotReading(Request $request, \App\Services\GeminiTarotService $tarotService)
+    {
+        $readingData = null;
+
+        if ($request->filled('spread_type')) {
+            $validated = $request->validate([
+                'spread_type' => 'required|in:single,three_card,love,career',
+                'category'    => 'required|string|max:50',
+                'question'    => 'nullable|string|max:300',
+            ]);
+
+            $readingData = $tarotService->generateReading(
+                $validated['spread_type'],
+                $validated['category'],
+                $validated['question'] ?? null
+            );
+        }
+
+        $user = Auth::user();
+        if ($user) {
+            $user = $user->load('wallet');
+        }
+
+        return Inertia::render('Tools/TarotReading', [
+            'readingData' => $readingData,
+            'filters'     => $request->only(['spread_type', 'category', 'question']),
+            'user'        => $user,
+        ]);
+    }
+
     public function searchCities(Request $request)
     {
         $query = $request->input('key', '');
