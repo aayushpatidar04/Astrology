@@ -37,6 +37,7 @@ Route::get('/tools/compatibility', [AstroToolController::class, 'zodiacCompatibi
 Route::get('/tools/tarot-reading', [AstroToolController::class, 'tarotReading'])->name('tools.tarot');
 Route::get('/tools/numerology', [AstroToolController::class, 'numerology'])->name('tools.numerology');
 Route::get('/tools/baby-names', [AstroToolController::class, 'babyNames'])->name('tools.baby-names');
+Route::get('/tools/love-calculator', [AstroToolController::class, 'loveCalculator'])->name('tools.love-calculator');
 Route::get('/api/cities/autocomplete', [AstroToolController::class, 'searchCities'])->name('api.cities.autocomplete');
 
 Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {

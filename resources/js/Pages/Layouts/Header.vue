@@ -265,6 +265,11 @@ onBeforeUnmount(() => {
                             :class="route().current('tools.numerology') ? 'font-bold text-orange-600 bg-orange-50' : ''">
                             Numerology Calculator
                         </Link>
+                        <Link :href="route('tools.love-calculator')" @click="closeCalculatorsDropdown"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition"
+                            :class="route().current('tools.love-calculator') ? 'font-bold text-orange-600 bg-orange-50' : ''">
+                            Love Calculator
+                        </Link>
                     </div>
                 </li>
 

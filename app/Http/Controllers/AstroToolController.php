@@ -114,7 +114,7 @@ class AstroToolController extends Controller
             $validated = $request->validate([
                 'sign1' => 'required|string|max:30',
                 'sign2' => 'required|string|max:30',
-                'mode'  => 'nullable|in:love,friendship',
+                'mode' => 'nullable|in:love,friendship',
             ]);
 
             $result = $this->astroService->calculateZodiacCompatibility(
@@ -131,8 +131,8 @@ class AstroToolController extends Controller
 
         return Inertia::render('Tools/ZodiacCompatibility', [
             'compatibilityData' => $result,
-            'filters'           => $request->only(['sign1', 'sign2', 'mode']),
-            'user'              => $user,
+            'filters' => $request->only(['sign1', 'sign2', 'mode']),
+            'user' => $user,
         ]);
     }
 
@@ -140,8 +140,8 @@ class AstroToolController extends Controller
     {
         $date = $request->input('date', now('Asia/Kolkata')->format('Y-m-d'));
         $city = $request->input('city', 'Jaipur, Rajasthan, India');
-        $lat  = (float) $request->input('lat', 26.9124);
-        $lng  = (float) $request->input('lng', 75.7873);
+        $lat = (float) $request->input('lat', 26.9124);
+        $lng = (float) $request->input('lng', 75.7873);
 
         if ($request->filled('lat') && $request->filled('lng')) {
             $cityOnly = trim(explode(',', $city)[0]);
@@ -194,8 +194,8 @@ class AstroToolController extends Controller
 
         return Inertia::render('Tools/Numerology', [
             'numerologyData' => $numerologyData,
-            'filters'        => $request->only(['name', 'dob', 'system']),
-            'user'           => $user,
+            'filters' => $request->only(['name', 'dob', 'system']),
+            'user' => $user,
         ]);
     }
 
@@ -205,13 +205,13 @@ class AstroToolController extends Controller
 
         if ($request->filled('dob')) {
             $validated = $request->validate([
-                'dob'         => 'required|date',
-                'tob'         => 'required|string',
+                'dob' => 'required|date',
+                'tob' => 'required|string',
                 'birth_place' => 'required|string|max:255',
-                'gender'      => 'required|in:boy,girl,unisex',
-                'style'       => 'nullable|string|max:60',
-                'lat'         => 'nullable|numeric',
-                'lng'         => 'nullable|numeric',
+                'gender' => 'required|in:boy,girl,unisex',
+                'style' => 'nullable|string|max:60',
+                'lat' => 'nullable|numeric',
+                'lng' => 'nullable|numeric',
             ]);
 
             if ($request->filled('lat') && $request->filled('lng')) {
@@ -244,9 +244,41 @@ class AstroToolController extends Controller
 
         return Inertia::render('Tools/BabyNames', [
             'babyNameData' => $babyNameData,
-            'filters'      => $request->only(['dob', 'tob', 'birth_place', 'gender', 'style', 'lat', 'lng']),
-            'user'         => $user,
+            'filters' => $request->only(['dob', 'tob', 'birth_place', 'gender', 'style', 'lat', 'lng']),
+            'user' => $user,
         ]);
+    }
+
+    public function loveCalculator(Request $request, \App\Services\NumerologyService $numerologyService)
+    {
+        $loveData = null;
+
+        if ($request->filled('name1') && $request->filled('name2')) {
+            $validated = $request->validate(array(
+                'name1' => 'required|string|max:100',
+                'gender1' => 'required|in:male,female,other',
+                'name2' => 'required|string|max:100',
+                'gender2' => 'required|in:male,female,other',
+            ));
+
+            $loveData = $numerologyService->calculateLoveMatch(
+                $validated['name1'],
+                $validated['gender1'],
+                $validated['name2'],
+                $validated['gender2']
+            );
+        }
+
+        $user = Auth::user();
+        if ($user) {
+            $user = $user->load('wallet');
+        }
+
+        return Inertia::render('Tools/LoveCalculator', array(
+            'loveData' => $loveData,
+            'filters' => $request->only(array('name1', 'gender1', 'name2', 'gender2')),
+            'user' => $user,
+        ));
     }
 
     public function tarotReading(Request $request, \App\Services\GeminiTarotService $tarotService)
@@ -256,8 +288,8 @@ class AstroToolController extends Controller
         if ($request->has('spread_type') && $request->has('chosen_cards')) {
             $validated = $request->validate([
                 'spread_type' => 'required|in:single,three_card,love,career',
-                'category'    => 'required|string|max:50',
-                'question'    => 'nullable|string|max:300',
+                'category' => 'required|string|max:50',
+                'question' => 'nullable|string|max:300',
                 'chosen_cards' => 'required|array',
                 'chosen_cards.*' => 'integer|exists:tarot_cards,id',
             ]);
@@ -278,9 +310,9 @@ class AstroToolController extends Controller
 
         return Inertia::render('Tools/TarotReading', [
             'readingData' => $readingData,
-            'allCards'    => $allCards,
-            'filters'     => $request->only(['spread_type', 'category', 'question']),
-            'user'        => $user,
+            'allCards' => $allCards,
+            'filters' => $request->only(['spread_type', 'category', 'question']),
+            'user' => $user,
         ]);
     }
 
