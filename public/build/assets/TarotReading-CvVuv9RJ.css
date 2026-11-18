@@ -1,0 +1,1 @@
+@keyframes riffle-b3fef0f5{0%,to{transform:translate(var(--dx),var(--dy)) rotate(0)}25%{transform:translate(calc(var(--dx) + var(--dir) * -26px),var(--dy)) rotate(calc(var(--dir) * -6deg))}75%{transform:translate(calc(var(--dx) + var(--dir) * 26px),calc(var(--dy) - 4px)) rotate(calc(var(--dir) * 6deg))}}
