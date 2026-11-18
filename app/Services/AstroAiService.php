@@ -35,6 +35,7 @@ class AstroAiService
         $nakshatra = 'Bharani';
         $nakshatraLord = 'Venus';
         $moonPada = 1;
+        $moonFullDegree = 0.0;
 
         foreach ($chartData as $key => $body) {
             $isAsc = $key === 'Ascendant' || str_contains($key, 'Ascendant');
@@ -49,6 +50,7 @@ class AstroAiService
                 $nakshatra = $body['nakshatra'];
                 $nakshatraLord = $body['nakshatra_lord'];
                 $moonPada = $body['pada'] ?? 1;
+                $moonFullDegree = $body['full_degree'] ?? 0.0;
             }
 
             $planetaryPositions[$key] = [
@@ -65,9 +67,10 @@ class AstroAiService
             ];
         }
 
-        // Evaluate professional multi-chart Manglik & Kalsarpa Doshas
+        // Evaluate professional multi-chart Manglik, Kalsarpa & Sade Sati Doshas
         $manglikAnalysis = $this->evaluateManglikDosha($planetaryPositions, $dob);
         $kalsarpaAnalysis = $this->evaluateKalsarpaDosha($planetaryPositions);
+        $sadeSatiAnalysis = $this->evaluateSadeSati($moonFullDegree, $moonSign);
         $tithiName = $tithiInfo['full_name'] ?? 'Amavasya';
 
         return [
@@ -106,11 +109,7 @@ class AstroAiService
             'doshas' => [
                 'manglik_dosha' => $manglikAnalysis,
                 'kalsarpa_dosha' => $kalsarpaAnalysis,
-                'sade_sati' => [
-                    'is_active' => false,
-                    'status' => 'NOT ACTIVE',
-                    'description' => 'Saturn is currently in favorable transit relative to natal Moon.'
-                ]
+                'sade_sati' => $sadeSatiAnalysis,
             ],
             'yoga_combinations' => [
                 ['name' => 'Gajakesari Yoga', 'desc' => 'Jupiter in kendra from Moon, bringing wisdom and success.'],
@@ -361,6 +360,76 @@ class AstroAiService
             'outside_planets' => $outsidePlanets,
             'cancellations' => $cancellations,
             'description' => $description,
+        ];
+    }
+
+    /**
+     * Dynamically calculate Sade Sati & Dhaiya (Panoti) using live Saturn transit
+     */
+    public function evaluateSadeSati(float $natalMoonDegree, string $moonSignName): array
+    {
+        $today = now();
+        $currentTransit = $this->vedicService->calculateChart(
+            $today->format('Y-m-d'),
+            $today->format('H:i'),
+            'Ujjain, India'
+        );
+
+        $transitSaturn = $currentTransit['planets']['Saturn'] ?? null;
+        $transitSaturnSign = explode(' ', $transitSaturn['rashi'] ?? 'Aries')[0];
+
+        $natalMoonRashiIndex = (int) floor($natalMoonDegree / 30.0);
+        $transitSaturnRashiIndex = ($transitSaturn['rashi_number'] ?? 1) - 1;
+
+        $houseFromMoon = (($transitSaturnRashiIndex - $natalMoonRashiIndex + 12) % 12) + 1;
+
+        if ($houseFromMoon === 12) {
+            return [
+                'is_active'   => true,
+                'status'      => 'ACTIVE (1ST PHASE - RISING)',
+                'phase'       => 'Rising Phase (Udaya)',
+                'transit_sign'=> $transitSaturnSign,
+                'description' => "Sade Sati is active in its 1st (Rising) phase. Transit Saturn is in {$transitSaturnSign} (12th house from your natal Moon in {$moonSignName}).",
+            ];
+        }
+
+        if ($houseFromMoon === 1) {
+            return [
+                'is_active'   => true,
+                'status'      => 'ACTIVE (2ND PHASE - PEAK)',
+                'phase'       => 'Peak Phase (Shikhar)',
+                'transit_sign'=> $transitSaturnSign,
+                'description' => "Sade Sati is active in its 2nd (Peak) phase. Transit Saturn is transiting directly over your natal Moon in {$moonSignName}.",
+            ];
+        }
+
+        if ($houseFromMoon === 2) {
+            return [
+                'is_active'   => true,
+                'status'      => 'ACTIVE (3RD PHASE - SETTING)',
+                'phase'       => 'Setting Phase (Ast)',
+                'transit_sign'=> $transitSaturnSign,
+                'description' => "Sade Sati is active in its 3rd (Setting) phase. Transit Saturn is in {$transitSaturnSign} (2nd house from your natal Moon in {$moonSignName}).",
+            ];
+        }
+
+        if ($houseFromMoon === 4 || $houseFromMoon === 8) {
+            $dhaiyaName = $houseFromMoon === 4 ? 'Kantaka Shani (4th)' : 'Ashtama Shani (8th)';
+            return [
+                'is_active'   => false,
+                'status'      => "NOT ACTIVE ({$dhaiyaName} Dhaiya)",
+                'phase'       => 'Dhaiya (2.5-Year Transit)',
+                'transit_sign'=> $transitSaturnSign,
+                'description' => "Sade Sati is not active, though Saturn in {$transitSaturnSign} is in the {$houseFromMoon}th house from your natal Moon ({$dhaiyaName}).",
+            ];
+        }
+
+        return [
+            'is_active'   => false,
+            'status'      => 'NOT ACTIVE',
+            'phase'       => 'None',
+            'transit_sign'=> $transitSaturnSign,
+            'description' => "Sade Sati is not active. Transit Saturn is currently in {$transitSaturnSign} ({$houseFromMoon}th house from your natal Moon in {$moonSignName}).",
         ];
     }
 

@@ -709,6 +709,24 @@ const zoomTransform = (o, s = 1.18) =>
                                         }}
                                     </p>
                                 </div>
+                                <div class="bg-orange-50 p-3 rounded-lg border">
+                                    <span class="font-bold text-gray-800"
+                                        >Sade Sati Analysis:</span
+                                    >
+                                    <span
+                                        class="ml-2 font-semibold"
+                                        :class="
+                                            kundliData.doshas.sade_sati.is_active
+                                                ? 'text-amber-600'
+                                                : 'text-green-600'
+                                        "
+                                    >
+                                        {{ kundliData.doshas.sade_sati.status }}
+                                    </span>
+                                    <p class="text-xs text-gray-600 mt-1">
+                                        {{ kundliData.doshas.sade_sati.description }}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
