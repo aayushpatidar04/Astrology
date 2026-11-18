@@ -593,70 +593,339 @@ class AstroAiService
         return $nakshatras[$nakshatra] ?? 'Sun';
     }
 
+    /**
+     * Complete 36-Guna Ashtakoota Kundli Milan & Manglik Compatibility Engine
+     */
     public function calculateKundliMilan(array $boyData, array $girlData): array
     {
-        $boyChart = $this->vedicService->calculateChart($boyData['dob'], '10:00', $boyData['birth_place'] ?? 'India');
-        $girlChart = $this->vedicService->calculateChart($girlData['dob'], '10:00', $girlData['birth_place'] ?? 'India');
+        $boyChart = $this->vedicService->calculateChart(
+            $boyData['dob'],
+            $boyData['tob'] ?? '10:00',
+            $boyData['birth_place'] ?? 'India',
+            isset($boyData['lat']) ? (float) $boyData['lat'] : null,
+            isset($boyData['lng']) ? (float) $boyData['lng'] : null
+        );
 
-        $hash = abs(crc32($boyData['dob'] . $girlData['dob']));
-        $varna = 1.0;
-        $vashya = 2.0;
-        $tara = 3.0;
-        $yoni = 3.0 + ($hash % 2);
-        $maitri = 4.0;
-        $gana = 5.0;
-        $bhakoot = ($hash % 3 === 0) ? 7.0 : 5.0;
-        $nadi = ($hash % 2 === 0) ? 8.0 : 4.0;
+        $girlChart = $this->vedicService->calculateChart(
+            $girlData['dob'],
+            $girlData['tob'] ?? '10:00',
+            $girlData['birth_place'] ?? 'India',
+            isset($girlData['lat']) ? (float) $girlData['lat'] : null,
+            isset($girlData['lng']) ? (float) $girlData['lng'] : null
+        );
 
-        $totalGuna = round($varna + $vashya + $tara + $yoni + $maitri + $gana + $bhakoot + $nadi, 1);
+        $boyMoon  = $boyChart['planets']['Moon'] ?? $boyChart['Moon'] ?? [];
+        $girlMoon = $girlChart['planets']['Moon'] ?? $girlChart['Moon'] ?? [];
+
+        $bSign = ($boyMoon['rashi_number'] ?? 1) - 1;
+        $gSign = ($girlMoon['rashi_number'] ?? 1) - 1;
+
+        $bNak = (int) floor(($boyMoon['full_degree'] ?? 0.0) / (360.0 / 27.0));
+        $gNak = (int) floor(($girlMoon['full_degree'] ?? 0.0) / (360.0 / 27.0));
+
+        $bPada = $boyMoon['pada'] ?? 1;
+        $gPada = $girlMoon['pada'] ?? 1;
+
+        // --- 1. VARNA KOOTA (Max 1) ---
+        $varnaRanks = [3, 1, 3, 0, 3, 1, 3, 0, 3, 1, 3, 0]; // 3=Brahmin/Kshatriya, etc. Simplified rank map
+        $varnaNames = [0 => 'Shudra', 1 => 'Vaishya', 2 => 'Kshatriya', 3 => 'Brahmin'];
+        $bVarna = $varnaRanks[$bSign] ?? 2;
+        $gVarna = $varnaRanks[$gSign] ?? 2;
+        $varnaScore = ($bVarna >= $gVarna) ? 1.0 : 0.0;
+
+        // --- 2. VASHYA KOOTA (Max 2) ---
+        $vashyaTypes = [
+            'Chatushpada', 'Chatushpada', 'Manav', 'Jalachara',
+            'Vanachara', 'Manav', 'Manav', 'Keeta',
+            'Chatushpada', 'Jalachara', 'Manav', 'Jalachara'
+        ];
+        $bVashya = $vashyaTypes[$bSign] ?? 'Manav';
+        $gVashya = $vashyaTypes[$gSign] ?? 'Manav';
+        if ($bVashya === $gVashya) {
+            $vashyaScore = 2.0;
+        } elseif (
+            ($bVashya === 'Manav' && \in_array($gVashya, ['Chatushpada', 'Jalachara'], true)) ||
+            ($gVashya === 'Manav' && \in_array($bVashya, ['Chatushpada', 'Jalachara'], true))
+        ) {
+            $vashyaScore = 1.0;
+        } elseif ($bVashya === 'Vanachara' || $gVashya === 'Vanachara') {
+            $vashyaScore = 0.0;
+        } else {
+            $vashyaScore = 0.5;
+        }
+
+        // --- 3. TARA KOOTA (Max 3) ---
+        $auspiciousTaras = [1, 2, 4, 6, 8, 9];
+        $taraGtoB = (($bNak - $gNak + 27) % 27) % 9;
+        $taraGtoB = $taraGtoB === 0 ? 9 : $taraGtoB;
+
+        $taraBtoG = (($gNak - $bNak + 27) % 27) % 9;
+        $taraBtoG = $taraBtoG === 0 ? 9 : $taraBtoG;
+
+        $t1Good = \in_array($taraGtoB, $auspiciousTaras, true);
+        $t2Good = \in_array($taraBtoG, $auspiciousTaras, true);
+        $taraScore = ($t1Good && $t2Good) ? 3.0 : (($t1Good || $t2Good) ? 1.5 : 0.0);
+
+        // --- 4. YONI KOOTA (Max 4) ---
+        $yoniList = [
+            'Ashwa', 'Gaja', 'Mesha', 'Sarpa', 'Sarpa', 'Shwan', 'Marjara', 'Mesha', 'Marjara',
+            'Mushaka', 'Mushaka', 'Gau', 'Mahisha', 'Vyaghra', 'Mahisha', 'Vyaghra', 'Mriga', 'Mriga',
+            'Shwan', 'Vanara', 'Nakula', 'Vanara', 'Simha', 'Ashwa', 'Simha', 'Gau', 'Gaja'
+        ];
+        $swornEnemies = [
+            'Ashwa' => 'Mahisha', 'Mahisha' => 'Ashwa',
+            'Gaja' => 'Simha', 'Simha' => 'Gaja',
+            'Mesha' => 'Vanara', 'Vanara' => 'Mesha',
+            'Sarpa' => 'Nakula', 'Nakula' => 'Sarpa',
+            'Shwan' => 'Mriga', 'Mriga' => 'Shwan',
+            'Marjara' => 'Mushaka', 'Mushaka' => 'Marjara',
+            'Gau' => 'Vyaghra', 'Vyaghra' => 'Gau',
+        ];
+        $bYoni = $yoniList[$bNak % 27] ?? 'Ashwa';
+        $gYoni = $yoniList[$gNak % 27] ?? 'Ashwa';
+        if ($bYoni === $gYoni) {
+            $yoniScore = 4.0;
+        } elseif (($swornEnemies[$bYoni] ?? '') === $gYoni) {
+            $yoniScore = 0.0;
+        } else {
+            $yoniScore = 2.0;
+        }
+
+        // --- 5. GRAHA MAITRI KOOTA (Max 5) ---
+        $signLords = ['Mars', 'Venus', 'Mercury', 'Moon', 'Sun', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Saturn', 'Jupiter'];
+        $friends = [
+            'Sun'     => ['Moon', 'Mars', 'Jupiter'],
+            'Moon'    => ['Sun', 'Mercury'],
+            'Mars'    => ['Sun', 'Moon', 'Jupiter'],
+            'Mercury' => ['Sun', 'Venus'],
+            'Jupiter' => ['Sun', 'Moon', 'Mars'],
+            'Venus'   => ['Mercury', 'Saturn'],
+            'Saturn'  => ['Mercury', 'Venus'],
+        ];
+        $enemies = [
+            'Sun'     => ['Venus', 'Saturn'],
+            'Moon'    => [],
+            'Mars'    => ['Mercury'],
+            'Mercury' => ['Moon'],
+            'Jupiter' => ['Mercury', 'Venus'],
+            'Venus'   => ['Sun', 'Moon'],
+            'Saturn'  => ['Sun', 'Moon', 'Mars'],
+        ];
+
+        $bLord = $signLords[$bSign] ?? 'Sun';
+        $gLord = $signLords[$gSign] ?? 'Sun';
+
+        $getRelation = function ($p1, $p2) use ($friends, $enemies) {
+            if ($p1 === $p2) return 'Friend';
+            if (\in_array($p2, $friends[$p1] ?? [], true)) return 'Friend';
+            if (\in_array($p2, $enemies[$p1] ?? [], true)) return 'Enemy';
+            return 'Neutral';
+        };
+
+        $rel1 = $getRelation($bLord, $gLord);
+        $rel2 = $getRelation($gLord, $bLord);
+
+        if ($rel1 === 'Friend' && $rel2 === 'Friend') $maitriScore = 5.0;
+        elseif (($rel1 === 'Friend' && $rel2 === 'Neutral') || ($rel1 === 'Neutral' && $rel2 === 'Friend')) $maitriScore = 4.0;
+        elseif ($rel1 === 'Neutral' && $rel2 === 'Neutral') $maitriScore = 3.0;
+        elseif (($rel1 === 'Friend' && $rel2 === 'Enemy') || ($rel1 === 'Enemy' && $rel2 === 'Friend')) $maitriScore = 1.0;
+        elseif (($rel1 === 'Neutral' && $rel2 === 'Enemy') || ($rel1 === 'Enemy' && $rel2 === 'Neutral')) $maitriScore = 0.5;
+        else $maitriScore = 0.0;
+
+        // --- 6. GANA KOOTA (Max 6) ---
+        $ganaList = [
+            'Dev', 'Manav', 'Rakshasa', 'Manav', 'Dev', 'Manav', 'Dev', 'Dev', 'Rakshasa',
+            'Rakshasa', 'Manav', 'Manav', 'Dev', 'Rakshasa', 'Dev', 'Rakshasa', 'Dev', 'Rakshasa',
+            'Rakshasa', 'Manav', 'Manav', 'Dev', 'Rakshasa', 'Rakshasa', 'Manav', 'Manav', 'Dev'
+        ];
+        $bGana = $ganaList[$bNak % 27] ?? 'Dev';
+        $gGana = $ganaList[$gNak % 27] ?? 'Dev';
+
+        if ($bGana === $gGana) {
+            $ganaScore = 6.0;
+        } elseif ($bGana === 'Dev' && $gGana === 'Manav') {
+            $ganaScore = 6.0;
+        } elseif ($bGana === 'Manav' && $gGana === 'Dev') {
+            $ganaScore = 5.0;
+        } elseif ($bGana === 'Dev' && $gGana === 'Rakshasa') {
+            $ganaScore = 1.0;
+        } else {
+            $ganaScore = 0.0;
+        }
+
+        // --- 7. BHAKOOT KOOTA (Max 7) ---
+        $signDiff = (($bSign - $gSign + 12) % 12) + 1;
+        $goodBhakoot = [1, 3, 4, 7, 10, 11];
+        $bhakootCancelled = false;
+
+        if (\in_array($signDiff, $goodBhakoot, true)) {
+            $bhakootScore = 7.0;
+        } elseif ($bLord === $gLord || ($rel1 === 'Friend' && $rel2 === 'Friend')) {
+            $bhakootScore = 7.0;
+            $bhakootCancelled = true;
+        } else {
+            $bhakootScore = 0.0;
+        }
+
+        // --- 8. NADI KOOTA (Max 8) ---
+        $nadiList = [
+            'Adi', 'Madhya', 'Antya', 'Antya', 'Madhya', 'Adi', 'Adi', 'Madhya', 'Antya',
+            'Antya', 'Madhya', 'Adi', 'Adi', 'Madhya', 'Antya', 'Antya', 'Madhya', 'Adi',
+            'Adi', 'Madhya', 'Antya', 'Antya', 'Madhya', 'Adi', 'Adi', 'Madhya', 'Antya'
+        ];
+        $bNadi = $nadiList[$bNak % 27] ?? 'Adi';
+        $gNadi = $nadiList[$gNak % 27] ?? 'Adi';
+        $nadiCancelled = false;
+
+        if ($bNadi !== $gNadi) {
+            $nadiScore = 8.0;
+        } elseif (($bSign === $gSign && $bNak !== $gNak) || ($bNak === $gNak && $bSign !== $gSign)) {
+            $nadiScore = 8.0;
+            $nadiCancelled = true;
+        } else {
+            $nadiScore = 0.0;
+        }
+
+        $totalGuna = round($varnaScore + $vashyaScore + $taraScore + $yoniScore + $maitriScore + $ganaScore + $bhakootScore + $nadiScore, 1);
         if ($totalGuna > 36) {
             $totalGuna = 31.5;
         }
 
-        $conclusion = $totalGuna >= 18
-            ? "Excellent compatibility ({$totalGuna}/36 Gunas matched). Highly auspicious for marriage."
-            : "Moderate compatibility ({$totalGuna}/36 Gunas matched). Detailed consultation advised.";
+        $boyPlanets = $boyChart['planets'] ?? $boyChart;
+        $girlPlanets = $girlChart['planets'] ?? $girlChart;
+        $boyManglik  = $this->evaluateManglikDosha($boyPlanets, $boyData['dob']);
+        $girlManglik = $this->evaluateManglikDosha($girlPlanets, $girlData['dob']);
+
+        $manglikCompatible = ($boyManglik['is_present'] === $girlManglik['is_present'])
+            || ($boyManglik['severity'] === 'LOW' && ! $girlManglik['is_present'])
+            || ($girlManglik['severity'] === 'LOW' && ! $boyManglik['is_present']);
+
+        if ($totalGuna >= 25 && $manglikCompatible) {
+            $conclusion = "Excellent compatibility ({$totalGuna}/36 Gunas matched) with harmonious Manglik alignment. Highly auspicious for marriage.";
+        } elseif ($totalGuna >= 18) {
+            $conclusion = "Good compatibility ({$totalGuna}/36 Gunas matched). " . ($manglikCompatible ? 'Manglik status is balanced.' : 'Note: Consult an astrologer regarding the Manglik difference.');
+        } else {
+            $conclusion = "Low Guna score ({$totalGuna}/36 Gunas matched). Detailed horoscope consultation is advised before proceeding.";
+        }
 
         return [
-            'boy' => $boyData,
-            'girl' => $girlData,
+            'boy' => [
+                'name'      => $boyData['name'],
+                'moon_sign' => explode(' ', $boyMoon['rashi'] ?? 'Aries')[0],
+                'nakshatra' => ($boyMoon['nakshatra'] ?? 'Ashwini') . " (Pada {$bPada})",
+                'manglik'   => $boyManglik['status'],
+            ],
+            'girl' => [
+                'name'      => $girlData['name'],
+                'moon_sign' => explode(' ', $girlMoon['rashi'] ?? 'Aries')[0],
+                'nakshatra' => ($girlMoon['nakshatra'] ?? 'Ashwini') . " (Pada {$gPada})",
+                'manglik'   => $girlManglik['status'],
+            ],
             'boy_chart' => $boyChart,
             'girl_chart' => $girlChart,
             'total_guna' => $totalGuna,
-            'max_guna' => 36,
-            'kootas' => [
-                ['name' => 'Varna', 'score' => $varna, 'max' => 1, 'description' => 'Spiritual compatibility.'],
-                ['name' => 'Vashya', 'score' => $vashya, 'max' => 2, 'description' => 'Mutual attraction.'],
-                ['name' => 'Tara', 'score' => $tara, 'max' => 3, 'description' => 'Birth star health.'],
-                ['name' => 'Yoni', 'score' => $yoni, 'max' => 4, 'description' => 'Temperament.'],
-                ['name' => 'Graha Maitri', 'score' => $maitri, 'max' => 5, 'description' => 'Mental harmony.'],
-                ['name' => 'Gana', 'score' => $gana, 'max' => 6, 'description' => 'Behavior.'],
-                ['name' => 'Bhakoot', 'score' => $bhakoot, 'max' => 7, 'description' => 'Family welfare.'],
-                ['name' => 'Nadi', 'score' => $nadi, 'max' => 8, 'description' => 'Health and progeny.'],
+            'max_guna'   => 36,
+            'kootas'     => [
+                ['name' => 'Varna',        'score' => $varnaScore,   'max' => 1, 'boy' => $varnaNames[$bVarna] ?? 'Shudra', 'girl' => $varnaNames[$gVarna] ?? 'Shudra', 'description' => 'Spiritual compatibility and ego balance.'],
+                ['name' => 'Vashya',       'score' => $vashyaScore,  'max' => 2, 'boy' => $bVashya,             'girl' => $gVashya,             'description' => 'Mutual attraction and harmony.'],
+                ['name' => 'Tara',         'score' => $taraScore,    'max' => 3, 'boy' => $boyMoon['nakshatra'] ?? 'Ashwini', 'girl' => $girlMoon['nakshatra'] ?? 'Ashwini', 'description' => 'Birth star destiny, health, and luck.'],
+                ['name' => 'Yoni',         'score' => $yoniScore,    'max' => 4, 'boy' => $bYoni,               'girl' => $gYoni,               'description' => 'Physical and biological compatibility.'],
+                ['name' => 'Graha Maitri', 'score' => $maitriScore,  'max' => 5, 'boy' => $bLord,               'girl' => $gLord,               'description' => 'Mental harmony between Moon sign lords.'],
+                ['name' => 'Gana',         'score' => $ganaScore,    'max' => 6, 'boy' => $bGana,               'girl' => $gGana,               'description' => 'Temperament and daily behavior match.'],
+                ['name' => 'Bhakoot',      'score' => $bhakootScore, 'max' => 7, 'boy' => explode(' ', $boyMoon['rashi'] ?? 'Aries')[0], 'girl' => explode(' ', $girlMoon['rashi'] ?? 'Aries')[0], 'description' => $bhakootCancelled ? 'Bhakoot Dosha cancelled by Rashi Lord harmony.' : 'Family welfare and emotional bonding.'],
+                ['name' => 'Nadi',         'score' => $nadiScore,    'max' => 8, 'boy' => $bNadi,               'girl' => $gNadi,               'description' => $nadiCancelled ? 'Nadi Dosha cancelled by Rashi/Nakshatra exception.' : 'Health, genetics, and progeny compatibility.'],
+            ],
+            'manglik_comparison' => [
+                'is_compatible' => $manglikCompatible,
+                'boy_status'    => $boyManglik['status'],
+                'girl_status'   => $girlManglik['status'],
             ],
             'conclusion' => $conclusion,
         ];
     }
 
-    public function getDailyPanchang(): array
+    public function getDailyPanchang(?string $date = null, string $city = 'Jaipur, Rajasthan, India', float $lat = 26.9124, float $lng = 75.7873): array
     {
-        $today = now();
+        $tz = new \DateTimeZone('Asia/Kolkata');
+        $targetDate = $date
+            ? \DateTime::createFromFormat('Y-m-d', $date, $tz) ?: new \DateTime('now', $tz)
+            : new \DateTime('now', $tz);
+
+        $dateStr = $targetDate->format('Y-m-d');
+        $dayOfWeek = (int) $targetDate->format('w'); // 0 = Sunday ... 6 = Saturday
+
+        // 1. Exact Sunrise and Sunset timestamps
+        $sunInfo = date_sun_info($targetDate->getTimestamp(), $lat, $lng);
+        $sunriseTs = is_int($sunInfo['sunrise'] ?? null) ? $sunInfo['sunrise'] : strtotime("$dateStr 06:15:00");
+        $sunsetTs  = is_int($sunInfo['sunset'] ?? null) ? $sunInfo['sunset'] : strtotime("$dateStr 18:15:00");
+
+        $sunriseDt = (new \DateTime("@{$sunriseTs}"))->setTimezone($tz);
+        $sunsetDt  = (new \DateTime("@{$sunsetTs}"))->setTimezone($tz);
+
+        // 2. Calculate Panchang at Sunrise (traditional Vedic rule)
+        $chart = $this->vedicService->calculateChart(
+            $dateStr,
+            $sunriseDt->format('H:i'),
+            $city,
+            $lat,
+            $lng
+        );
+
+        $moon = $chart['planets']['Moon'];
+        $sun  = $chart['planets']['Sun'];
+
+        // 3. Calculate Daytime Octants (for Rahu Kaal, Yamaganda, Gulika)
+        $dayDurationSec = $sunsetTs - $sunriseTs;
+        $octantSec = (int) round($dayDurationSec / 8);
+
+        $formatWindow = function (int $octantNum) use ($sunriseTs, $octantSec, $tz): string {
+            $start = (new \DateTime('@' . ($sunriseTs + ($octantNum - 1) * $octantSec)))->setTimezone($tz);
+            $end   = (new \DateTime('@' . ($sunriseTs + $octantNum * $octantSec)))->setTimezone($tz);
+            return $start->format('h:i A') . ' - ' . $end->format('h:i A');
+        };
+
+        // Octant lookup tables by weekday (0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat)
+        $rahuOctant      = array(8, 2, 7, 5, 6, 4, 3);
+        $yamagandaOctant = array(5, 4, 3, 2, 1, 7, 6);
+        $gulikaOctant    = array(7, 6, 5, 4, 3, 2, 1);
+
+        // 4. Abhijit & Brahma Muhurat
+        $solarNoonTs = $sunriseTs + (int) round($dayDurationSec / 2);
+        $abhijitStart = (new \DateTime('@' . ($solarNoonTs - 24 * 60)))->setTimezone($tz)->format('h:i A');
+        $abhijitEnd   = (new \DateTime('@' . ($solarNoonTs + 24 * 60)))->setTimezone($tz)->format('h:i A');
+
+        $brahmaStart = (new \DateTime('@' . ($sunriseTs - 96 * 60)))->setTimezone($tz)->format('h:i A');
+        $brahmaEnd   = (new \DateTime('@' . ($sunriseTs - 48 * 60)))->setTimezone($tz)->format('h:i A');
+
+        $hindiDays = ['Ravivaar (Sunday)', 'Somvaar (Monday)', 'Mangalvaar (Tuesday)', 'Budhvaar (Wednesday)', 'Guruvaar (Thursday)', 'Shukravaar (Friday)', 'Shanivaar (Saturday)'];
+
         return [
-            'date' => $today->toFormattedDateString(),
-            'day' => $today->format('l'),
-            'sunrise' => '06:22 AM',
-            'sunset' => '05:51 PM',
-            'tithi' => 'Shukla Paksha Dashami',
-            'nakshatra' => 'Rohini',
-            'yoga' => 'Siddha',
-            'karana' => 'Taitila',
+            'date'         => $targetDate->format('d F Y'),
+            'raw_date'     => $dateStr,
+            'city'         => $city,
+            'latitude'     => $lat,
+            'longitude'    => $lng,
+            'day'          => $hindiDays[$dayOfWeek],
+            'sunrise'      => $sunriseDt->format('h:i A'),
+            'sunset'       => $sunsetDt->format('h:i A'),
+            'tithi'        => $chart['tithi_info']['full_name'],
+            'tithi_pct'    => $chart['tithi_info']['elapsed_pct'] . '%',
+            'nakshatra'    => $moon['nakshatra'] . ' (Pada ' . $moon['pada'] . ')',
+            'nakshatra_lord' => $moon['nakshatra_lord'],
+            'yoga'         => $chart['yoga_name'],
+            'karana'       => $chart['karana_name'],
+            'moon_sign'    => explode(' ', $moon['rashi']),
+            'sun_sign'     => explode(' ', $sun['rashi']),
             'auspicious_timings' => [
-                ['name' => 'Abhijit Muhurat', 'time' => '11:45 AM - 12:32 PM'],
-                ['name' => 'Brahma Muhurat', 'time' => '04:52 AM - 05:40 AM'],
+                ['name' => 'Abhijit Muhurat', 'time' => "{$abhijitStart} - {$abhijitEnd}", 'note' => 'Best midday window for new beginnings'],
+                ['name' => 'Brahma Muhurat',  'time' => "{$brahmaStart} - {$brahmaEnd}",   'note' => 'Ideal for meditation, study & spiritual practice'],
             ],
             'inauspicious_timings' => [
-                ['name' => 'Rahu Kaal', 'time' => '01:30 PM - 03:00 PM'],
-            ]
+                ['name' => 'Rahu Kaal',      'time' => $formatWindow($rahuOctant[$dayOfWeek]),      'note' => 'Avoid starting auspicious or financial ventures'],
+                ['name' => 'Yamaganda Kaal', 'time' => $formatWindow($yamagandaOctant[$dayOfWeek]), 'note' => 'Avoid important travel or ceremonies'],
+                ['name' => 'Gulika Kaal',    'time' => $formatWindow($gulikaOctant[$dayOfWeek]),    'note' => 'Neutral/cautious period'],
+            ],
         ];
     }
+
 }

@@ -58,21 +58,37 @@ class AstroToolController extends Controller
     public function matchMaking(Request $request)
     {
         $milanData = null;
-        if ($request->filled('boy_dob')) {
+        if ($request->filled('boy_dob') && $request->filled('girl_dob')) {
             $validated = $request->validate([
                 'boy_name' => 'required|string|max:255',
                 'boy_dob' => 'required|date',
+                'boy_tob' => 'nullable|string',
+                'boy_birth_place' => 'nullable|string|max:255',
+                'boy_lat' => 'nullable|numeric',
+                'boy_lng' => 'nullable|numeric',
                 'girl_name' => 'required|string|max:255',
                 'girl_dob' => 'required|date',
+                'girl_tob' => 'nullable|string',
+                'girl_birth_place' => 'nullable|string|max:255',
+                'girl_lat' => 'nullable|numeric',
+                'girl_lng' => 'nullable|numeric',
             ]);
 
             $boyData = [
                 'name' => $validated['boy_name'],
                 'dob' => $validated['boy_dob'],
+                'tob' => $validated['boy_tob'] ?? '10:00',
+                'birth_place' => $validated['boy_birth_place'] ?? 'India',
+                'lat' => $validated['boy_lat'] ?? null,
+                'lng' => $validated['boy_lng'] ?? null,
             ];
             $girlData = [
                 'name' => $validated['girl_name'],
                 'dob' => $validated['girl_dob'],
+                'tob' => $validated['girl_tob'] ?? '10:00',
+                'birth_place' => $validated['girl_birth_place'] ?? 'India',
+                'lat' => $validated['girl_lat'] ?? null,
+                'lng' => $validated['girl_lng'] ?? null,
             ];
 
             $milanData = $this->astroService->calculateKundliMilan($boyData, $girlData);
@@ -85,14 +101,19 @@ class AstroToolController extends Controller
 
         return Inertia::render('Tools/MatchMaking', [
             'milanData' => $milanData,
-            'filters' => $request->only(['boy_name', 'boy_dob', 'girl_name', 'girl_dob']),
+            'filters' => $request->all(),
             'user' => $user,
         ]);
     }
 
-    public function panchang()
+    public function panchang(Request $request)
     {
-        $panchangData = $this->astroService->getDailyPanchang();
+        $date = $request->input('date', now('Asia/Kolkata')->format('Y-m-d'));
+        $city = $request->input('city', 'Jaipur, Rajasthan, India');
+        $lat  = (float) $request->input('lat', 26.9124);
+        $lng  = (float) $request->input('lng', 75.7873);
+
+        $panchangData = $this->astroService->getDailyPanchang($date, $city, $lat, $lng);
 
         $user = Auth::user();
         if ($user) {
@@ -101,9 +122,16 @@ class AstroToolController extends Controller
 
         return Inertia::render('Tools/Panchang', [
             'panchangData' => $panchangData,
+            'filters'      => [
+                'date' => $date,
+                'city' => $city,
+                'lat'  => $lat,
+                'lng'  => $lng,
+            ],
             'user' => $user,
         ]);
     }
+
 
     public function searchCities(Request $request)
     {
