@@ -70,7 +70,7 @@ function submit() {
             </div>
 
             <!-- Date & Location Filter Form -->
-            <div class="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
+            <div class="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100 relative">
                 <form @submit.prevent="submit" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Select Date</label>

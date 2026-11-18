@@ -914,8 +914,8 @@ class AstroAiService
             'nakshatra_lord' => $moon['nakshatra_lord'],
             'yoga'         => $chart['yoga_name'],
             'karana'       => $chart['karana_name'],
-            'moon_sign'    => explode(' ', $moon['rashi']),
-            'sun_sign'     => explode(' ', $sun['rashi']),
+            'moon_sign'    => $moon['rashi'],
+            'sun_sign'     => $sun['rashi'],
             'auspicious_timings' => [
                 ['name' => 'Abhijit Muhurat', 'time' => "{$abhijitStart} - {$abhijitEnd}", 'note' => 'Best midday window for new beginnings'],
                 ['name' => 'Brahma Muhurat',  'time' => "{$brahmaStart} - {$brahmaEnd}",   'note' => 'Ideal for meditation, study & spiritual practice'],

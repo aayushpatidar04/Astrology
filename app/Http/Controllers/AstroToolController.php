@@ -113,6 +113,18 @@ class AstroToolController extends Controller
         $lat  = (float) $request->input('lat', 26.9124);
         $lng  = (float) $request->input('lng', 75.7873);
 
+        if ($request->filled('lat') && $request->filled('lng')) {
+            $cityOnly = trim(explode(',', $city)[0]);
+            Location::updateOrCreate(
+                ['city_name' => $cityOnly],
+                [
+                    'latitude' => $lat,
+                    'longitude' => $lng,
+                    'country' => 'India',
+                ]
+            );
+        }
+
         $panchangData = $this->astroService->getDailyPanchang($date, $city, $lat, $lng);
 
         $user = Auth::user();
@@ -122,16 +134,10 @@ class AstroToolController extends Controller
 
         return Inertia::render('Tools/Panchang', [
             'panchangData' => $panchangData,
-            'filters'      => [
-                'date' => $date,
-                'city' => $city,
-                'lat'  => $lat,
-                'lng'  => $lng,
-            ],
+            'filters' => $request->all(),
             'user' => $user,
         ]);
     }
-
 
     public function searchCities(Request $request)
     {
