@@ -83,9 +83,10 @@ class BabyNameService
         );
 
         foreach ($names as &$item) {
-            $numResult = $this->numerologyService->calculateNumerology($item['name'], $dob);
-            $item['numerology_number'] = $numResult['core_numbers']['chaldean_name']['number'];
-            $item['is_aligned']        = $numResult['core_numbers']['chaldean_name']['is_aligned'];
+            $numResult = $this->numerologyService->calculateNumerology($item['name'], $dob, 'chaldean');
+            $chaldeanData = $numResult['core_numbers']['name_number'] ?? $numResult['core_numbers']['chaldean_name'] ?? [];
+            $item['numerology_number'] = $chaldeanData['number'] ?? 1;
+            $item['is_aligned']        = $chaldeanData['is_aligned'] ?? true;
         }
 
         return [
