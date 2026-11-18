@@ -4,7 +4,6 @@ import { Icon } from '@iconify/vue';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import Notification from '@/Components/Notification.vue';
 
-
 const props = defineProps({
     user: Object,
     flash: Object,
@@ -14,20 +13,15 @@ const role = computed(() => props.user?.roles?.[0]?.name)
 
 const mobileMenuOpen = ref(false)
 const scrolled = ref(false)
-
 const showDropdown = ref(false)
-
-function toggleDropdown() {
-    showDropdown.value = !showDropdown.value
-}
 
 function closeDropdown() {
     showDropdown.value = false
 }
 
-// click‑outside handler
+// click-outside handler
 function handleClickOutside(event) {
-    const dropdown = document.getElementById('horoscope-dropdown')
+    const dropdown = document.getElementById('free-services-dropdown')
     if (dropdown && !dropdown.contains(event.target)) {
         closeDropdown()
     }
@@ -96,7 +90,7 @@ onBeforeUnmount(() => {
                 </button>
             </div>
 
-            <!-- Contact Info (hidden on small screens, shown on md+) -->
+            <!-- Contact Info -->
             <div class="hidden md:flex items-center gap-6 mt-2 md:mt-0">
                 <a href="tel:+919691565883"
                     class="flex items-center text-primary transition hover:text-primary-dark hover:-translate-y-0.5">
@@ -137,7 +131,7 @@ onBeforeUnmount(() => {
         <!-- Navigation -->
         <nav class="md:flex md:justify-between md:items-center px-4 md:px-6 py-3"
             :class="mobileMenuOpen ? 'block animate-fade-down' : 'hidden md:flex'">
-            <ul class="flex flex-col gap-2 md:gap-0 md:flex-row md:space-x-6 text-gray-700 font-medium">
+            <ul class="flex flex-col gap-2 md:gap-0 md:flex-row md:space-x-6 text-gray-700 font-medium items-center">
                 <li>
                     <Link :href="route('index')" class="nav-link inline-flex items-center"
                         :class="route().current('index') ? 'is-active text-primary font-bold' : 'hover:text-primary'">
@@ -166,29 +160,39 @@ onBeforeUnmount(() => {
                     </Link>
                 </li>
 
-                <!--
-                    Blogs link + Horoscopes dropdown were commented out in your original.
-                    Paste that block back here if you re-enable it (the dropdown script above is untouched).
-                -->
+                <!-- Free Services Dropdown -->
+                <li class="relative" id="free-services-dropdown">
+                    <button @click="showDropdown = !showDropdown" type="button"
+                        class="nav-link inline-flex items-center hover:text-primary focus:outline-none"
+                        :class="route().current('tools.*') ? 'is-active text-primary font-bold' : ''">
+                        Free Services
+                        <Icon icon="mdi:chevron-down" width="16" height="16" class="ml-1" />
+                    </button>
+                    <div v-if="showDropdown"
+                        class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-100">
+                        <Link :href="route('tools.kundli')" @click="closeDropdown"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition"
+                            :class="route().current('tools.kundli') ? 'font-bold text-orange-600 bg-orange-50' : ''">
+                            Free Kundli
+                        </Link>
+                        <Link :href="route('tools.matchmaking')" @click="closeDropdown"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition"
+                            :class="route().current('tools.matchmaking') ? 'font-bold text-orange-600 bg-orange-50' : ''">
+                            Kundli Matching
+                        </Link>
+                        <Link :href="route('tools.panchang')" @click="closeDropdown"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition"
+                            :class="route().current('tools.panchang') ? 'font-bold text-orange-600 bg-orange-50' : ''">
+                            Panchang
+                        </Link>
+                        <Link :href="route('tools.compatibility')" @click="closeDropdown"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition"
+                            :class="route().current('tools.compatibility') ? 'font-bold text-orange-600 bg-orange-50' : ''">
+                            Zodiac Compatibility
+                        </Link>
+                    </div>
+                </li>
 
-                <li>
-                    <Link :href="route('tools.kundli')" class="nav-link inline-flex items-center"
-                        :class="route().current('tools.kundli') ? 'is-active text-primary font-bold' : 'hover:text-primary'">
-                        Free Kundli
-                    </Link>
-                </li>
-                <li>
-                    <Link :href="route('tools.matchmaking')" class="nav-link inline-flex items-center"
-                        :class="route().current('tools.matchmaking') ? 'is-active text-primary font-bold' : 'hover:text-primary'">
-                        Matchmaking
-                    </Link>
-                </li>
-                <li>
-                    <Link :href="route('tools.panchang')" class="nav-link inline-flex items-center"
-                        :class="route().current('tools.panchang') ? 'is-active text-primary font-bold' : 'hover:text-primary'">
-                        Panchang
-                    </Link>
-                </li>
                 <li>
                     <Link href="/contact" class="nav-link inline-flex items-center hover:text-primary">Contact Us</Link>
                 </li>

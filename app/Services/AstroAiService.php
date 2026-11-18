@@ -844,6 +844,191 @@ class AstroAiService
         ];
     }
 
+    public function calculateZodiacCompatibility(string $sign1, string $sign2, string $mode = 'love'): array
+    {
+        $signs = [
+            'Aries', 'Taurus', 'Gemini', 'Cancer',
+            'Leo', 'Virgo', 'Libra', 'Scorpio',
+            'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+        ];
+
+        $elements = [
+            'Aries' => 'Fire', 'Leo' => 'Fire', 'Sagittarius' => 'Fire',
+            'Taurus' => 'Earth', 'Virgo' => 'Earth', 'Capricorn' => 'Earth',
+            'Gemini' => 'Air', 'Libra' => 'Air', 'Aquarius' => 'Air',
+            'Cancer' => 'Water', 'Scorpio' => 'Water', 'Pisces' => 'Water',
+        ];
+
+        $qualities = [
+            'Aries' => 'Cardinal', 'Cancer' => 'Cardinal', 'Libra' => 'Cardinal', 'Capricorn' => 'Cardinal',
+            'Taurus' => 'Fixed', 'Leo' => 'Fixed', 'Scorpio' => 'Fixed', 'Aquarius' => 'Fixed',
+            'Gemini' => 'Mutable', 'Virgo' => 'Mutable', 'Sagittarius' => 'Mutable', 'Pisces' => 'Mutable',
+        ];
+
+        $rulers = [
+            'Aries' => 'Mars', 'Taurus' => 'Venus', 'Gemini' => 'Mercury', 'Cancer' => 'Moon',
+            'Leo' => 'Sun', 'Virgo' => 'Mercury', 'Libra' => 'Venus', 'Scorpio' => 'Mars',
+            'Sagittarius' => 'Jupiter', 'Capricorn' => 'Saturn', 'Aquarius' => 'Saturn', 'Pisces' => 'Jupiter',
+        ];
+
+        $isFriendship = strtolower(trim($mode)) === 'friendship';
+        $activeMode   = $isFriendship ? 'friendship' : 'love';
+
+        $s1 = ucfirst(strtolower(trim($sign1)));
+        $s2 = ucfirst(strtolower(trim($sign2)));
+
+        $idx1 = array_search($s1, $signs, true);
+        $idx2 = array_search($s2, $signs, true);
+
+        if ($idx1 === false) $idx1 = 0;
+        if ($idx2 === false) $idx2 = 6;
+
+        $s1 = $signs[$idx1];
+        $s2 = $signs[$idx2];
+
+        $el1 = $elements[$s1];
+        $el2 = $elements[$s2];
+        $r1  = $rulers[$s1];
+        $r2  = $rulers[$s2];
+
+        // 1. Element Score (Max 40)
+        $complementary = ['Fire-Air', 'Air-Fire', 'Earth-Water', 'Water-Earth'];
+        if (\in_array("{$el1}-{$el2}", $complementary, true)) {
+            $elementScore = $isFriendship ? 38 : 40;
+            $elementNote  = $isFriendship
+                ? "{$el1} and {$el2} spark lively conversations and effortless teamwork."
+                : "{$el1} and {$el2} naturally energize and balance each other romantically.";
+        } elseif ($el1 === $el2) {
+            $elementScore = $isFriendship ? 40 : 36;
+            $elementNote  = $isFriendship
+                ? "Sharing the {$el1} element creates an instant 'best friend' wavelength."
+                : "Both share the {$el1} element, creating instinctive emotional understanding.";
+        } elseif (\in_array("{$el1}-{$el2}", ['Fire-Earth', 'Earth-Fire', 'Air-Water', 'Water-Air'], true)) {
+            $elementScore = $isFriendship ? 26 : 22;
+            $elementNote  = "{$el1} and {$el2} bring contrasting perspectives that broaden each other's worldview.";
+        } else {
+            $elementScore = $isFriendship ? 20 : 15;
+            $elementNote  = "{$el1} and {$el2} operate differently, making open communication essential.";
+        }
+
+        // 2. Sign Distance / Aspect Score (Max 35)
+        $distance = (($idx2 - $idx1 + 12) % 12) + 1;
+        if (\in_array($distance, [5, 9], true)) {
+            $aspectScore = 35;
+            $aspectName  = 'Trine (5-9 Harmony)';
+        } elseif (\in_array($distance, [3, 11], true)) {
+            $aspectScore = $isFriendship ? 35 : 32;
+            $aspectName  = 'Sextile (3-11 Camaraderie)';
+        } elseif ($distance === 7) {
+            $aspectScore = $isFriendship ? 26 : 31;
+            $aspectName  = $isFriendship ? 'Opposition (1-7 Dynamic Debate)' : 'Opposition (1-7 Magnetic Attraction)';
+        } elseif ($distance === 1) {
+            $aspectScore = $isFriendship ? 33 : 28;
+            $aspectName  = 'Conjunction (Same Sign Mirror)';
+        } elseif (\in_array($distance, [4, 10], true)) {
+            $aspectScore = $isFriendship ? 22 : 20;
+            $aspectName  = 'Square (4-10 Dynamic Tension)';
+        } else {
+            $aspectScore = $isFriendship ? 18 : 14;
+            $aspectName  = 'Adjustment Aspect (2-12 / 6-8)';
+        }
+
+        // 3. Planetary Ruler Score (Max 25)
+        $friends = [
+            'Sun'     => ['Moon', 'Mars', 'Jupiter'],
+            'Moon'    => ['Sun', 'Mercury'],
+            'Mars'    => ['Sun', 'Moon', 'Jupiter'],
+            'Mercury' => ['Sun', 'Venus'],
+            'Jupiter' => ['Sun', 'Moon', 'Mars'],
+            'Venus'   => ['Mercury', 'Saturn'],
+            'Saturn'  => ['Mercury', 'Venus'],
+        ];
+
+        $getRelation = function ($p1, $p2) use ($friends) {
+            if ($p1 === $p2) return 'Friend';
+            if (\in_array($p2, $friends[$p1] ?? [], true)) return 'Friend';
+            return 'Neutral';
+        };
+
+        $rel1 = $getRelation($r1, $r2);
+        $rel2 = $getRelation($r2, $r1);
+
+        if ($r1 === $r2 || ($rel1 === 'Friend' && $rel2 === 'Friend')) {
+            $rulerScore = 25;
+        } elseif ($rel1 === 'Friend' || $rel2 === 'Friend') {
+            $rulerScore = 18;
+        } else {
+            $rulerScore = $isFriendship ? 15 : 12;
+        }
+
+        $overall = min(99, $elementScore + $aspectScore + $rulerScore);
+
+        if ($isFriendship) {
+            $breakdown = [
+                ['label' => 'Humor & Banter',      'score' => min(99, (int) round($aspectScore * 1.6 + $rulerScore * 1.4))],
+                ['label' => 'Communication Flow',  'score' => min(99, (int) round($rulerScore * 2.2 + $aspectScore * 1.1))],
+                ['label' => 'Loyalty & Trust',     'score' => min(99, (int) round($elementScore * 1.4 + $rulerScore * 1.5))],
+                ['label' => 'Shared Adventures',   'score' => min(99, (int) round($elementScore * 1.5 + $aspectScore * 0.9))],
+            ];
+
+            if ($overall >= 80) {
+                $verdict = 'Best Friends for Life';
+                $summary = "As friends, {$s1} and {$s2} share effortless camaraderie, mutual loyalty, and endless conversation. {$elementNote}";
+            } elseif ($overall >= 65) {
+                $verdict = 'Great Companions';
+                $summary = "{$s1} and {$s2} make dependable, supportive friends who bring out the best in one another. {$elementNote}";
+            } elseif ($overall >= 50) {
+                $verdict = 'Casual & Fun Allies';
+                $summary = "{$s1} and {$s2} enjoy an interesting friendship built on different strengths and fresh perspectives. {$elementNote}";
+            } else {
+                $verdict = 'Different Social Wavelengths';
+                $summary = "{$s1} and {$s2} have very different social styles, thriving best around shared hobbies or structured group settings. {$elementNote}";
+            }
+        } else {
+            $breakdown = [
+                ['label' => 'Love & Romance',      'score' => min(99, (int) round($elementScore * 1.3 + $aspectScore * 1.1 + 8))],
+                ['label' => 'Communication',       'score' => min(99, (int) round($rulerScore * 2.1 + $aspectScore * 1.2))],
+                ['label' => 'Trust & Stability',   'score' => min(99, (int) round($elementScore * 1.2 + $rulerScore * 1.8 + 6))],
+                ['label' => 'Passion & Chemistry', 'score' => min(99, (int) round($aspectScore * 1.6 + $elementScore * 0.9 + 5))],
+            ];
+
+            if ($overall >= 80) {
+                $verdict = 'Soulmate Synergy';
+                $summary = "Romantically, {$s1} and {$s2} share an exceptional natural bond filled with warmth and attraction. {$elementNote}";
+            } elseif ($overall >= 65) {
+                $verdict = 'Strong Romantic Match';
+                $summary = "{$s1} and {$s2} complement each other well with strong potential for lasting love and partnership. {$elementNote}";
+            } elseif ($overall >= 50) {
+                $verdict = 'Balanced Potential';
+                $summary = "{$s1} and {$s2} have a dynamic romantic relationship that thrives when both partners honor their differences. {$elementNote}";
+            } else {
+                $verdict = 'Growth-Oriented Match';
+                $summary = "{$s1} and {$s2} approach love from very different wavelengths, requiring patience and clear emotional communication. {$elementNote}";
+            }
+        }
+
+        return [
+            'mode'     => $activeMode,
+            'partner1' => [
+                'sign'    => $s1,
+                'element' => $el1,
+                'quality' => $qualities[$s1],
+                'ruler'   => $r1,
+            ],
+            'partner2' => [
+                'sign'    => $s2,
+                'element' => $el2,
+                'quality' => $qualities[$s2],
+                'ruler'   => $r2,
+            ],
+            'overall_score' => $overall,
+            'verdict'       => $verdict,
+            'aspect'        => $aspectName,
+            'summary'       => $summary,
+            'breakdown'     => $breakdown,
+        ];
+    }
+
     public function getDailyPanchang(?string $date = null, string $city = 'Jaipur, Rajasthan, India', float $lat = 26.9124, float $lng = 75.7873): array
     {
         $tz = new \DateTimeZone('Asia/Kolkata');

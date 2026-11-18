@@ -106,6 +106,36 @@ class AstroToolController extends Controller
         ]);
     }
 
+    public function zodiacCompatibility(Request $request)
+    {
+        $result = null;
+
+        if ($request->filled('sign1') && $request->filled('sign2')) {
+            $validated = $request->validate([
+                'sign1' => 'required|string|max:30',
+                'sign2' => 'required|string|max:30',
+                'mode'  => 'nullable|in:love,friendship',
+            ]);
+
+            $result = $this->astroService->calculateZodiacCompatibility(
+                $validated['sign1'],
+                $validated['sign2'],
+                $validated['mode'] ?? 'love'
+            );
+        }
+
+        $user = Auth::user();
+        if ($user) {
+            $user = $user->load('wallet');
+        }
+
+        return Inertia::render('Tools/ZodiacCompatibility', [
+            'compatibilityData' => $result,
+            'filters'           => $request->only(['sign1', 'sign2', 'mode']),
+            'user'              => $user,
+        ]);
+    }
+
     public function panchang(Request $request)
     {
         $date = $request->input('date', now('Asia/Kolkata')->format('Y-m-d'));

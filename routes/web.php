@@ -33,6 +33,7 @@ Route::post('/tools/kundli', [AstroToolController::class, 'kundli'])->name('tool
 Route::get('/tools/matchmaking', [AstroToolController::class, 'matchMaking'])->name('tools.matchmaking');
 Route::post('/tools/matchmaking', [AstroToolController::class, 'matchMaking'])->name('tools.matchmaking.generate');
 Route::get('/tools/panchang', [AstroToolController::class, 'panchang'])->name('tools.panchang');
+Route::get('/tools/compatibility', [AstroToolController::class, 'zodiacCompatibility'])->name('tools.compatibility');
 Route::get('/api/cities/autocomplete', [AstroToolController::class, 'searchCities'])->name('api.cities.autocomplete');
 
 Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {
