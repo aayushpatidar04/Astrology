@@ -35,6 +35,8 @@ Route::post('/tools/matchmaking', [AstroToolController::class, 'matchMaking'])->
 Route::get('/tools/panchang', [AstroToolController::class, 'panchang'])->name('tools.panchang');
 Route::get('/tools/compatibility', [AstroToolController::class, 'zodiacCompatibility'])->name('tools.compatibility');
 Route::get('/tools/tarot-reading', [AstroToolController::class, 'tarotReading'])->name('tools.tarot');
+Route::get('/tools/numerology', [AstroToolController::class, 'numerology'])->name('tools.numerology');
+Route::get('/tools/baby-names', [AstroToolController::class, 'babyNames'])->name('tools.baby-names');
 Route::get('/api/cities/autocomplete', [AstroToolController::class, 'searchCities'])->name('api.cities.autocomplete');
 
 Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {

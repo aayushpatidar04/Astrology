@@ -169,6 +169,86 @@ class AstroToolController extends Controller
         ]);
     }
 
+    public function numerology(Request $request, \App\Services\NumerologyService $numerologyService)
+    {
+        $numerologyData = null;
+
+        if ($request->filled('name') && $request->filled('dob')) {
+            $validated = $request->validate([
+                'name' => 'required|string|max:120',
+                'dob'  => 'required|date',
+                'system' => 'nullable|in:chaldean,pythagorean',
+            ]);
+
+            $numerologyData = $numerologyService->calculateNumerology(
+                $validated['name'],
+                $validated['dob'],
+                $validated['system'] ?? 'chaldean'
+            );
+        }
+
+        $user = Auth::user();
+        if ($user) {
+            $user = $user->load('wallet');
+        }
+
+        return Inertia::render('Tools/Numerology', [
+            'numerologyData' => $numerologyData,
+            'filters'        => $request->only(['name', 'dob', 'system']),
+            'user'           => $user,
+        ]);
+    }
+
+    public function babyNames(Request $request, \App\Services\BabyNameService $babyNameService)
+    {
+        $babyNameData = null;
+
+        if ($request->filled('dob')) {
+            $validated = $request->validate([
+                'dob'         => 'required|date',
+                'tob'         => 'required|string',
+                'birth_place' => 'required|string|max:255',
+                'gender'      => 'required|in:boy,girl,unisex',
+                'style'       => 'nullable|string|max:60',
+                'lat'         => 'nullable|numeric',
+                'lng'         => 'nullable|numeric',
+            ]);
+
+            if ($request->filled('lat') && $request->filled('lng')) {
+                $cityOnly = trim(explode(',', $validated['birth_place'])[0]);
+                Location::updateOrCreate(
+                    ['city_name' => $cityOnly],
+                    [
+                        'latitude' => (float) $request->input('lat'),
+                        'longitude' => (float) $request->input('lng'),
+                        'country' => 'India',
+                    ]
+                );
+            }
+
+            $babyNameData = $babyNameService->generateBabyNames(
+                $validated['dob'],
+                $validated['tob'],
+                $validated['birth_place'],
+                $validated['gender'],
+                $validated['style'] ?? 'Modern & Sanskrit',
+                isset($validated['lat']) ? (float) $validated['lat'] : null,
+                isset($validated['lng']) ? (float) $validated['lng'] : null
+            );
+        }
+
+        $user = Auth::user();
+        if ($user) {
+            $user = $user->load('wallet');
+        }
+
+        return Inertia::render('Tools/BabyNames', [
+            'babyNameData' => $babyNameData,
+            'filters'      => $request->only(['dob', 'tob', 'birth_place', 'gender', 'style', 'lat', 'lng']),
+            'user'         => $user,
+        ]);
+    }
+
     public function tarotReading(Request $request, \App\Services\GeminiTarotService $tarotService)
     {
         $readingData = null;

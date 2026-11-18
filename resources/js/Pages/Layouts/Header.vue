@@ -15,6 +15,7 @@ const mobileMenuOpen = ref(false)
 const scrolled = ref(false)
 const showDropdown = ref(false)
 const showHoroscopeDropdown = ref(false)
+const showCalculatorsDropdown = ref(false)
 
 function closeDropdown() {
     showDropdown.value = false
@@ -22,6 +23,10 @@ function closeDropdown() {
 
 function closeHoroscopeDropdown() {
     showHoroscopeDropdown.value = false
+}
+
+function closeCalculatorsDropdown() {
+    showCalculatorsDropdown.value = false
 }
 
 // click-outside handler
@@ -33,6 +38,10 @@ function handleClickOutside(event) {
     const horoDropdown = document.getElementById('horoscope-dropdown')
     if (horoDropdown && !horoDropdown.contains(event.target)) {
         closeHoroscopeDropdown()
+    }
+    const calcDropdown = document.getElementById('calculators-dropdown')
+    if (calcDropdown && !calcDropdown.contains(event.target)) {
+        closeCalculatorsDropdown()
     }
 }
 
@@ -202,7 +211,7 @@ onBeforeUnmount(() => {
                 <li class="relative" id="free-services-dropdown">
                     <button @click="showDropdown = !showDropdown" type="button"
                         class="nav-link inline-flex items-center hover:text-primary focus:outline-none"
-                        :class="route().current('tools.*') ? 'is-active text-primary font-bold' : ''">
+                        :class="route().current('tools.*') && !route().current('tools.numerology') ? 'is-active text-primary font-bold' : ''">
                         Free Services
                         <Icon icon="mdi:chevron-down" width="16" height="16" class="ml-1" />
                     </button>
@@ -232,6 +241,29 @@ onBeforeUnmount(() => {
                             class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition"
                             :class="route().current('tools.tarot') ? 'font-bold text-orange-600 bg-orange-50' : ''">
                             Tarot Reading
+                        </Link>
+                        <Link :href="route('tools.baby-names')" @click="closeDropdown"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition"
+                            :class="route().current('tools.baby-names') ? 'font-bold text-orange-600 bg-orange-50' : ''">
+                            Baby Name Generator
+                        </Link>
+                    </div>
+                </li>
+
+                <!-- Calculators Dropdown -->
+                <li class="relative" id="calculators-dropdown">
+                    <button @click="showCalculatorsDropdown = !showCalculatorsDropdown" type="button"
+                        class="nav-link inline-flex items-center hover:text-primary focus:outline-none"
+                        :class="route().current('tools.numerology') ? 'is-active text-primary font-bold' : ''">
+                        Calculators
+                        <Icon icon="mdi:chevron-down" width="16" height="16" class="ml-1" />
+                    </button>
+                    <div v-if="showCalculatorsDropdown"
+                        class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-100">
+                        <Link :href="route('tools.numerology')" @click="closeCalculatorsDropdown"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition"
+                            :class="route().current('tools.numerology') ? 'font-bold text-orange-600 bg-orange-50' : ''">
+                            Numerology Calculator
                         </Link>
                     </div>
                 </li>
