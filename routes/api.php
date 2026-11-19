@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AstrologerController;
+use App\Http\Controllers\Api\AstroToolController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\MainController;
 use App\Http\Controllers\Api\UserController;
@@ -33,6 +34,30 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/chogdiya', [MainController::class, 'chogdiya']);
     Route::get('/banners', [MainController::class, 'getBanners']);
     Route::get('/testimonials', [MainController::class, 'getTestimonials']);
+
+    // Tools & AI Astrologer API routes
+    Route::post('/tools/kundli', [AstroToolController::class, 'kundli']);
+    Route::post('/tools/matchmaking', [AstroToolController::class, 'matchMaking']);
+    Route::post('/tools/compatibility', [AstroToolController::class, 'zodiacCompatibility']);
+    Route::get('/tools/panchang', [AstroToolController::class, 'panchang']);
+    Route::post('/tools/numerology', [AstroToolController::class, 'numerology']);
+    Route::post('/tools/baby-names', [AstroToolController::class, 'babyNames']);
+    Route::post('/tools/sun-sign', [AstroToolController::class, 'sunSignCalculator']);
+    Route::post('/tools/rising-sign', [AstroToolController::class, 'risingSignCalculator']);
+    Route::post('/tools/rashi', [AstroToolController::class, 'rashiCalculator']);
+    Route::post('/tools/love-calculator', [AstroToolController::class, 'loveCalculator']);
+    Route::post('/tools/tarot-reading', [AstroToolController::class, 'tarotReading']);
+    Route::post('/tools/atmakaraka-darakaraka', [AstroToolController::class, 'atmakarakaDarakaraka']);
+    Route::post('/tools/dasha-calculator', [AstroToolController::class, 'dashaCalculator']);
+    Route::post('/tools/nakshatra-calculator', [AstroToolController::class, 'nakshatraCalculator']);
+    Route::post('/tools/manglik', [AstroToolController::class, 'manglikCalculator']);
+    Route::post('/tools/sade-sati', [AstroToolController::class, 'sadeSatiCalculator']);
+    Route::get('/tools/choghadiya', [AstroToolController::class, 'choghadiya']);
+    Route::get('/tools/muhurat-finder', [AstroToolController::class, 'muhuratFinder']);
+    Route::get('/ai-astrologer/init', [AstroToolController::class, 'aiAstrologerInit']);
+    Route::post('/ai-astrologer/send', [AstroToolController::class, 'aiAstrologerSend']);
+    Route::post('/ai-astrologer/settle', [AstroToolController::class, 'aiAstrologerSettle']);
+    Route::get('/cities/autocomplete', [AstroToolController::class, 'searchCities']);
 
     Route::middleware('role:User')->group(function () {
         Route::get('/astrologers', [UserController::class, 'astrologers']);
