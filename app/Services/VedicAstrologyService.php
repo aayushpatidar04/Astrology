@@ -5,9 +5,18 @@ namespace App\Services;
 class VedicAstrologyService
 {
     protected array $rashis = [
-        'Aries (Mesha)', 'Taurus (Vrishabha)', 'Gemini (Mithuna)', 'Cancer (Karka)',
-        'Leo (Simha)', 'Virgo (Kanya)', 'Libra (Tula)', 'Scorpio (Vrishchika)',
-        'Sagittarius (Dhanu)', 'Capricorn (Makara)', 'Aquarius (Kumbha)', 'Pisces (Meena)'
+        'Aries (Mesha)',
+        'Taurus (Vrishabha)',
+        'Gemini (Mithuna)',
+        'Cancer (Karka)',
+        'Leo (Simha)',
+        'Virgo (Kanya)',
+        'Libra (Tula)',
+        'Scorpio (Vrishchika)',
+        'Sagittarius (Dhanu)',
+        'Capricorn (Makara)',
+        'Aquarius (Kumbha)',
+        'Pisces (Meena)'
     ];
 
     protected array $nakshatras = [
@@ -41,14 +50,43 @@ class VedicAstrologyService
     ];
 
     protected array $nityaYogas = [
-        'Vishkumbha', 'Priti', 'Ayushman', 'Saubhagya', 'Shobhana', 'Atiganda', 'Sukarma', 'Dhriti',
-        'Shoola', 'Ganda', 'Vriddhi', 'Dhruva', 'Vyaghata', 'Harshana', 'Vajra', 'Siddhi',
-        'Vyatipata', 'Variyan', 'Parigha', 'Shiva', 'Siddha', 'Sadhya', 'Shubha', 'Shukla',
-        'Brahma', 'Indra', 'Vaidhriti'
+        'Vishkumbha',
+        'Priti',
+        'Ayushman',
+        'Saubhagya',
+        'Shobhana',
+        'Atiganda',
+        'Sukarma',
+        'Dhriti',
+        'Shoola',
+        'Ganda',
+        'Vriddhi',
+        'Dhruva',
+        'Vyaghata',
+        'Harshana',
+        'Vajra',
+        'Siddhi',
+        'Vyatipata',
+        'Variyan',
+        'Parigha',
+        'Shiva',
+        'Siddha',
+        'Sadhya',
+        'Shubha',
+        'Shukla',
+        'Brahma',
+        'Indra',
+        'Vaidhriti'
     ];
 
     protected array $movableKaranas = [
-        'Bava', 'Balava', 'Kaulava', 'Taitila', 'Gara', 'Vanija', 'Vishti'
+        'Bava',
+        'Balava',
+        'Kaulava',
+        'Taitila',
+        'Gara',
+        'Vanija',
+        'Vishti'
     ];
 
     private function rev(float $x): float
@@ -84,10 +122,21 @@ class VedicAstrologyService
     public function calculateTithi(float $sunDegree, float $moonDegree): array
     {
         $tithiNames = [
-            1 => 'Pratipada', 2 => 'Dwitiya', 3 => 'Tritiya', 4 => 'Chaturthi',
-            5 => 'Panchami', 6 => 'Shashthi', 7 => 'Saptami', 8 => 'Ashtami',
-            9 => 'Navami', 10 => 'Dashami', 11 => 'Ekadashi', 12 => 'Dwadashi',
-            13 => 'Trayodashi', 14 => 'Chaturdashi', 15 => 'Purnima',
+            1 => 'Pratipada',
+            2 => 'Dwitiya',
+            3 => 'Tritiya',
+            4 => 'Chaturthi',
+            5 => 'Panchami',
+            6 => 'Shashthi',
+            7 => 'Saptami',
+            8 => 'Ashtami',
+            9 => 'Navami',
+            10 => 'Dashami',
+            11 => 'Ekadashi',
+            12 => 'Dwadashi',
+            13 => 'Trayodashi',
+            14 => 'Chaturdashi',
+            15 => 'Purnima',
             30 => 'Amavasya'
         ];
 
@@ -110,10 +159,10 @@ class VedicAstrologyService
 
         return [
             'tithi_number' => $tithiNumber,
-            'paksha'       => $paksha,
-            'name'         => $name,
-            'full_name'    => "$paksha $name",
-            'elapsed_pct'  => $elapsedPercentage,
+            'paksha' => $paksha,
+            'name' => $name,
+            'full_name' => "$paksha $name",
+            'elapsed_pct' => $elapsedPercentage,
         ];
     }
 
@@ -147,14 +196,14 @@ class VedicAstrologyService
     public function calculateVimshottariDasha(float $moonSidereal, \DateTime $birthDate): array
     {
         $dashaOrder = [
-            ['planet' => 'Ketu',    'years' => 7],
-            ['planet' => 'Venus',   'years' => 20],
-            ['planet' => 'Sun',     'years' => 6],
-            ['planet' => 'Moon',    'years' => 10],
-            ['planet' => 'Mars',    'years' => 7],
-            ['planet' => 'Rahu',    'years' => 18],
+            ['planet' => 'Ketu', 'years' => 7],
+            ['planet' => 'Venus', 'years' => 20],
+            ['planet' => 'Sun', 'years' => 6],
+            ['planet' => 'Moon', 'years' => 10],
+            ['planet' => 'Mars', 'years' => 7],
+            ['planet' => 'Rahu', 'years' => 18],
             ['planet' => 'Jupiter', 'years' => 16],
-            ['planet' => 'Saturn',  'years' => 19],
+            ['planet' => 'Saturn', 'years' => 19],
             ['planet' => 'Mercury', 'years' => 17],
         ];
 
@@ -195,8 +244,8 @@ class VedicAstrologyService
                     $effectiveStart = ($aStart < $birthDate) ? clone $birthDate : $aStart;
                     $antardashas[] = [
                         'planet' => "{$mPlanet}-{$aPlanet}",
-                        'start'  => $effectiveStart->format('d M Y'),
-                        'end'    => $aEnd->format('d M Y'),
+                        'start' => $effectiveStart->format('d M Y'),
+                        'end' => $aEnd->format('d M Y'),
                         'active' => ($now >= $effectiveStart && $now <= $aEnd),
                     ];
                 }
@@ -208,11 +257,11 @@ class VedicAstrologyService
             $actualDuration = ($i === 0) ? round($mYears * (1.0 - $elapsedFraction), 2) : $mYears;
 
             $mahadashas[] = [
-                'planet'      => $mPlanet,
-                'duration'    => $actualDuration . ' Years',
-                'start'       => $mStart->format('d M Y'),
-                'end'         => $mEnd->format('d M Y'),
-                'active'      => ($now >= $mStart && $now <= $mEnd),
+                'planet' => $mPlanet,
+                'duration' => $actualDuration . ' Years',
+                'start' => $mStart->format('d M Y'),
+                'end' => $mEnd->format('d M Y'),
+                'active' => ($now >= $mStart && $now <= $mEnd),
                 'antardashas' => $antardashas,
             ];
         }
@@ -268,9 +317,9 @@ class VedicAstrologyService
     public function calculateChart(string $date, string $time, string $birthPlace, ?float $lat = null, ?float $lon = null): array
     {
         if ($lat === null || $lon === null) {
-        $coords = $this->getCoordinates($birthPlace);
-        $lat = $coords['lat'];
-        $lon = $coords['lon'];
+            $coords = $this->getCoordinates($birthPlace);
+            $lat = $coords['lat'];
+            $lon = $coords['lon'];
         }
         $timeNormalized = strlen($time) === 5 ? "$time:00" : $time;
         $localDt = \DateTime::createFromFormat('Y-m-d H:i:s', "$date $timeNormalized", new \DateTimeZone('Asia/Kolkata'))
@@ -461,4 +510,135 @@ class VedicAstrologyService
         }
         return $chart;
     }
+
+    public function calculateSunSign(
+        string $name,
+        string $gender,
+        string $dob,
+        string $tob,
+        string $birthPlace,
+        ?float $lat = null,
+        ?float $lng = null
+    ): array {
+        $signProfiles = array(
+            'Aries' => array(
+                'element' => 'Fire',
+                'ruler' => 'Mars',
+                'dates' => 'March 21 - April 19',
+            ),
+            'Taurus' => array(
+                'element' => 'Earth',
+                'ruler' => 'Venus',
+                'dates' => 'April 20 - May 20',
+            ),
+            'Gemini' => array(
+                'element' => 'Air',
+                'ruler' => 'Mercury',
+                'dates' => 'May 21 - June 20',
+            ),
+            'Cancer' => array(
+                'element' => 'Water',
+                'ruler' => 'Moon',
+                'dates' => 'June 21 - July 22',
+            ),
+            'Leo' => array(
+                'element' => 'Fire',
+                'ruler' => 'Sun',
+                'dates' => 'July 23 - August 22',
+            ),
+            'Virgo' => array(
+                'element' => 'Earth',
+                'ruler' => 'Mercury',
+                'dates' => 'August 23 - September 22',
+            ),
+            'Libra' => array(
+                'element' => 'Air',
+                'ruler' => 'Venus',
+                'dates' => 'September 23 - October 22',
+            ),
+            'Scorpio' => array(
+                'element' => 'Water',
+                'ruler' => 'Mars',
+                'dates' => 'October 23 - November 21',
+            ),
+            'Sagittarius' => array(
+                'element' => 'Fire',
+                'ruler' => 'Jupiter',
+                'dates' => 'November 22 - December 21',
+            ),
+            'Capricorn' => array(
+                'element' => 'Earth',
+                'ruler' => 'Saturn',
+                'dates' => 'December 22 - January 19',
+            ),
+            'Aquarius' => array(
+                'element' => 'Air',
+                'ruler' => 'Saturn',
+                'dates' => 'January 20 - February 18',
+            ),
+            'Pisces' => array(
+                'element' => 'Water',
+                'ruler' => 'Jupiter',
+                'dates' => 'February 19 - March 20',
+            ),
+        );
+
+        $signsList = array_keys($signProfiles);
+        $timeNormalized = !empty($tob) ? $tob : '12:00';
+
+        if ($lat === null || $lng === null) {
+            $coords = $this->getCoordinates($birthPlace);
+            $lat = $coords['lat'];
+            $lng = $coords['lon'];
+        }
+
+        // 1. Calculate Sidereal (Vedic) Sun Sign using exact birth details
+        $chart = $this->calculateChart($dob, $timeNormalized, $birthPlace, $lat, $lng);
+        $siderealSun = $chart['planets']['Sun'];
+        $vedicSignName = explode(' ', $siderealSun['rashi'])[0];
+
+        // 2. Reconstruct Tropical (Western) Sun Longitude by adding Ayanamsa back
+        $dt = new \DateTime("{$dob} {$timeNormalized}", new \DateTimeZone('Asia/Kolkata'));
+        $utcDt = (clone $dt)->setTimezone(new \DateTimeZone('UTC'));
+
+        $year = (int) $utcDt->format('Y');
+        $month = (int) $utcDt->format('m');
+        $day = (int) $utcDt->format('d');
+        $hour = (int) $utcDt->format('H') + ((int) $utcDt->format('i') / 60.0);
+
+        if ($month <= 2) {
+            $year -= 1;
+            $month += 12;
+        }
+
+        $A = floor($year / 100);
+        $B = 2 - $A + floor($A / 4);
+        $jd = floor(365.25 * ($year + 4716)) + floor(30.6001 * ($month + 1)) + $day + $B - 1524.5 + $hour / 24.0;
+        $T = ($jd - 2451545.0) / 36525.0;
+        $ayanamsa = 23.8577 + 1.396971 * $T;
+
+        $tropicalSunDeg = $this->rev($siderealSun['full_degree'] + $ayanamsa);
+        $westernSignIdx = (int) floor($tropicalSunDeg / 30.0);
+        $westernSignName = $signsList[$westernSignIdx];
+
+        $formattedDob = $dt->format('j F Y'); // e.g. "4 May 2000"
+
+        if ($westernSignName !== $vedicSignName) {
+            $comparisonNote = "Your Western Sun Sign is {$westernSignName}, while your Vedic Sun Sign is {$vedicSignName}. This difference is because Western astrology uses the Tropical zodiac based on the seasons, while Vedic astrology uses the Sidereal zodiac based on the fixed stars.";
+        } else {
+            $comparisonNote = "Both your Western Sun Sign and Vedic Sun Sign are {$westernSignName}. Because Western astrology uses the Tropical zodiac based on the seasons and Vedic astrology uses the Sidereal zodiac based on the fixed stars, your birth date falls in the overlap window where both systems align.";
+        }
+
+        return array(
+            'native_name' => trim($name),
+            'gender' => ucfirst(strtolower(trim($gender))),
+            'formatted_dob' => $formattedDob,
+            'tob' => $dt->format('h:i A'),
+            'birth_place' => trim($birthPlace),
+            'western' => array_merge(array('name' => $westernSignName), $signProfiles[$westernSignName]),
+            'vedic' => array_merge(array('name' => $vedicSignName), $signProfiles[$vedicSignName]),
+            'profile_note' => $comparisonNote,
+        );
+    }
+
 }

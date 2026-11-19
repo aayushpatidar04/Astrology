@@ -176,7 +176,7 @@ class AstroToolController extends Controller
         if ($request->filled('name') && $request->filled('dob')) {
             $validated = $request->validate([
                 'name' => 'required|string|max:120',
-                'dob'  => 'required|date',
+                'dob' => 'required|date',
                 'system' => 'nullable|in:chaldean,pythagorean',
             ]);
 
@@ -246,6 +246,110 @@ class AstroToolController extends Controller
             'babyNameData' => $babyNameData,
             'filters' => $request->only(['dob', 'tob', 'birth_place', 'gender', 'style', 'lat', 'lng']),
             'user' => $user,
+        ]);
+    }
+
+    public function sunSignCalculator(Request $request)
+    {
+        $sunSignData = null;
+
+        if ($request->filled('dob')) {
+            $validated = $request->validate([
+                'name'        => 'required|string|max:120',
+                'gender'      => 'required|in:male,female,other',
+                'dob'         => 'required|date',
+                'tob'         => 'required|string',
+                'birth_place' => 'required|string|max:255',
+                'lat'         => 'nullable|numeric',
+                'lng'         => 'nullable|numeric',
+            ]);
+
+            if ($request->filled('lat') && $request->filled('lng')) {
+                $cityOnly = trim(explode(',', $validated['birth_place'])[0]);
+                Location::updateOrCreate(
+                    ['city_name' => $cityOnly],
+                    [
+                        'latitude'  => (float) $request->input('lat'),
+                        'longitude' => (float) $request->input('lng'),
+                        'country'   => 'India',
+                    ]
+                );
+            }
+
+            $chart = $this->astroService->generateKundli([
+                'name'        => $validated['name'],
+                'dob'         => $validated['dob'],
+                'tob'         => $validated['tob'],
+                'birth_place' => $validated['birth_place'],
+                'lat'         => $validated['lat'] ?? 24.3815,
+                'lng'         => $validated['lng'] ?? 74.7012,
+            ]);
+
+            $vedicSunSign = $chart['basic_details']['sun_sign'] ?? 'Aries';
+
+            $dt = new \DateTime($validated['dob']);
+            $m = (int) $dt->format('n');
+            $d = (int) $dt->format('j');
+
+            $westernSigns = [
+                ['name' => 'Capricorn', 'start_m' => 12, 'start_d' => 22, 'end_m' => 1, 'end_d' => 19, 'element' => 'Earth', 'ruler' => 'Saturn'],
+                ['name' => 'Aquarius',  'start_m' => 1,  'start_d' => 20, 'end_m' => 2, 'end_d' => 18, 'element' => 'Air', 'ruler' => 'Uranus'],
+                ['name' => 'Pisces',    'start_m' => 2,  'start_d' => 19, 'end_m' => 3, 'end_d' => 20, 'element' => 'Water', 'ruler' => 'Neptune'],
+                ['name' => 'Aries',     'start_m' => 3,  'start_d' => 21, 'end_m' => 4, 'end_d' => 19, 'element' => 'Fire', 'ruler' => 'Mars'],
+                ['name' => 'Taurus',    'start_m' => 4,  'start_d' => 20, 'end_m' => 5, 'end_d' => 20, 'element' => 'Earth', 'ruler' => 'Venus'],
+                ['name' => 'Gemini',    'start_m' => 5,  'start_d' => 21, 'end_m' => 6, 'end_d' => 20, 'element' => 'Air', 'ruler' => 'Mercury'],
+                ['name' => 'Cancer',    'start_m' => 6,  'start_d' => 21, 'end_m' => 7, 'end_d' => 22, 'element' => 'Water', 'ruler' => 'Moon'],
+                ['name' => 'Leo',       'start_m' => 7,  'start_d' => 23, 'end_m' => 8, 'end_d' => 22, 'element' => 'Fire', 'ruler' => 'Sun'],
+                ['name' => 'Virgo',     'start_m' => 8,  'start_d' => 23, 'end_m' => 9, 'end_d' => 22, 'element' => 'Earth', 'ruler' => 'Mercury'],
+                ['name' => 'Libra',     'start_m' => 9,  'start_d' => 23, 'end_m' => 10, 'end_d' => 22, 'element' => 'Air', 'ruler' => 'Venus'],
+                ['name' => 'Scorpio',   'start_m' => 10, 'start_d' => 23, 'end_m' => 11, 'end_d' => 21, 'element' => 'Water', 'ruler' => 'Pluto'],
+                ['name' => 'Sagittarius','start_m' => 11, 'start_d' => 22, 'end_m' => 12, 'end_d' => 21, 'element' => 'Fire', 'ruler' => 'Jupiter'],
+            ];
+
+            $western = $westernSigns[3];
+            foreach ($westernSigns as $ws) {
+                if ($ws['start_m'] === $ws['end_m']) {
+                    if ($m === $ws['start_m'] && $d >= $ws['start_d'] && $d <= $ws['end_d']) {
+                        $western = $ws;
+                        break;
+                    }
+                } else {
+                    if (($m === $ws['start_m'] && $d >= $ws['start_d']) || ($m === $ws['end_m'] && $d <= $ws['end_d'])) {
+                        $western = $ws;
+                        break;
+                    }
+                }
+            }
+
+            $sunSignData = [
+                'native_name'   => $validated['name'],
+                'formatted_dob' => $dt->format('d F Y'),
+                'birth_place'   => $validated['birth_place'],
+                'western'       => [
+                    'name'    => $western['name'],
+                    'dates'   => "{$western['start_m']}/{$western['start_d']} - {$western['end_m']}/{$western['end_d']}",
+                    'element' => $western['element'],
+                    'ruler'   => $western['ruler'],
+                ],
+                'vedic'         => [
+                    'name'    => $vedicSunSign,
+                    'dates'   => 'Sidereal Calculations',
+                    'element' => 'Varies by Degree',
+                    'ruler'   => 'Surya',
+                ],
+                'profile_note'  => "Your Sun is positioned in {$vedicSunSign} under Vedic Nirayana calculations and {$western['name']} under Western Tropical calculations, highlighting leadership, vitality, and core purposeful drive.",
+            ];
+        }
+
+        $user = Auth::user();
+        if ($user) {
+            $user = $user->load('wallet');
+        }
+
+        return Inertia::render('Tools/SunSignCalculator', [
+            'sunSignData' => $sunSignData,
+            'filters'     => $request->all(),
+            'user'        => $user,
         ]);
     }
 
@@ -357,4 +461,43 @@ class AstroToolController extends Controller
             return response()->json(['data' => []]);
         }
     }
+
+    public function sunSignCalculator(Request $request, \App\Services\VedicAstrologyService $vedicService)
+    {
+        $sunSignData = null;
+
+        if ($request->filled('dob')) {
+            $validated = $request->validate(array(
+                'name' => 'required|string|max:120',
+                'gender' => 'required|in:male,female,other',
+                'dob' => 'required|date',
+                'tob' => 'required|string',
+                'birth_place' => 'required|string|max:255',
+                'lat' => 'nullable|numeric',
+                'lng' => 'nullable|numeric',
+            ));
+
+            $sunSignData = $vedicService->calculateSunSign(
+                $validated['name'],
+                $validated['gender'],
+                $validated['dob'],
+                $validated['tob'],
+                $validated['birth_place'],
+                isset($validated['lat']) ? (float) $validated['lat'] : null,
+                isset($validated['lng']) ? (float) $validated['lng'] : null
+            );
+        }
+
+        $user = Auth::user();
+        if ($user) {
+            $user = $user->load('wallet');
+        }
+
+        return Inertia::render('Tools/SunSignCalculator', array(
+            'sunSignData' => $sunSignData,
+            'filters' => $request->only(array('name', 'gender', 'dob', 'tob', 'birth_place', 'lat', 'lng')),
+            'user' => $user,
+        ));
+    }
+
 }
