@@ -49,7 +49,9 @@ Route::get('/tools/sade-sati-calculator', [AstroToolController::class, 'sadeSati
 Route::get('/tools/choghadiya', [AstroToolController::class, 'choghadiya'])->name('tools.choghadiya');
 Route::get('/tools/muhurat-finder', [AstroToolController::class, 'muhuratFinder'])->name('tools.muhurat');
 Route::get('/ai-astrologer/chat', [AstroToolController::class, 'aiAstrologerChat'])->name('ai.astrologer.chat')->middleware(['auth', 'verified']);
+Route::get('/ai-astrologer/init', [AstroToolController::class, 'aiAstrologerInit'])->name('ai.astrologer.init')->middleware(['auth', 'verified']);
 Route::post('/ai-astrologer/send', [AstroToolController::class, 'aiAstrologerSend'])->name('ai.astrologer.send')->middleware(['auth', 'verified']);
+Route::post('/ai-astrologer/settle', [AstroToolController::class, 'aiAstrologerSettle'])->name('ai.astrologer.settle')->middleware(['auth', 'verified']);
 Route::get('/api/cities/autocomplete', [AstroToolController::class, 'searchCities'])->name('api.cities.autocomplete');
 
 Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {

@@ -3,6 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Location;
+use App\Models\Chat;
+use App\Models\ChatMessage;
+use App\Models\ChatSession;
+use App\Models\UserWallet;
 use App\Services\AstroAiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -837,9 +841,66 @@ class AstroToolController extends Controller
         ]);
     }
 
+    public function aiAstrologerInit(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $user = $user->load('wallet');
+        $ratePerMin = 5.00;
+
+        // 30-minute session rule
+        $recentSession = ChatSession::where('user_id', $user->id)
+            ->where('astrologer_id', 0)
+            ->whereNull('ended_at')
+            ->where('updated_at', '>=', now()->subMinutes(30))
+            ->latest('id')
+            ->first();
+
+        if (!$recentSession) {
+            $chat = Chat::create(['name' => 'ai_chat_' . $user->id . '_' . time()]);
+            $recentSession = ChatSession::create([
+                'chat_id' => $chat->id,
+                'session_reference' => (string) \Illuminate\Support\Str::uuid(),
+                'user_id' => $user->id,
+                'astrologer_id' => 0, // 0 = Acharya AI
+            ]);
+        } else {
+            $chat = Chat::find($recentSession->chat_id);
+            if (!$chat) {
+                $chat = Chat::create(['name' => 'ai_chat_' . $user->id . '_' . time()]);
+                $recentSession->chat_id = $chat->id;
+                $recentSession->save();
+            }
+        }
+
+        $messages = ChatMessage::where('chat_id', $chat->id)->orderBy('created_at')->get();
+
+        if ($messages->isEmpty()) {
+            $welcomeMsg = ChatMessage::create([
+                'chat_id' => $chat->id,
+                'user_id' => 0, // AI
+                'type' => 'text',
+                'message' => "Namaste, {$user->name}! I am Acharya AI, your personal Vedic Astrologer. I have accessed your Janma Kundli context. Ask me anything about your career, marriage, health, or life path. (Rate: ₹5/min)",
+            ]);
+            $messages = collect([$welcomeMsg]);
+        }
+
+        return response()->json([
+            'chat_id' => $chat->id,
+            'session_reference' => $recentSession->session_reference,
+            'messages' => $messages,
+            'balance' => $user->wallet?->balance ?? 0.00,
+            'rate_per_min' => $ratePerMin,
+        ]);
+    }
+
     public function aiAstrologerSend(Request $request)
     {
         $request->validate([
+            'chat_id' => 'required|exists:chats,id',
             'message' => 'required|string|max:500',
         ]);
 
@@ -851,22 +912,86 @@ class AstroToolController extends Controller
         $user = $user->load('wallet');
         $ratePerMin = 5.00;
 
-        if (!$user->wallet || $user->wallet->balance < $ratePerMin) {
+        if (!$user->wallet || $user->wallet->balance < ($ratePerMin / 4)) {
             return response()->json([
                 'error' => 'Insufficient wallet balance. Please recharge to continue chatting with Acharya AI.',
                 'balance' => $user->wallet?->balance ?? 0
             ], 402);
         }
 
-        $user->wallet->balance -= $ratePerMin;
-        $user->wallet->save();
-
+        $chatId = $request->input('chat_id');
         $userMessage = $request->input('message');
-        $aiReply = $this->astroService->chatWithAiAstrologer($userMessage);
+
+        // Save user message
+        ChatMessage::create([
+            'chat_id' => $chatId,
+            'user_id' => $user->id,
+            'type' => 'text',
+            'message' => $userMessage,
+        ]);
+
+        // Fetch history for AI context
+        $history = ChatMessage::where('chat_id', $chatId)->orderBy('created_at')->get()->map(function($m) use ($user) {
+            return [
+                'sender' => $m->user_id === $user->id ? 'user' : 'ai',
+                'text' => $m->message,
+            ];
+        })->toArray();
+
+        // Generate AI reply with history
+        $aiReply = $this->astroService->chatWithAiAstrologer($userMessage, $history);
+
+        // Save AI reply
+        $replyMsg = ChatMessage::create([
+            'chat_id' => $chatId,
+            'user_id' => 0, // AI
+            'type' => 'text',
+            'message' => $aiReply,
+        ]);
+
+        ChatSession::where('chat_id', $chatId)->where('user_id', $user->id)->whereNull('ended_at')->update(['updated_at' => now()]);
 
         return response()->json([
-            'reply' => $aiReply,
+            'message' => $replyMsg,
             'balance' => $user->wallet->balance,
+        ]);
+    }
+
+    public function aiAstrologerSettle(Request $request)
+    {
+        $request->validate([
+            'chat_id' => 'required|exists:chats,id',
+            'elapsed_seconds' => 'required|integer|min:1',
+        ]);
+
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $user = $user->load('wallet');
+        $ratePerMin = 5.00;
+        $elapsedSeconds = (int) $request->input('elapsed_seconds');
+        $fractionalDeduction = round(($elapsedSeconds / 60) * $ratePerMin, 2);
+
+        $wallet = UserWallet::where('user_id', $user->id)->first();
+        if ($wallet && $fractionalDeduction > 0) {
+            $deduction = min($fractionalDeduction, (float) $wallet->balance);
+            if ($deduction > 0) {
+                $wallet->decrement('balance', $deduction);
+            }
+        }
+
+        ChatSession::where('chat_id', $request->input('chat_id'))
+            ->where('user_id', $user->id)
+            ->whereNull('ended_at')
+            ->increment('duration_seconds', $elapsedSeconds);
+
+        $wallet->refresh();
+
+        return response()->json([
+            'balance' => $wallet->balance,
+            'deducted' => $fractionalDeduction,
         ]);
     }
 

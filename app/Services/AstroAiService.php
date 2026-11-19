@@ -2182,33 +2182,44 @@ class AstroAiService
         ];
     }
 
-    public function chatWithAiAstrologer(string $userMessage, array $context = []): string
+    public function chatWithAiAstrologer(string $userMessage, array $history = []): string
     {
         $apiKey = config('services.gemini.key');
         if (empty($apiKey)) {
-            return "Namaste! As your AI Vedic Astrologer, I see great potential in your chart. However, my Gemini API connection key is currently missing. Please configure it in your environment settings to unlock live astrological readings!";
+            return "Namaste! As your AI Vedic Astrologer, I see great potential in your chart. Please configure your Gemini API key in settings to unlock live astrological readings!";
         }
 
-        $prompt = <<<PROMPT
-            You are "Acharya AI", an expert Vedic Astrologer (Jyotish Acharya) on a premier astrology consultation platform (similar to Astrotalk).
-            A user is chatting with you in a paid 1on1 live session. Provide wise, compassionate, precise, and practical Vedic astrological guidance based on classical principles (Parashara, Jaimini, Gochar, Dashas).
+        $turns = [];
+        $turns[] = [
+            'role' => 'user',
+            'parts' => [['text' => "You are 'Acharya AI', an expert Vedic Astrologer (Jyotish Acharya) on a premier astrology consultation platform. Provide wise, compassionate, precise, and practical Vedic astrological guidance based on classical principles (Parashara, Jaimini, Gochar, Dashas). Do not repeat asking user details if already shared in history."]]
+        ];
+        $turns[] = [
+            'role' => 'model',
+            'parts' => [['text' => "Understood. I am Acharya AI, ready to assist you based on our ongoing conversation and Janma Kundli."]]
+        ];
 
-            User Query: "{$userMessage}"
+        foreach ($history as $msg) {
+            $role = ($msg['sender'] ?? $msg['type'] ?? 'user') === 'user' ? 'user' : 'model';
+            $text = $msg['text'] ?? $msg['message'] ?? '';
+            if (!empty($text)) {
+                $turns[] = [
+                    'role' => $role,
+                    'parts' => [['text' => $text]]
+                ];
+            }
+        }
 
-            Keep your response warm, engaging, structured with paragraphs or bullet points where helpful, and encourage them on their life path. End with a gentle, insightful astrological takeaway.
-            PROMPT;
+        $turns[] = [
+            'role' => 'user',
+            'parts' => [['text' => $userMessage]]
+        ];
 
         try {
             $response = \Illuminate\Support\Facades\Http::timeout(30)->post(
                 "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={$apiKey}",
                 [
-                    'contents' => [
-                        [
-                            'parts' => [
-                                ['text' => $prompt]
-                            ]
-                        ]
-                    ],
+                    'contents' => $turns,
                     'generationConfig' => [
                         'temperature' => 0.7,
                     ],
@@ -2217,13 +2228,13 @@ class AstroAiService
 
             if ($response->successful()) {
                 $text = $response->json('candidates.0.content.parts.0.text', '');
-                return trim($text) ?: "Namaste! The planets indicate a period of steady growth and positive transitions. How else may I assist you with your horoscope today?";
+                return trim($text) ?: "Namaste! The planets indicate steady growth. How else may I assist you today?";
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('AI Astrologer Chat Error: ' . $e->getMessage());
         }
 
-        return "Namaste! Your chart shows strong Jupiter and Sun influences favoring resilience and purposeful action. How else may I guide you on your journey?";
+        return "Namaste! Your chart shows strong Jupiter and Sun influences. How else may I guide you on your journey?";
     }
 
 }

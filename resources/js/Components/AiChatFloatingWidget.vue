@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick } from 'vue';
+import { ref, nextTick, onUnmounted } from 'vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -7,28 +7,77 @@ const props = defineProps({
 });
 
 const isOpen = ref(false);
-const messages = ref([
-    {
-        sender: 'ai',
-        text: 'Namaste! I am Acharya AI, your personal Vedic Astrologer. Ask me anything about your chart, career, or relationships. (Rate: ₹5/min)',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-]);
+const chatId = ref(null);
+const sessionReference = ref(null);
+const messages = ref([]);
 const inputMessage = ref('');
 const loading = ref(false);
 const walletBalance = ref(props.user?.wallet?.balance ?? 0.00);
 const chatContainer = ref(null);
 const errorMessage = ref('');
 
-function toggleChat() {
+const chatRatePerMin = 5.00;
+let timerInterval = null;
+let elapsedSeconds = 0;
+
+async function toggleChat() {
     isOpen.value = !isOpen.value;
     if (isOpen.value) {
+        await initChatSession();
         scrollToBottom();
+        startTimer();
+    } else {
+        stopTimer();
+    }
+}
+
+async function initChatSession() {
+    try {
+        const res = await axios.get(route('ai.astrologer.init'));
+        chatId.value = res.data.chat_id;
+        sessionReference.value = res.data.session_reference;
+        messages.value = res.data.messages.map(m => ({
+            sender: m.user_id === props.user.id ? 'user' : 'ai',
+            text: m.message,
+            time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }));
+        walletBalance.value = res.data.balance;
+    } catch (e) {
+        errorMessage.value = 'Failed to initialize chat session.';
+    }
+}
+
+function startTimer() {
+    stopTimer();
+    elapsedSeconds = 0;
+    timerInterval = setInterval(async () => {
+        if (!isOpen.value || !chatId.value) return;
+        elapsedSeconds += 15; // settle every 15 seconds for smooth billing
+
+        try {
+            const res = await axios.post(route('ai.astrologer.settle'), {
+                chat_id: chatId.value,
+                elapsed_seconds: 15
+            });
+            walletBalance.value = res.data.balance;
+            if (walletBalance.value < (chatRatePerMin / 4)) {
+                errorMessage.value = 'Low wallet balance. Please recharge!';
+            }
+        } catch (e) {
+            console.error('Settlement ping failed', e);
+        }
+    }, 15000);
+}
+
+function stopTimer() {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
     }
 }
 
 async function sendMessage() {
-    if (!inputMessage.value.trim() || loading.value) return;
+    if (!inputMessage.value.trim() || loading.value || !chatId.value) return;
 
     const userText = inputMessage.value.trim();
     inputMessage.value = '';
@@ -45,6 +94,7 @@ async function sendMessage() {
 
     try {
         const res = await axios.post(route('ai.astrologer.send'), {
+            chat_id: chatId.value,
             message: userText
         });
 
@@ -52,8 +102,8 @@ async function sendMessage() {
 
         messages.value.push({
             sender: 'ai',
-            text: res.data.reply,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            text: res.data.message.message,
+            time: new Date(res.data.message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
     } catch (e) {
         if (e.response?.status === 402) {
@@ -75,6 +125,10 @@ function scrollToBottom() {
         }
     });
 }
+
+onUnmounted(() => {
+    stopTimer();
+});
 </script>
 
 <template>
@@ -166,12 +220,12 @@ function scrollToBottom() {
                         v-model="inputMessage"
                         placeholder="Ask astrological question..."
                         :disabled="loading"
-                        class="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-orange-500 bg-gray-50 focus:bg-white transition"
+                        class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-orange-500 bg-gray-50 focus:bg-white transition"
                     />
                     <button
                         type="submit"
                         :disabled="loading || !inputMessage.trim()"
-                        class="bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-bold px-4 py-2 rounded-xl shadow transition text-xs"
+                        class="bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-bold px-4 py-2 rounded-lg shadow transition text-xs"
                     >
                         Send
                     </button>
