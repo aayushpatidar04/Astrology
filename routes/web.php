@@ -45,6 +45,7 @@ Route::get('/tools/atmakaraka-darakaraka', [AstroToolController::class, 'atmakar
 Route::get('/tools/dasha-calculator', [AstroToolController::class, 'dashaCalculator'])->name('tools.dasha');
 Route::get('/tools/nakshatra-calculator', [AstroToolController::class, 'nakshatraCalculator'])->name('tools.nakshatra');
 Route::get('/tools/manglik-dosha-calculator', [AstroToolController::class, 'manglikCalculator'])->name('tools.manglik');
+Route::get('/tools/sade-sati-calculator', [AstroToolController::class, 'sadeSatiCalculator'])->name('tools.sade-sati');
 Route::get('/api/cities/autocomplete', [AstroToolController::class, 'searchCities'])->name('api.cities.autocomplete');
 
 Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {

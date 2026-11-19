@@ -1438,4 +1438,157 @@ class AstroAiService
             ),
         );
     }
+
+    public function generateSadeSatiReport(
+        string $name,
+        string $gender,
+        string $dob,
+        string $tob,
+        string $birthPlace,
+        ?float $lat = null,
+        ?float $lng = null
+    ): array {
+        $timeNormalized = !empty($tob) ? $tob : '12:00';
+
+        // 1. Natal Birth Chart (to get Janma Rashi / Moon Sign)
+        $natalChart = $this->vedicService->calculateChart($dob, $timeNormalized, $birthPlace, $lat, $lng);
+        $natalMoon  = $natalChart['planets']['Moon'];
+        $natalLagna = $natalChart['planets']['Ascendant (Lagna)'];
+
+        $moonSignName = explode(' ', $natalMoon['rashi'])[0];
+        $moonSignIdx  = $natalMoon['rashi_number'] - 1; // 0 = Aries .. 11 = Pisces
+
+        // 2. Live Transit Saturn Position Today
+        $today = now('Asia/Kolkata');
+        $transitChart = $this->vedicService->calculateChart(
+            $today->format('Y-m-d'),
+            '06:00',
+            'Ujjain, India',
+            23.1765,
+            75.7885
+        );
+        $transitSaturn     = $transitChart['planets']['Saturn'];
+        $transitSaturnSign = explode(' ', $transitSaturn['rashi'])[0];
+        $saturnSignIdx     = $transitSaturn['rashi_number'] - 1;
+
+        // 1-indexed house of Transit Saturn from Natal Moon (1 to 12)
+        $houseFromMoon = (($saturnSignIdx - $moonSignIdx + 12) % 12) + 1;
+
+        $signs = array(
+            'Aries', 'Taurus', 'Gemini', 'Cancer',
+            'Leo', 'Virgo', 'Libra', 'Scorpio',
+            'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+        );
+
+        // 3. Determine Current Sade Sati / Dhaiya Status
+        $isActive   = false;
+        $status     = 'Not Active';
+        $phaseTitle = 'No Active Sade Sati';
+        $phaseDesc  = '';
+
+        if ($houseFromMoon === 12) {
+            $isActive   = true;
+            $status     = 'Active — 1st Phase (Rising / Udaya)';
+            $phaseTitle = '1st Phase: Rising Phase (Udaya)';
+            $phaseDesc  = "Transit Saturn is in {$transitSaturnSign} (12th house from your natal Moon in {$moonSignName}). This opening 2.5-year phase brings financial restructuring, rising expenses, deeper introspection, and preparation for major personal growth.";
+        } elseif ($houseFromMoon === 1) {
+            $isActive   = true;
+            $status     = 'Active — 2nd Phase (Peak / Shikhar)';
+            $phaseTitle = '2nd Phase: Peak Phase (Shikhar)';
+            $phaseDesc  = "Transit Saturn is transiting directly over your natal Moon in {$moonSignName} (1st house). This middle 2.5-year phase tests emotional resilience, discipline, health routines, and patience while reshaping your long-term priorities.";
+        } elseif ($houseFromMoon === 2) {
+            $isActive   = true;
+            $status     = 'Active — 3rd Phase (Setting / Ast)';
+            $phaseTitle = '3rd Phase: Setting Phase (Ast)';
+            $phaseDesc  = "Transit Saturn is in {$transitSaturnSign} (2nd house from your natal Moon in {$moonSignName}). In this closing 2.5-year phase, mental pressure steadily lifts as Saturn rewards past hard work and teaches mindful speech and disciplined savings.";
+        } elseif ($houseFromMoon === 4 || $houseFromMoon === 8) {
+            $dhaiyaType = $houseFromMoon === 4 ? 'Kantaka Shani (4th House Dhaiya)' : 'Ashtama Shani (8th House Dhaiya)';
+            $status     = "Not Active ({$dhaiyaType})";
+            $phaseTitle = $dhaiyaType;
+            $phaseDesc  = "Sade Sati is not active, though Saturn in {$transitSaturnSign} is currently in the {$houseFromMoon}th house from your natal Moon ({$dhaiyaType}), a 2.5-year transit that encourages patience in domestic and career matters.";
+        } else {
+            $phaseDesc  = "Shani Sade Sati is currently not active for your chart. Transit Saturn is in {$transitSaturnSign} ({$houseFromMoon}th house from your natal Moon in {$moonSignName}), allowing steady progress without 7.5-year Saturn pressure.";
+        }
+
+        // 4. Calculate Saturn Ingress Dates for the 3 Sade Sati Signs (12th, 1st, 2nd from Moon)
+        $piscesEntry = new \DateTime('2025-03-29', new \DateTimeZone('Asia/Kolkata'));
+        $daysPerSign = 898; // ~2.46 years per Rashi
+
+        $sign12Idx = ($moonSignIdx + 11) % 12; // 12th from Moon
+        $sign1Idx  = $moonSignIdx;             // 1st (Moon Sign)
+        $sign2Idx  = ($moonSignIdx + 1) % 12;  // 2nd from Moon
+
+        $offsetSigns = ($sign12Idx - 11 + 12) % 12;
+        $cycleStart = (clone $piscesEntry)->modify('+' . ($offsetSigns * $daysPerSign) . ' days');
+
+        if ($cycleStart > (clone $today)->modify('+2 years') && $houseFromMoon !== 12) {
+            $cycleStart->modify('-10776 days');
+        }
+        $cycleEnd = (clone $cycleStart)->modify('+' . (3 * $daysPerSign) . ' days');
+        if ($cycleEnd < $today) {
+            $cycleStart->modify('+10776 days');
+        }
+
+        $p1Start = clone $cycleStart;
+        $p1End   = (clone $p1Start)->modify("+{$daysPerSign} days");
+
+        $p2Start = clone $p1End;
+        $p2End   = (clone $p2Start)->modify("+{$daysPerSign} days");
+
+        $p3Start = clone $p2End;
+        $p3End   = (clone $p3Start)->modify("+{$daysPerSign} days");
+
+        $phases = array(
+            array(
+                'phase'       => '1st Phase (Rising / Udaya)',
+                'transit'     => "Saturn in {$signs[$sign12Idx]} (12th from Moon)",
+                'start'       => $p1Start->format('M Y'),
+                'end'         => $p1End->format('M Y'),
+                'is_current'  => ($houseFromMoon === 12),
+                'focus'       => 'Expenses, travel/relocation, mental restructuring, and letting go of old habits.',
+            ),
+            array(
+                'phase'       => '2nd Phase (Peak / Shikhar)',
+                'transit'     => "Saturn in {$signs[$sign1Idx]} (Over Natal Moon)",
+                'start'       => $p2Start->format('M Y'),
+                'end'         => $p2End->format('M Y'),
+                'is_current'  => ($houseFromMoon === 1),
+                'focus'       => 'Emotional maturity, career discipline, health balance, and core life responsibility.',
+            ),
+            array(
+                'phase'       => '3rd Phase (Setting / Ast)',
+                'transit'     => "Saturn in {$signs[$sign2Idx]} (2nd from Moon)",
+                'start'       => $p3Start->format('M Y'),
+                'end'         => $p3End->format('M Y'),
+                'is_current'  => ($houseFromMoon === 2),
+                'focus'       => 'Financial stabilization, family communication, and reaping rewards of sustained effort.',
+            ),
+        );
+
+        $dt = new \DateTime("{$dob} {$timeNormalized}", new \DateTimeZone('Asia/Kolkata'));
+
+        return array(
+            'native_name'         => trim($name),
+            'gender'              => ucfirst(strtolower(trim($gender))),
+            'dob'                 => $dt->format('j F Y'),
+            'tob'                 => $dt->format('h:i A'),
+            'birth_place'         => trim($birthPlace),
+            'moon_sign'           => $moonSignName,
+            'lagna'               => explode(' ', $natalLagna['rashi'])[0],
+            'nakshatra'           => $natalMoon['nakshatra'] . ' (Pada ' . $natalMoon['pada'] . ')',
+            'transit_saturn_sign' => $transitSaturnSign,
+            'house_from_moon'     => $houseFromMoon,
+            'is_active'           => $isActive,
+            'status'              => $status,
+            'phase_title'         => $phaseTitle,
+            'phase_description'   => $phaseDesc,
+            'phases'              => $phases,
+            'remedies'            => array(
+                'Light a mustard or sesame oil diya under a Peepal tree on Saturday evenings.',
+                'Recite Hanuman Chalisa or Shani Chalisa regularly, especially on Saturdays.',
+                'Chant the Shani Beej Mantra: "Om Pram Preem Proum Sah Shanaischaraya Namah" (108 times on Saturdays).',
+                'Practice patience, honesty, and service toward elderly or underprivileged individuals.',
+            ),
+        );
+    }
 }
