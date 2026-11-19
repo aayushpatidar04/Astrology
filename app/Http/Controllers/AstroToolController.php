@@ -824,6 +824,52 @@ class AstroToolController extends Controller
         ]);
     }
 
+    public function aiAstrologerChat(Request $request)
+    {
+        $user = Auth::user();
+        if ($user) {
+            $user = $user->load('wallet');
+        }
+
+        return Inertia::render('Tools/AiAstrologerChat', [
+            'user' => $user,
+            'chatRatePerMin' => 5.00,
+        ]);
+    }
+
+    public function aiAstrologerSend(Request $request)
+    {
+        $request->validate([
+            'message' => 'required|string|max:500',
+        ]);
+
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $user = $user->load('wallet');
+        $ratePerMin = 5.00;
+
+        if (!$user->wallet || $user->wallet->balance < $ratePerMin) {
+            return response()->json([
+                'error' => 'Insufficient wallet balance. Please recharge to continue chatting with Acharya AI.',
+                'balance' => $user->wallet?->balance ?? 0
+            ], 402);
+        }
+
+        $user->wallet->balance -= $ratePerMin;
+        $user->wallet->save();
+
+        $userMessage = $request->input('message');
+        $aiReply = $this->astroService->chatWithAiAstrologer($userMessage);
+
+        return response()->json([
+            'reply' => $aiReply,
+            'balance' => $user->wallet->balance,
+        ]);
+    }
+
     public function searchCities(Request $request)
     {
         $query = $request->input('key', '');
