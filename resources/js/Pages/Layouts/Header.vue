@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/vue3'
 import { Icon } from '@iconify/vue';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import Notification from '@/Components/Notification.vue';
+import AiChatFloatingWidget from '@/Components/AiChatFloatingWidget.vue';
 
 const props = defineProps({
     user: Object,
@@ -264,17 +265,12 @@ onBeforeUnmount(() => {
                 <li class="relative" id="calculators-dropdown">
                     <button @click="showCalculatorsDropdown = !showCalculatorsDropdown" type="button"
                         class="nav-link inline-flex items-center hover:text-primary focus:outline-none"
-                        :class="route().current('tools.numerology') || route().current('tools.love-calculator') || route().current('tools.sun-sign') || route().current('tools.rising-sign') || route().current('tools.rashi') || route().current('tools.karakas') || route().current('tools.dasha') || route().current('tools.nakshatra') || route().current('tools.manglik') || route().current('tools.sade-sati') || route().current('ai.astrologer.chat') ? 'is-active text-primary font-bold' : ''">
+                        :class="route().current('tools.numerology') || route().current('tools.love-calculator') || route().current('tools.sun-sign') || route().current('tools.rising-sign') || route().current('tools.rashi') || route().current('tools.karakas') || route().current('tools.dasha') || route().current('tools.nakshatra') || route().current('tools.manglik') || route().current('tools.sade-sati') ? 'is-active text-primary font-bold' : ''">
                         Calculators
                         <Icon icon="mdi:chevron-down" width="16" height="16" class="ml-1" />
                     </button>
                     <div v-if="showCalculatorsDropdown"
-                        class="absolute left-0 mt-2 w-52 bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-100">
-                        <Link :href="route('ai.astrologer.chat')" @click="closeCalculatorsDropdown"
-                            class="block px-4 py-2.5 text-sm text-orange-700 hover:bg-orange-50 hover:text-orange-800 transition font-extrabold border-b border-orange-100"
-                            :class="route().current('ai.astrologer.chat') ? 'font-black text-orange-800 bg-orange-50' : ''">
-                            🤖 Acharya AI Chat (Paid)
-                        </Link>
+                        class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-100">
                         <Link :href="route('tools.numerology')" @click="closeCalculatorsDropdown"
                             class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition"
                             :class="route().current('tools.numerology') ? 'font-bold text-orange-600 bg-orange-50' : ''">
@@ -400,4 +396,6 @@ onBeforeUnmount(() => {
     <main>
         <slot />
     </main>
+
+    <AiChatFloatingWidget :user="user" />
 </template>
