@@ -834,6 +834,25 @@ const zoomTransform = (o, s = 1.18) =>
                         </tbody>
                     </table>
                 </div>
+
+                <!-- AI Astrological Predictions -->
+                <div v-if="kundliData.ai_predictions" class="bg-white rounded-xl shadow-md p-6 border border-gray-100 space-y-4">
+                    <h3 class="text-xl font-bold text-gray-900 pb-2 border-b">AI Astrological Predictions &amp; Life Analysis</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div v-for="(val, key) in kundliData.ai_predictions" :key="key" class="bg-gradient-to-br from-orange-50/50 to-amber-50/50 p-4 rounded-xl border border-orange-200">
+                            <h4 class="font-extrabold text-orange-800 uppercase text-xs tracking-wider mb-1">{{ key.replace(/_/g, ' ') }}</h4>
+                            <p class="text-xs text-gray-700 leading-relaxed">{{ val }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recommended Remedies -->
+                <div v-if="kundliData.remedies && kundliData.remedies.length > 0" class="bg-white rounded-xl shadow-md p-6 border border-gray-100 space-y-4">
+                    <h3 class="text-xl font-bold text-gray-900 pb-2 border-b">Personalized Vedic Remedies &amp; Gemstones</h3>
+                    <ul class="list-disc list-inside text-sm text-gray-700 space-y-2 bg-amber-50/60 p-4 rounded-xl border border-amber-200">
+                        <li v-for="remedy in kundliData.remedies" :key="remedy">{{ remedy }}</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </section>
