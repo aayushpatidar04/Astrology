@@ -211,7 +211,7 @@ onBeforeUnmount(() => {
                 <li class="relative" id="free-services-dropdown">
                     <button @click="showDropdown = !showDropdown" type="button"
                         class="nav-link inline-flex items-center hover:text-primary focus:outline-none"
-                        :class="route().current('tools.*') && !route().current('tools.numerology') ? 'is-active text-primary font-bold' : ''">
+                        :class="route().current('tools.kundli') || route().current('tools.matchmaking') || route().current('tools.panchang') || route().current('tools.compatibility') || route().current('tools.tarot') || route().current('tools.baby-names') ? 'is-active text-primary font-bold' : ''">
                         Free Services
                         <Icon icon="mdi:chevron-down" width="16" height="16" class="ml-1" />
                     </button>

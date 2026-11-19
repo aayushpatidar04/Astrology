@@ -462,42 +462,54 @@ class AstroToolController extends Controller
         }
     }
 
-    public function sunSignCalculator(Request $request, \App\Services\VedicAstrologyService $vedicService)
-    {
-        $sunSignData = null;
+    // public function sunSignCalculator(Request $request, \App\Services\VedicAstrologyService $vedicService)
+    // {
+    //     $sunSignData = null;
 
-        if ($request->filled('dob')) {
-            $validated = $request->validate(array(
-                'name' => 'required|string|max:120',
-                'gender' => 'required|in:male,female,other',
-                'dob' => 'required|date',
-                'tob' => 'required|string',
-                'birth_place' => 'required|string|max:255',
-                'lat' => 'nullable|numeric',
-                'lng' => 'nullable|numeric',
-            ));
+    //     if ($request->filled('dob')) {
+    //         $validated = $request->validate(array(
+    //             'name' => 'required|string|max:120',
+    //             'gender' => 'required|in:male,female,other',
+    //             'dob' => 'required|date',
+    //             'tob' => 'required|string',
+    //             'birth_place' => 'required|string|max:255',
+    //             'lat' => 'nullable|numeric',
+    //             'lng' => 'nullable|numeric',
+    //         ));
 
-            $sunSignData = $vedicService->calculateSunSign(
-                $validated['name'],
-                $validated['gender'],
-                $validated['dob'],
-                $validated['tob'],
-                $validated['birth_place'],
-                isset($validated['lat']) ? (float) $validated['lat'] : null,
-                isset($validated['lng']) ? (float) $validated['lng'] : null
-            );
-        }
+    //         if ($request->filled('lat') && $request->filled('lng')) {
+    //             $cityOnly = trim(explode(',', $validated['birth_place'])[0]);
+    //             Location::updateOrCreate(
+    //                 ['city_name' => $cityOnly],
+    //                 [
+    //                     'latitude' => (float) $request->input('lat'),
+    //                     'longitude' => (float) $request->input('lng'),
+    //                     'country' => 'India',
+    //                 ]
+    //             );
+    //         }
 
-        $user = Auth::user();
-        if ($user) {
-            $user = $user->load('wallet');
-        }
+    //         $sunSignData = $vedicService->calculateSunSign(
+    //             $validated['name'],
+    //             $validated['gender'],
+    //             $validated['dob'],
+    //             $validated['tob'],
+    //             $validated['birth_place'],
+    //             isset($validated['lat']) ? (float) $validated['lat'] : null,
+    //             isset($validated['lng']) ? (float) $validated['lng'] : null
+    //         );
+    //     }
 
-        return Inertia::render('Tools/SunSignCalculator', array(
-            'sunSignData' => $sunSignData,
-            'filters' => $request->only(array('name', 'gender', 'dob', 'tob', 'birth_place', 'lat', 'lng')),
-            'user' => $user,
-        ));
-    }
+    //     $user = Auth::user();
+    //     if ($user) {
+    //         $user = $user->load('wallet');
+    //     }
+
+    //     return Inertia::render('Tools/SunSignCalculator', array(
+    //         'sunSignData' => $sunSignData,
+    //         'filters' => $request->only(array('name', 'gender', 'dob', 'tob', 'birth_place', 'lat', 'lng')),
+    //         'user' => $user,
+    //     ));
+    // }
 
 }
