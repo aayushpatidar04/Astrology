@@ -2121,4 +2121,65 @@ class AstroAiService
         );
     }
 
+    public function calculateMuhuratFinder(
+        string $eventType,
+        string $date,
+        string $cityName = 'Jaipur, Rajasthan, India',
+        float $lat = 26.9124,
+        float $lng = 75.7873
+    ): array {
+        $choghadiya = $this->getChoghadiyaTimetable($date, $cityName, $lat, $lng);
+        $panchang = $this->getDailyPanchang($date, $cityName, $lat, $lng);
+
+        $goodTypes = ['Amrit', 'Shubh', 'Labh'];
+        if ($eventType === 'travel' || $eventType === 'vehicle') {
+            $goodTypes[] = 'Char';
+        }
+
+        $auspiciousWindows = [];
+        $allSlots = array_merge($choghadiya['day_choghadiya'], $choghadiya['night_choghadiya']);
+
+        foreach ($allSlots as $slot) {
+            $isAuspicious = in_array($slot['name'], $goodTypes, true);
+            $score = $isAuspicious ? (match($slot['name']) {
+                'Amrit' => 98,
+                'Shubh' => 92,
+                'Labh'  => 88,
+                'Char'  => 78,
+                default => 60
+            }) : 35;
+
+            if ($isAuspicious) {
+                $auspiciousWindows[] = [
+                    'event_type'     => ucwords(str_replace('_', ' ', $eventType)),
+                    'window_name'    => "{$slot['name']} Muhurat ({$slot['period']})",
+                    'ruler'          => $slot['ruler'],
+                    'time_range'     => $slot['time_range'],
+                    'score'          => $score,
+                    'nature'         => $slot['nature'],
+                    'recommendation' => "Highly favorable window governed by {$slot['ruler']} ({$slot['name']}). {$slot['activity']}.",
+                ];
+            }
+        }
+
+        usort($auspiciousWindows, fn($a, $b) => $b['score'] <=> $a['score']);
+
+        return [
+            'event_type'     => ucwords(str_replace('_', ' ', $eventType)),
+            'date'           => $choghadiya['date'],
+            'city'           => $cityName,
+            'sunrise'        => $choghadiya['sunrise'],
+            'sunset'         => $choghadiya['sunset'],
+            'panchang'       => $panchang,
+            'windows'        => $auspiciousWindows,
+            'general_advice' => match($eventType) {
+                'business' => 'For new business ventures and investments, prioritize Labh and Amrit Muhurats during Shukla Paksha.',
+                'property' => 'For buying property or housewarming (Griha Pravesh), Shubh and Amrit Choghadiya windows bring lasting stability.',
+                'vehicle'  => 'For vehicle purchase and travel, Char and Shubh muhurats ensure safe journeys and smooth transit.',
+                'marriage' => 'For marriage and ceremonies, verify full Ashtakoota Guna Milan alongside Shubh and Amrit Muhurat windows.',
+                default    => 'For new beginnings, always select Amrit, Shubh, or Labh windows while avoiding Rahu Kaal.'
+            }
+        ];
+    }
+
 }

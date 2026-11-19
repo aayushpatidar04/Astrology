@@ -796,6 +796,34 @@ class AstroToolController extends Controller
         ));
     }
 
+    public function muhuratFinder(Request $request)
+    {
+        $eventType = $request->input('event_type', 'business');
+        $date      = $request->input('date', now('Asia/Kolkata')->format('Y-m-d'));
+        $city      = $request->input('city', 'Jaipur, Rajasthan, India');
+        $lat       = (float) $request->input('lat', 26.9124);
+        $lng       = (float) $request->input('lng', 75.7873);
+
+        $muhuratData = $this->astroService->calculateMuhuratFinder($eventType, $date, $city, $lat, $lng);
+
+        $user = Auth::user();
+        if ($user) {
+            $user = $user->load('wallet');
+        }
+
+        return Inertia::render('Tools/MuhuratFinder', [
+            'muhuratData' => $muhuratData,
+            'filters'     => [
+                'event_type' => $eventType,
+                'date'       => $date,
+                'city'       => $city,
+                'lat'        => $lat,
+                'lng'        => $lng,
+            ],
+            'user'        => $user,
+        ]);
+    }
+
     public function searchCities(Request $request)
     {
         $query = $request->input('key', '');
