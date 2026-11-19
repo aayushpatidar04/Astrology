@@ -2,7 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import Header from '@/Pages/Layouts/Header.vue';
 import Footer from '../Layouts/Footer.vue';
-import { ref, nextTick } from 'vue';
+import { ref, nextTick, onMounted } from 'vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -10,6 +10,7 @@ const props = defineProps({
     chatRatePerMin: Number,
 });
 
+const chatId = ref(null);
 const messages = ref([
     {
         sender: 'ai',
@@ -24,8 +25,29 @@ const walletBalance = ref(props.user?.wallet?.balance ?? 0.00);
 const chatContainer = ref(null);
 const errorMessage = ref('');
 
+async function initChat() {
+    try {
+        const res = await axios.get(route('ai.astrologer.init'));
+        chatId.value = res.data.chat_id;
+        walletBalance.value = res.data.balance;
+        if (res.data.messages && res.data.messages.length > 0) {
+            messages.value = res.data.messages.map(m => ({
+                sender: m.user_id === props.user?.id ? 'user' : 'ai',
+                text: m.message,
+                time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }));
+        }
+    } catch (e) {
+        console.error('Failed to init AI chat', e);
+    }
+}
+
+onMounted(() => {
+    initChat();
+});
+
 async function sendMessage() {
-    if (!inputMessage.value.trim() || loading.value) return;
+    if (!inputMessage.value.trim() || loading.value || !chatId.value) return;
 
     const userText = inputMessage.value.trim();
     inputMessage.value = '';
@@ -42,6 +64,7 @@ async function sendMessage() {
 
     try {
         const res = await axios.post(route('ai.astrologer.send'), {
+            chat_id: chatId.value,
             message: userText
         });
 
@@ -49,7 +72,7 @@ async function sendMessage() {
 
         messages.value.push({
             sender: 'ai',
-            text: res.data.reply,
+            text: res.data.reply || res.data.message?.message,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
     } catch (e) {

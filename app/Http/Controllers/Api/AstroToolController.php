@@ -612,6 +612,7 @@ class AstroToolController extends Controller
 
         return response()->json([
             'message' => $replyMsg,
+            'reply' => $aiReply,
             'balance' => $user->wallet->balance,
         ]);
     }
