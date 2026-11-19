@@ -7,6 +7,8 @@ use App\Models\Chat;
 use App\Models\ChatMessage;
 use App\Models\ChatSession;
 use App\Models\UserWallet;
+use App\Models\User;
+use App\Models\Astrologer;
 use App\Services\AstroAiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -851,9 +853,31 @@ class AstroToolController extends Controller
         $user = $user->load('wallet');
         $ratePerMin = 5.00;
 
+        $acharyaUser = User::firstOrCreate(
+            ['email' => 'acharya.ai@myastrosathi.com'],
+            [
+                'name' => 'Acharya AI Astrologer',
+                'password' => bcrypt('secret123'),
+            ]
+        );
+
+        Astrologer::firstOrCreate(
+            ['user_id' => $acharyaUser->id],
+            [
+                'bio' => 'Expert Vedic Astrologer powered by Advanced AI. Available 24/7 for instant consultations based on your Janma Kundli.',
+                'expertise' => json_encode(['Vedic', 'Kundli', 'Jaimini', 'Dasha', 'AI Jyotish']),
+                'experience_years' => 100,
+                'profile_image' => 'images/acharya_ai.png',
+                'charged_text_price' => $ratePerMin,
+                'asked_text_price' => $ratePerMin,
+                'online' => 1,
+                'status' => 'verified',
+            ]
+        );
+
         // 30-minute session rule
         $recentSession = ChatSession::where('user_id', $user->id)
-            ->where('astrologer_id', 0)
+            ->where('astrologer_id', $acharyaUser->id)
             ->whereNull('ended_at')
             ->where('updated_at', '>=', now()->subMinutes(30))
             ->latest('id')
@@ -862,38 +886,39 @@ class AstroToolController extends Controller
         if (!$recentSession) {
             $chat = Chat::create(['name' => 'ai_chat_' . $user->id . '_' . time()]);
             $recentSession = ChatSession::create([
-                'chat_id' => $chat->id,
+                'chat_id' => $chat->getKey(),
                 'session_reference' => (string) \Illuminate\Support\Str::uuid(),
                 'user_id' => $user->id,
-                'astrologer_id' => 0, // 0 = Acharya AI
+                'astrologer_id' => $acharyaUser->getKey(),
             ]);
         } else {
             $chat = Chat::find($recentSession->chat_id);
             if (!$chat) {
                 $chat = Chat::create(['name' => 'ai_chat_' . $user->id . '_' . time()]);
-                $recentSession->chat_id = $chat->id;
+                $recentSession->chat_id = $chat->getKey();
                 $recentSession->save();
             }
         }
 
-        $messages = ChatMessage::where('chat_id', $chat->id)->orderBy('created_at')->get();
+        $messages = ChatMessage::where('chat_id', $chat->getKey())->orderBy('created_at')->get();
 
         if ($messages->isEmpty()) {
             $welcomeMsg = ChatMessage::create([
-                'chat_id' => $chat->id,
-                'user_id' => 0, // AI
+                'chat_id' => $chat->getKey(),
+                'user_id' => $acharyaUser->getKey(),
                 'type' => 'text',
-                'message' => "Namaste, {$user->name}! I am Acharya AI, your personal Vedic Astrologer. I have accessed your Janma Kundli context. Ask me anything about your career, marriage, health, or life path. (Rate: ₹5/min)",
+                'message' => "Namaste, {$user->name}! I am Acharya AI, your personal Vedic Astrologer. I have accessed your Janma Kundli context. Ask me anything about your career, marriage, health, or life path. (Rate: ₹{$ratePerMin}/min)",
             ]);
             $messages = collect([$welcomeMsg]);
         }
 
         return response()->json([
-            'chat_id' => $chat->id,
+            'chat_id' => $chat->getKey(),
             'session_reference' => $recentSession->session_reference,
             'messages' => $messages,
             'balance' => $user->wallet?->balance ?? 0.00,
             'rate_per_min' => $ratePerMin,
+            'acharya_id' => $acharyaUser->getKey(),
         ]);
     }
 
@@ -919,21 +944,24 @@ class AstroToolController extends Controller
             ], 402);
         }
 
+        $acharyaUser = User::where('email', 'acharya.ai@myastrosathi.com')->first();
+        $acharyaId = $acharyaUser?->getKey() ?? 0;
+
         $chatId = $request->input('chat_id');
         $userMessage = $request->input('message');
 
         // Save user message
         ChatMessage::create([
             'chat_id' => $chatId,
-            'user_id' => $user->id,
+            'user_id' => $user->getKey(),
             'type' => 'text',
             'message' => $userMessage,
         ]);
 
         // Fetch history for AI context
-        $history = ChatMessage::where('chat_id', $chatId)->orderBy('created_at')->get()->map(function($m) use ($user) {
+        $history = ChatMessage::where('chat_id', $chatId)->orderBy('created_at')->get()->map(function($m) use ($user, $acharyaId) {
             return [
-                'sender' => $m->user_id === $user->id ? 'user' : 'ai',
+                'sender' => $m->user_id === $user->getKey() ? 'user' : 'ai',
                 'text' => $m->message,
             ];
         })->toArray();
@@ -944,12 +972,12 @@ class AstroToolController extends Controller
         // Save AI reply
         $replyMsg = ChatMessage::create([
             'chat_id' => $chatId,
-            'user_id' => 0, // AI
+            'user_id' => $acharyaId,
             'type' => 'text',
             'message' => $aiReply,
         ]);
 
-        ChatSession::where('chat_id', $chatId)->where('user_id', $user->id)->whereNull('ended_at')->update(['updated_at' => now()]);
+        ChatSession::where('chat_id', $chatId)->where('user_id', $user->getKey())->whereNull('ended_at')->update(['updated_at' => now()]);
 
         return response()->json([
             'message' => $replyMsg,
@@ -974,7 +1002,7 @@ class AstroToolController extends Controller
         $elapsedSeconds = (int) $request->input('elapsed_seconds');
         $fractionalDeduction = round(($elapsedSeconds / 60) * $ratePerMin, 2);
 
-        $wallet = UserWallet::where('user_id', $user->id)->first();
+        $wallet = UserWallet::where('user_id', $user->getKey())->first();
         if ($wallet && $fractionalDeduction > 0) {
             $deduction = min($fractionalDeduction, (float) $wallet->balance);
             if ($deduction > 0) {
@@ -983,7 +1011,7 @@ class AstroToolController extends Controller
         }
 
         ChatSession::where('chat_id', $request->input('chat_id'))
-            ->where('user_id', $user->id)
+            ->where('user_id', $user->getKey())
             ->whereNull('ended_at')
             ->increment('duration_seconds', $elapsedSeconds);
 
