@@ -990,4 +990,101 @@ class VedicAstrologyService
             'relationships' => $profile['relationships'],
         );
     }
+
+    public function calculateCharaKarakas(
+        string $name,
+        string $gender,
+        string $dob,
+        string $tob,
+        string $birthPlace,
+        ?float $lat = null,
+        ?float $lng = null
+    ): array {
+        if ($lat === null || $lng === null) {
+            $coords = $this->getCoordinates($birthPlace);
+            $lat = $coords['lat'];
+            $lng = $coords['lon'];
+        }
+
+        $timeNormalized = !empty($tob) ? $tob : '12:00';
+        $chart = $this->calculateChart($dob, $timeNormalized, $birthPlace, $lat, $lng);
+        $planets = $chart['planets'];
+
+        $sevenPlanets = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'];
+        $ranked = [];
+
+        foreach ($sevenPlanets as $pName) {
+            $fullDeg = $planets[$pName]['full_degree'];
+            $degInSign = fmod($fullDeg, 30.0);
+
+            $ranked[] = [
+                'planet'           => $pName,
+                'rashi'            => explode(' ', $planets[$pName]['rashi'])[0],
+                'house'            => $planets[$pName]['house'],
+                'nakshatra'        => $planets[$pName]['nakshatra'] . ' (Pada ' . $planets[$pName]['pada'] . ')',
+                'degree_in_sign'   => round($degInSign, 4),
+                'degree_formatted' => $planets[$pName]['degree_formatted'],
+            ];
+        }
+
+        usort($ranked, function ($a, $b) {
+            return $b['degree_in_sign'] <=> $a['degree_in_sign'];
+        });
+
+        $karakaTitles = [
+            ['code' => 'AK',  'title' => 'Atmakaraka (Soul)',        'area' => 'Self, Soul Purpose & Primary Karmic Lesson'],
+            ['code' => 'AmK', 'title' => 'Amatyakaraka (Career)',    'area' => 'Profession, Status & Mentors'],
+            ['code' => 'BK',  'title' => 'Bhratrukaraka (Courage)',  'area' => 'Siblings, Initiative & Guru'],
+            ['code' => 'MK',  'title' => 'Matrukaraka (Mind/Home)',  'area' => 'Mother, Emotional Peace & Property'],
+            ['code' => 'PK',  'title' => 'Putrakaraka (Creativity)', 'area' => 'Children, Intelligence & Speculation'],
+            ['code' => 'GK',  'title' => 'Gnatikaraka (Challenges)', 'area' => 'Obstacles, Health & Competitive Effort'],
+            ['code' => 'DK',  'title' => 'Darakaraka (Spouse)',      'area' => 'Marriage, Life Partner & Relationships'],
+        ];
+
+        foreach ($ranked as $index => &$item) {
+            $item['karaka_code']  = $karakaTitles[$index]['code'];
+            $item['karaka_title'] = $karakaTitles[$index]['title'];
+            $item['life_area']    = $karakaTitles[$index]['area'];
+        }
+        unset($item);
+
+        $akInterpretations = [
+            'Sun'     => 'With Sun as your Atmakaraka, your soul lesson centers on authentic leadership, humility over ego, self-reliance, and shining your light to uplift others.',
+            'Moon'    => 'With Moon as your Atmakaraka, your soul seeks emotional wisdom, compassion, nurturing others, and mastering inner peace across life changes.',
+            'Mars'    => 'With Mars as your Atmakaraka, your soul lesson involves channeling courage, discipline, and protective strength constructively without anger or impulsiveness.',
+            'Mercury' => 'With Mercury as your Atmakaraka, your soul thrives on truth, clear communication, continuous learning, and using intellect with integrity.',
+            'Jupiter' => 'With Jupiter as your Atmakaraka, your soul path revolves around wisdom, ethical principles, mentorship, spirituality, and generous guidance.',
+            'Venus'   => 'With Venus as your Atmakaraka, your soul lesson centers on unconditional love, creative harmony, appreciating beauty, and valuing relationships deeply.',
+            'Saturn'  => 'With Saturn as your Atmakaraka, your soul path emphasizes patience, perseverance, accountability, service, and building lasting strength through discipline.',
+        ];
+
+        $dkInterpretations = [
+            'Sun'     => 'Sun as Darakaraka indicates a proud, confident, principled, and strong-willed spouse who commands natural respect and values honor in marriage.',
+            'Moon'    => 'Moon as Darakaraka points to a caring, emotionally intuitive, family-oriented, and adaptable spouse who brings warmth and nurturing to the home.',
+            'Mars'    => 'Mars as Darakaraka indicates an energetic, courageous, independent, and straightforward spouse who is protective and action-oriented.',
+            'Mercury' => 'Mercury as Darakaraka suggests a witty, youthful, communicative, and intellectually curious spouse who values friendship and lively conversation.',
+            'Jupiter' => 'Jupiter as Darakaraka indicates a wise, ethical, supportive, and optimistic spouse who brings stability, good counsel, and shared values.',
+            'Venus'   => 'Venus as Darakaraka points to an affectionate, charming, artistic, and harmony-loving spouse who appreciates beauty, comfort, and romance.',
+            'Saturn'  => 'Saturn as Darakaraka suggests a mature, loyal, practical, and responsible spouse who values long-term commitment, stability, and steady devotion.',
+        ];
+
+        $ak = $ranked[0];
+        $dk = $ranked[6];
+        $dt = new \DateTime("{$dob} {$timeNormalized}", new \DateTimeZone('Asia/Kolkata'));
+
+        return [
+            'native_name' => trim($name),
+            'gender'      => ucfirst(strtolower(trim($gender))),
+            'dob'         => $dt->format('j F Y'),
+            'tob'         => $dt->format('h:i A'),
+            'birth_place' => trim($birthPlace),
+            'atmakaraka'  => array_merge($ak, [
+                'interpretation' => $akInterpretations[$ak['planet']] ?? '',
+            ]),
+            'darakaraka'  => array_merge($dk, [
+                'interpretation' => $dkInterpretations[$dk['planet']] ?? '',
+            ]),
+            'all_karakas' => $ranked,
+        ];
+    }
 }
