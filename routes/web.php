@@ -43,6 +43,7 @@ Route::get('/tools/rising-sign-calculator', [AstroToolController::class, 'rising
 Route::get('/tools/rashi-calculator', [AstroToolController::class, 'rashiCalculator'])->name('tools.rashi');
 Route::get('/tools/atmakaraka-darakaraka', [AstroToolController::class, 'atmakarakaDarakaraka'])->name('tools.karakas');
 Route::get('/tools/dasha-calculator', [AstroToolController::class, 'dashaCalculator'])->name('tools.dasha');
+Route::get('/tools/nakshatra-calculator', [AstroToolController::class, 'nakshatraCalculator'])->name('tools.nakshatra');
 Route::get('/api/cities/autocomplete', [AstroToolController::class, 'searchCities'])->name('api.cities.autocomplete');
 
 Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {
