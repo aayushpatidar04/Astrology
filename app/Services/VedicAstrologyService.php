@@ -1087,4 +1087,202 @@ class VedicAstrologyService
             'all_karakas' => $ranked,
         ];
     }
+
+    public function calculateDetailedDashaReport(
+        string $name,
+        string $gender,
+        string $dob,
+        string $tob,
+        string $birthPlace,
+        ?float $lat = null,
+        ?float $lng = null
+    ): array {
+        if ($lat === null || $lng === null) {
+            $coords = $this->getCoordinates($birthPlace);
+            $lat = $coords['lat'];
+            $lng = $coords['lon'];
+        }
+
+        $timeNormalized = !empty($tob) ? $tob : '12:00';
+        $chart = $this->calculateChart($dob, $timeNormalized, $birthPlace, $lat, $lng);
+
+        $planets = $chart['planets'];
+        $moon    = $planets['Moon'];
+        $lagna   = $planets['Ascendant (Lagna)'];
+
+        $localDt = new \DateTime("{$dob} {$timeNormalized}", new \DateTimeZone('Asia/Kolkata'));
+        $now     = new \DateTime('now', new \DateTimeZone('Asia/Kolkata'));
+
+        $dashaOrder = [
+            ['planet' => 'Ketu',    'years' => 7],
+            ['planet' => 'Venus',   'years' => 20],
+            ['planet' => 'Sun',     'years' => 6],
+            ['planet' => 'Moon',    'years' => 10],
+            ['planet' => 'Mars',    'years' => 7],
+            ['planet' => 'Rahu',    'years' => 18],
+            ['planet' => 'Jupiter', 'years' => 16],
+            ['planet' => 'Saturn',  'years' => 19],
+            ['planet' => 'Mercury', 'years' => 17],
+        ];
+
+        $planetAnalytics = [
+            'Sun' => [
+                'theme'         => 'Authority, Career Visibility, Leadership & Self-Respect',
+                'possibilities' => 'Promotions, government or leadership recognition, father-related milestones, clarity of purpose, and strong personal vitality.',
+                'make_positive' => 'Lead with humility rather than ego, maintain a disciplined morning routine, and take ownership of high-visibility projects.',
+                'remedy'        => 'Offer water (Arghya) to the rising Sun in a copper vessel each morning and chant "Om Hram Hreem Hroum Sah Suryaya Namah".',
+            ],
+            'Moon' => [
+                'theme'         => 'Emotional Growth, Home, Mother, Creativity & Public Connection',
+                'possibilities' => 'Changes in residence or domestic life, heightened intuition, creative breakthroughs, travel near water, and deeper family bonding.',
+                'make_positive' => 'Protect your mental peace, stay hydrated, journal or meditate regularly, and avoid making major financial choices based on temporary moods.',
+                'remedy'        => 'Offer raw milk or water to a Shiva Lingam on Mondays and chant "Om Shram Shreem Shroum Sah Chandraya Namah".',
+            ],
+            'Mars' => [
+                'theme'         => 'Courage, Ambition, Property, Energy & Decisive Action',
+                'possibilities' => 'Bold career moves, property or land acquisition, athletic stamina, technical mastery, and overcoming competitors—alongside occasional impatience or impulsiveness.',
+                'make_positive' => 'Channel excess energy into structured fitness or sports, double-check contracts before signing, and pause before reacting in heated discussions.',
+                'remedy'        => 'Recite Hanuman Chalisa on Tuesdays, donate red lentils (masoor dal), and chant "Om Kram Kreem Kroum Sah Bhaumaya Namah".',
+            ],
+            'Mercury' => [
+                'theme'         => 'Intellect, Business, Communication, Learning & Networking',
+                'possibilities' => 'Skill upgrades, business expansion, writing or media success, profitable negotiations, analytical breakthroughs, and short-distance travel.',
+                'make_positive' => 'Keep clear written records, focus on continuous skill-building, speak truthfully, and avoid overthinking minor details.',
+                'remedy'        => 'Feed green fodder to cows or donate green gram on Wednesdays and chant "Om Bram Brim Broum Sah Budhaya Namah".',
+            ],
+            'Jupiter' => [
+                'theme'         => 'Wisdom, Fortune, Wealth Expansion, Mentorship & Family Growth',
+                'possibilities' => 'Financial prosperity, marriage or childbirth blessings, higher education, spiritual guidance, ethical recognition, and long-term stability.',
+                'make_positive' => 'Respect teachers and elders, share knowledge generously, invest in ethical long-term assets, and avoid complacency or over-indulgence.',
+                'remedy'        => 'Wear yellow on Thursdays, donate turmeric or bananas, and chant "Om Gram Greem Groum Sah Gurave Namah".',
+            ],
+            'Venus' => [
+                'theme'         => 'Relationships, Comfort, Art, Luxury & Financial Harmony',
+                'possibilities' => 'Romance and marriage milestones, artistic or design success, vehicle or home upgrades, social popularity, and material comfort.',
+                'make_positive' => 'Cultivate gratitude, maintain healthy boundaries in relationships, balance luxury spending with savings, and nurture creative talents.',
+                'remedy'        => 'Offer white flowers or sweets on Fridays, practice kindness toward women, and chant "Om Dram Dreem Droum Sah Shukraya Namah".',
+            ],
+            'Saturn' => [
+                'theme'         => 'Discipline, Karmic Rewards, Career Structure & Endurance',
+                'possibilities' => 'Steady long-term authority, career restructuring, real estate or industrial gains, maturity, and lasting rewards earned through patient hard work.',
+                'make_positive' => 'Embrace routine, honor every commitment on time, serve underprivileged workers, and avoid shortcuts or procrastination.',
+                'remedy'        => 'Light a sesame oil lamp under a Peepal tree on Saturday evenings and chant "Om Pram Preem Proum Sah Shanaischaraya Namah".',
+            ],
+            'Rahu' => [
+                'theme'         => 'Ambition, Foreign Connections, Innovation & Rapid Breakthroughs',
+                'possibilities' => 'Sudden career leaps, foreign travel or relocation, technology/digital success, unconventional opportunities, and breaking past old limitations.',
+                'make_positive' => 'Stay grounded in ethics, verify all financial and legal details thoroughly, and avoid speculative gambling or impulsive illusions.',
+                'remedy'        => 'Chant "Om Bhram Bhreem Bhroum Sah Rahave Namah", keep your living space clutter-free, and donate blankets or black sesame on Saturdays.',
+            ],
+            'Ketu' => [
+                'theme'         => 'Spiritual Insight, Detachment, Research & Inner Mastery',
+                'possibilities' => 'Deep self-discovery, mastery in specialized research or coding, spiritual awakening, releasing toxic attachments, and intuitive clarity.',
+                'make_positive' => 'Focus on inner growth and skill depth rather than external validation, practice mindfulness, and let go of situations that have run their course.',
+                'remedy'        => 'Feed stray dogs, meditate regularly, and chant "Om Sram Sreem Sroum Sah Ketave Namah".',
+            ],
+        ];
+
+        $moonSidereal    = $moon['full_degree'];
+        $nakshatraSpan   = 360.0 / 27.0;
+        $nakshatraIndex  = (int) floor($moonSidereal / $nakshatraSpan);
+        $degInNakshatra  = fmod($moonSidereal, $nakshatraSpan);
+        $elapsedFraction = $degInNakshatra / $nakshatraSpan;
+
+        $startIndex = $nakshatraIndex % 9;
+        $firstPlanetYears = $dashaOrder[$startIndex]['years'];
+        $elapsedDaysBeforeBirth = (int) round($firstPlanetYears * $elapsedFraction * 365.2425);
+        $cursorDate = (clone $localDt)->modify("-{$elapsedDaysBeforeBirth} days");
+
+        $mahadashas = [];
+        $currentMahadasha = null;
+        $currentAntardasha = null;
+
+        for ($i = 0; $i < 9; $i++) {
+            $mIdx = ($startIndex + $i) % 9;
+            $mPlanet = $dashaOrder[$mIdx]['planet'];
+            $mYears = $dashaOrder[$mIdx]['years'];
+
+            $mStart = ($i === 0) ? clone $localDt : clone $cursorDate;
+            $antardashas = [];
+
+            for ($j = 0; $j < 9; $j++) {
+                $aIdx = ($mIdx + $j) % 9;
+                $aPlanet = $dashaOrder[$aIdx]['planet'];
+                $aFullYears = $dashaOrder[$aIdx]['years'];
+
+                $antarYears = ($mYears * $aFullYears) / 120.0;
+                $antarDays  = (int) round($antarYears * 365.2425);
+
+                $aStart = clone $cursorDate;
+                $aEnd   = (clone $cursorDate)->modify("+{$antarDays} days");
+
+                if ($aEnd > $localDt) {
+                    $effectiveStart = ($aStart < $localDt) ? clone $localDt : $aStart;
+                    $isAntarActive  = ($now >= $effectiveStart && $now <= $aEnd);
+
+                    $antarEntry = [
+                        'planet'   => $aPlanet,
+                        'pair'     => "{$mPlanet} – {$aPlanet}",
+                        'start'    => $effectiveStart->format('d M Y'),
+                        'end'      => $aEnd->format('d M Y'),
+                        'active'   => $isAntarActive,
+                        'focus'    => $planetAnalytics[$aPlanet]['theme'],
+                        'guidance' => $planetAnalytics[$aPlanet]['make_positive'],
+                    ];
+
+                    if ($isAntarActive) {
+                        $currentAntardasha = $antarEntry;
+                    }
+
+                    $antardashas[] = $antarEntry;
+                }
+
+                $cursorDate = $aEnd;
+            }
+
+            $mEnd = clone $cursorDate;
+            $isMahaActive = ($now >= $mStart && $now <= $mEnd);
+            $actualDuration = ($i === 0) ? round($mYears * (1.0 - $elapsedFraction), 2) : $mYears;
+
+            $natalBody = $planets[$mPlanet];
+            $natalHouse = $natalBody['house'];
+            $natalRashi = explode(' ', $natalBody['rashi'])[0];
+
+            $mahaEntry = [
+                'planet'        => $mPlanet,
+                'duration'      => $actualDuration . ' Years',
+                'start'         => $mStart->format('d M Y'),
+                'end'         => $mEnd->format('d M Y'),
+                'active'        => $isMahaActive,
+                'natal_house'   => $natalHouse,
+                'natal_rashi'   => $natalRashi,
+                'natal_context' => "{$mPlanet} is placed in {$natalRashi} in your {$natalHouse}th house, activating {$natalHouse}th-house themes throughout this period.",
+                'theme'         => $planetAnalytics[$mPlanet]['theme'],
+                'possibilities' => $planetAnalytics[$mPlanet]['possibilities'],
+                'make_positive' => $planetAnalytics[$mPlanet]['make_positive'],
+                'remedy'        => $planetAnalytics[$mPlanet]['remedy'],
+                'antardashas'   => $antardashas,
+            ];
+
+            if ($isMahaActive) {
+                $currentMahadasha = $mahaEntry;
+            }
+            $mahadashas[] = $mahaEntry;
+        }
+
+        return [
+            'native_name'        => trim($name),
+            'gender'             => ucfirst(strtolower(trim($gender))),
+            'dob'                => $localDt->format('j F Y'),
+            'tob'                => $localDt->format('h:i A'),
+            'birth_place'        => trim($birthPlace),
+            'lagna'              => explode(' ', $lagna['rashi'])[0],
+            'moon_sign'          => explode(' ', $moon['rashi'])[0],
+            'nakshatra'          => $moon['nakshatra'] . ' (Pada ' . $moon['pada'] . ')',
+            'birth_dasha_lord'   => $dashaOrder[$startIndex]['planet'],
+            'current_mahadasha'  => $currentMahadasha ?? $mahadashas[0],
+            'current_antardasha' => $currentAntardasha,
+            'mahadashas'         => $mahadashas,
+        ];
+    }
 }

@@ -254,7 +254,7 @@ onBeforeUnmount(() => {
                 <li class="relative" id="calculators-dropdown">
                     <button @click="showCalculatorsDropdown = !showCalculatorsDropdown" type="button"
                         class="nav-link inline-flex items-center hover:text-primary focus:outline-none"
-                        :class="route().current('tools.numerology') || route().current('tools.love-calculator') || route().current('tools.sun-sign') || route().current('tools.rising-sign') || route().current('tools.rashi') || route().current('tools.karakas') ? 'is-active text-primary font-bold' : ''">
+                        :class="route().current('tools.numerology') || route().current('tools.love-calculator') || route().current('tools.sun-sign') || route().current('tools.rising-sign') || route().current('tools.rashi') || route().current('tools.karakas') || route().current('tools.dasha') ? 'is-active text-primary font-bold' : ''">
                         Calculators
                         <Icon icon="mdi:chevron-down" width="16" height="16" class="ml-1" />
                     </button>
@@ -289,6 +289,11 @@ onBeforeUnmount(() => {
                             class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition"
                             :class="route().current('tools.karakas') ? 'font-bold text-orange-600 bg-orange-50' : ''">
                             Atmakaraka &amp; Darakaraka
+                        </Link>
+                        <Link :href="route('tools.dasha')" @click="closeCalculatorsDropdown"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition"
+                            :class="route().current('tools.dasha') ? 'font-bold text-orange-600 bg-orange-50' : ''">
+                            Vimshottari Dasha
                         </Link>
                     </div>
                 </li>
