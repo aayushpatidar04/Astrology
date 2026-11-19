@@ -641,4 +641,171 @@ class VedicAstrologyService
         );
     }
 
+    public function calculateRisingSign(
+        string $name,
+        string $gender,
+        string $dob,
+        string $tob,
+        string $birthPlace,
+        ?float $lat = null,
+        ?float $lng = null
+    ): array {
+        if ($lat === null || $lng === null) {
+            $coords = $this->getCoordinates($birthPlace);
+            $lat = $coords['lat'];
+            $lng = $coords['lon'];
+        }
+
+        $timeNormalized = !empty($tob) ? $tob : '12:00';
+        $chart = $this->calculateChart($dob, $timeNormalized, $birthPlace, $lat, $lng);
+        $asc = $chart['planets']['Ascendant (Lagna)'];
+
+        $risingSignName = explode(' ', $asc['rashi'])[0];
+
+        $profiles = [
+            'Aries' => [
+                'hindi'         => 'Mesha',
+                'ruler'         => 'Mars',
+                'element'       => 'Fire',
+                'personality'   => 'Those born with the Aries ascendant possess bold, energetic, and pioneering personalities. Ruled by Mars, they approach life head-on with courage, independence, and an instinctive drive to initiate new ventures. They are direct in speech, quick to act, and naturally step into leadership roles during crises. While their enthusiasm and fearlessness inspire others, their fast-moving nature can occasionally make them impatient, impulsive, or overly competitive when results take time.',
+                'physical'      => 'Aries ascendant natives typically have an athletic, agile, and well-proportioned build with brisk, purposeful movements. They often feature sharp facial contours, prominent eyebrows, a strong jawline, and an alert, determined gaze. A warm complexion or reddish undertone is common, along with abundant energy and quick reflexes.',
+                'health'        => 'Because Aries governs the head and brain, natives may be prone to tension headaches, migraines, eye strain, or sinus inflammation when overworked. High internal heat can also lead to occasional fevers, skin rashes, or minor injuries from rushing. Regular vigorous exercise, cooling hydration, and stress management keep their vitality strong.',
+                'career'        => 'Action-oriented and self-reliant, Aries rising individuals excel in entrepreneurship, leadership, defense, engineering, sports, surgery, and project management. They thrive in dynamic environments where initiative, quick decision-making, and autonomy are rewarded rather than repetitive desk routines.',
+                'relationships' => 'In love and partnerships, Aries ascendants are passionate, protective, and straightforward about their feelings. They admire confident, independent partners who match their zest for life. However, learning patience, active listening, and compromise helps prevent impulsive arguments and builds lasting domestic harmony.',
+            ],
+            'Taurus' => [
+                'hindi'         => 'Vrishabha',
+                'ruler'         => 'Venus',
+                'element'       => 'Earth',
+                'personality'   => 'Those born with the Taurus ascendant radiate calm strength, reliability, and grounded charm. Ruled by Venus, they value stability, comfort, honesty, and tangible results over fleeting trends. They move thoughtfully before committing, yet once their mind is made up, their perseverance is unmatched. Their steady presence reassures everyone around them, though they can become stubborn when pushed to change too abruptly.',
+                'physical'      => 'Taurus ascendants generally have a sturdy, well-built, and graceful physique with harmonious facial symmetry. Expressive eyes, full lips, a strong neck and shoulders, and a pleasant, melodious speaking voice are hallmark traits. They carry themselves with natural poise and understated elegance.',
+                'health'        => 'Taurus rules the throat, neck, thyroid, and vocal cords, making natives sensitive to sore throats, tonsillitis, or thyroid fluctuations if stressed. Because they enjoy rich food and comfort, maintaining portion balance and consistent cardio helps prevent sluggish metabolism or weight gain.',
+                'career'        => 'Practical and resource-minded, Taurus rising natives thrive in finance, banking, architecture, interior design, luxury retail, culinary arts, agriculture, and real estate. They possess strong financial instincts and excel at building lasting wealth and dependable institutions.',
+                'relationships' => 'Devoted, sensual, and deeply loyal, Taurus ascendants seek long-term security and emotional consistency in marriage and love. They express affection through quality time, physical warmth, and practical support, requiring mutual trust and patience to feel fully secure.',
+            ],
+            'Gemini' => [
+                'hindi'         => 'Mithuna',
+                'ruler'         => 'Mercury',
+                'element'       => 'Air',
+                'personality'   => 'Those born with the Gemini ascendant are very lively and charming personalities. They are the owner of a very active mind and as a twin sign, also very open to change. It is a good thing but also shady because it prompts their thoughts to wander around and rarely stick on one thing. These natives are restless, easily bored, and find it tough to concentrate on one thing for a long time. Geminis are also very good with manipulation. Most of the time, one can\'t figure out what they are thinking. Thus, people, especially their loved ones, struggle to understand them. Nevertheless, the Gemini\'s intellect dominates them, and thus when serious, these people make the best decisions. They rarely get deeply absorbed in any task, and anything they haven\'t touched intrigues them the most.',
+                'physical'      => 'Ruled by the planet Mercury, Gemini ascendant people have bright eyes and emotive, well-defined moving characteristics. They have a flexible, thin, and tense body and are of medium to tall stature. The legs are frequently lengthy, resembling fashion models\', and a Gemini individual has a pleasant and charming personality. Their beautiful face traits include a tiny chin and light skin. Their appealing attitude is boosted by their wavy hair. They usually have a wide forehead and bright eyes. Despite their appealing features and charisma, they may be vulnerable to sickness and medical conditions.',
+                'health'        => 'Medical problems with the arms, wrists, or forearms are prominent among Gemini ascendants. Their respiratory tract and lungs may be fragile, making them susceptible to lung and chest blockage occasionally, as well as frequent ailment from the common cold, flu, plus illnesses like bronchitis. They are prone to stress and anxiety and a depressive attitude on life. People born under the rising sign of Gemini are more likely to experience a psychological collapse and chronic stress. Tuberculosis, asthma, and anemia are all major illnesses among these people.',
+                'career'        => 'These people are problem solvers who enjoy putting puzzles together. Gemini rising folks enjoy doing any form of investigation or research. This ability qualifies them as great investigators or investigative journalists. Any career in journalism or telecommunications is also a good fit for them. They can\'t resist but share any fresh information with anyone who would listen. Gemini ascendants enjoy being the person who knows everything and communicates the information in an accurate but compelling manner. It also qualifies them as great writers, as writing is yet another means of conveying knowledge. They are interested in everything that permits them to interact with people and locations. Also, anything that involves the internet is ideal for them since it enables them to access information from all around the world.',
+                'relationships' => 'Natives of Gemini ascendant make a concerted effort to follow their real calling. They are weighed down by the thought of commitment, and their emotions and feelings are frequently out of line. When it comes to a Gemini ascendant, the opposite gender has plenty of excuses to be nervous. Gemini ascendants are not the type to emotionally rely on their mate and demand the same in return. In addition, if their companion is extremely demanding, it becomes a mood killer and a reason for a Gemini rising to abandon them. As a result, a Gemini ascendant feels it hard to commit to a single relationship because their choices and moods are constantly shifting and evolving.',
+            ],
+            'Cancer' => [
+                'hindi'         => 'Karka',
+                'ruler'         => 'Moon',
+                'element'       => 'Water',
+                'personality'   => 'Those born with the Cancer ascendant are deeply intuitive, empathetic, and protective individuals. Ruled by the Moon, their moods and perceptions shift subtly with their emotional environment, making them perceptive judges of human character. While they may appear reserved or cautious upon first meeting, they are fiercely loyal, imaginative, and nurturing once trust is established.',
+                'physical'      => 'Cancer ascendant natives often have a soft, expressive face with round or luminous eyes, full cheeks, and a gentle, approachable demeanor. Their build tends to be medium with a broader chest or upper torso, and their facial expressions clearly mirror their inner feelings.',
+                'health'        => 'Cancer governs the chest, stomach, and digestive system, making natives sensitive to acidity, indigestion, fluid retention, or stress-related stomach discomfort. Emotional calm, mindful eating habits, and adequate hydration are essential for maintaining strong immunity.',
+                'career'        => 'Nurturing and perceptive, Cancer rising individuals excel in hospitality, healthcare, counseling, psychology, real estate, education, human resources, and food or wellness enterprises. They thrive in roles where empathy, memory, and care for people create meaningful impact.',
+                'relationships' => 'Family-oriented and deeply affectionate, Cancer ascendants seek emotional safety, loyalty, and a warm home life in relationships. They give wholeheartedly to their partners, though they must guard against over-sensitivity or withdrawing into silence when hurt.',
+            ],
+            'Leo' => [
+                'hindi'         => 'Simha',
+                'ruler'         => 'Sun',
+                'element'       => 'Fire',
+                'personality'   => 'Those born with the Leo ascendant carry natural dignity, warmth, and magnetic confidence. Ruled by the Sun, they have a generous heart, strong self-respect, and an innate desire to inspire and protect those around them. They dislike pettiness and prefer living with honor, creativity, and clear purpose, though pride can occasionally make them sensitive to criticism.',
+                'physical'      => 'Leo ascendants frequently have a commanding posture, broad shoulders, an upright walk, and thick, prominent hair. Their facial features are expressive and noble with warm, confident eyes and a radiant smile that draws attention effortlessly.',
+                'health'        => 'Leo rules the heart, spine, and upper back, so natives should prioritize cardiovascular fitness, proper posture, and regular physical activity. Overexertion or chronic stress can manifest as back stiffness or blood pressure fluctuations.',
+                'career'        => 'Natural leaders and performers, Leo rising natives shine in executive management, politics, entertainment, creative arts, entrepreneurship, law, and public administration. They perform best when given authority, creative freedom, and visible responsibility.',
+                'relationships' => 'Warm-hearted, loyal, and grand in affection, Leo ascendants treat their partners with generosity and devotion. They thrive with an appreciative, supportive spouse who respects their pride while encouraging mutual humility and openness.',
+            ],
+            'Virgo' => [
+                'hindi'         => 'Kanya',
+                'ruler'         => 'Mercury',
+                'element'       => 'Earth',
+                'personality'   => 'Those born with the Virgo ascendant possess sharp analytical minds, modesty, and a keen eye for detail. Ruled by Mercury, they notice nuances others overlook and constantly seek ways to improve systems, health, and efficiency. Practical and helpful by nature, they can sometimes become overly self-critical or anxious when environments feel chaotic.',
+                'physical'      => 'Virgo ascendants typically have a neat, youthful, and slender appearance with refined, symmetrical facial features. Clear eyes, an attentive expression, and a well-groomed, composed bearing give them an approachable and intelligent look.',
+                'health'        => 'Virgo governs the intestines, digestive tract, and nervous system. Natives may experience food sensitivities, irritable digestion, or nervous tension caused by overthinking. Clean nutrition, fiber-rich meals, and calming routines keep them balanced.',
+                'career'        => 'Methodical and observant, Virgo rising individuals excel in data science, accounting, medicine, editing, research, quality assurance, software engineering, and nutrition. Their precision and problem-solving skill make them indispensable in technical and analytical fields.',
+                'relationships' => 'Thoughtful and devoted, Virgo ascendants show love through practical acts of service, reliability, and attentiveness to their partner\'s needs. Learning to relax perfectionism and express vulnerability openly deepens emotional intimacy.',
+            ],
+            'Libra' => [
+                'hindi'         => 'Tula',
+                'ruler'         => 'Venus',
+                'element'       => 'Air',
+                'personality'   => 'Those born with the Libra ascendant are diplomatic, gracious, and naturally drawn to harmony and fairness. Ruled by Venus, they appreciate beauty, balanced dialogue, and refined social interactions. They see multiple sides of every issue, which makes them gifted mediators, though weighing every option can occasionally cause indecisiveness.',
+                'physical'      => 'Libra ascendant natives often possess balanced, attractive facial proportions, a charming smile, dimples, and a graceful, well-proportioned build. Their movements are smooth and poised, reflecting an innate sense of style and aesthetics.',
+                'health'        => 'Libra rules the kidneys, lower back, and endocrine balance. Natives benefit from staying well-hydrated, moderating sugar intake, and protecting lower-back strength through gentle stretching and regular movement.',
+                'career'        => 'Socially adept and fair-minded, Libra rising individuals thrive in law, diplomacy, public relations, fashion, design, consulting, human resources, and client-facing partnerships. They excel wherever negotiation, aesthetics, and collaboration are valued.',
+                'relationships' => 'Partnership is central to Libra ascendants; they are romantic, considerate, and happiest when sharing life with a harmonious companion. Maintaining clear personal boundaries prevents people-pleasing at the expense of their own needs.',
+            ],
+            'Scorpio' => [
+                'hindi'         => 'Vrishchika',
+                'ruler'         => 'Mars',
+                'element'       => 'Water',
+                'personality'   => 'Those born with the Scorpio ascendant possess intense focus, emotional depth, and remarkable resilience. Co-ruled by Mars and Ketu, they rarely reveal all their thoughts on the surface, preferring to observe quietly and understand hidden motivations. Once committed to a goal or person, their determination and loyalty are unwavering.',
+                'physical'      => 'Scorpio ascendants are recognized by their penetrating, magnetic eyes, strong brow, and composed, impactful presence. Their physique is typically sturdy and muscular with strong endurance and sharp, defined facial lines.',
+                'health'        => 'Scorpio governs the reproductive system, pelvic region, and eliminative organs. Natives have strong regenerative capacity when they rest properly, though suppressing intense emotions can cause internal stress or inflammatory conditions.',
+                'career'        => 'Investigative and strategic, Scorpio rising natives excel in research, finance, surgery, psychology, cybersecurity, crisis management, forensics, and transformative leadership. They thrive in high-stakes roles requiring discretion and deep analysis.',
+                'relationships' => 'In love, Scorpio ascendants seek deep soul-level trust, loyalty, and emotional authenticity rather than casual connections. When trust is honored, they are fiercely devoted partners; overcoming jealousy and guardedness unlocks lasting closeness.',
+            ],
+            'Sagittarius' => [
+                'hindi'         => 'Dhanu',
+                'ruler'         => 'Jupiter',
+                'element'       => 'Fire',
+                'personality'   => 'Those born with the Sagittarius ascendant are optimistic, philosophical, and driven by a love for truth and exploration. Ruled by Jupiter, they look at the big picture, value personal freedom, and enthusiastically pursue higher knowledge and new horizons. Their candid honesty is refreshing, though blunt remarks can occasionally catch others off guard.',
+                'physical'      => 'Sagittarius ascendant natives generally have an energetic, athletic, or tall frame with an open, cheerful expression. A broad forehead, bright eyes, and an active, forward-leaning stride reflect their restless curiosity.',
+                'health'        => 'Sagittarius rules the hips, thighs, sciatic nerve, and liver. Natives stay healthiest with outdoor movement, leg-strengthening exercise, and moderation in rich or indulgent foods.',
+                'career'        => 'Visionary and inspiring, Sagittarius rising individuals thrive in education, law, publishing, international travel, consulting, philosophy, sports, and entrepreneurship. They flourish in roles offering growth, learning, and broad perspective.',
+                'relationships' => 'Honest, adventurous, and generous, Sagittarius ascendants value friendship, shared ideals, and mutual freedom within marriage. A partner who embraces growth, humor, and open communication keeps the bond vibrant.',
+            ],
+            'Capricorn' => [
+                'hindi'         => 'Makara',
+                'ruler'         => 'Saturn',
+                'element'       => 'Earth',
+                'personality'   => 'Those born with the Capricorn ascendant are disciplined, pragmatic, and quietly ambitious. Ruled by Saturn, they take responsibilities seriously from an early age and build success steadily through patience, integrity, and strategic planning. While reserved initially, they develop dry wit, wisdom, and remarkable strength over time.',
+                'physical'      => 'Capricorn ascendants often have a lean, well-defined bone structure, prominent cheekbones, and a composed, mature expression. Many appear serious in youth yet grow more youthful, vital, and distinguished as they age.',
+                'health'        => 'Capricorn governs the knees, joints, skeletal system, and skin. Natives benefit from calcium- and mineral-rich nutrition, joint mobility exercises, and balancing hard work with genuine relaxation.',
+                'career'        => 'Structured and goal-oriented, Capricorn rising natives excel in corporate leadership, administration, engineering, finance, government, law, and long-term business building. Their reliability and endurance consistently earn senior authority.',
+                'relationships' => 'Loyal, protective, and committed, Capricorn ascendants view marriage as a serious lifelong partnership. Though slow to open up emotionally, they express deep devotion through stability, reliability, and enduring support.',
+            ],
+            'Aquarius' => [
+                'hindi'         => 'Kumbha',
+                'ruler'         => 'Saturn',
+                'element'       => 'Air',
+                'personality'   => 'Those born with the Aquarius ascendant are independent, inventive, and forward-thinking individuals. Ruled by Saturn, they combine progressive, humanitarian ideals with logical objectivity. They value intellectual freedom, dislike rigid conformity, and often bring original solutions to community and technological challenges.',
+                'physical'      => 'Aquarius ascendant natives typically have a tall or slender frame, clean facial symmetry, a broad forehead, and thoughtful, observant eyes. Their style often carries a distinctive or unconventional touch.',
+                'health'        => 'Aquarius rules the calves, ankles, and circulatory system. Natives should prioritize healthy blood circulation, regular walking or cycling, and grounding practices to calm an overactive nervous system.',
+                'career'        => 'Innovative and analytical, Aquarius rising individuals thrive in technology, software architecture, scientific research, social entrepreneurship, media, aviation, and network-driven organizations. They excel where originality and systems thinking meet.',
+                'relationships' => 'Friendship forms the foundation of love for Aquarius ascendants. They seek an intellectually stimulating, open-minded partner who respects individuality while sharing progressive values and mutual trust.',
+            ],
+            'Pisces' => [
+                'hindi'         => 'Meena',
+                'ruler'         => 'Jupiter',
+                'element'       => 'Water',
+                'personality'   => 'Those born with the Pisces ascendant are compassionate, imaginative, and deeply receptive to the subtle currents of life. Ruled by Jupiter, they possess natural empathy, artistic sensitivity, and philosophical wisdom. While gentle and adaptable, they must maintain healthy boundaries so they do not absorb the stress of others.',
+                'physical'      => 'Pisces ascendant natives often have soulful, expressive eyes, soft facial contours, and a fluid, gentle demeanor. Their build tends to be medium or supple, accompanied by a calm, approachable aura.',
+                'health'        => 'Pisces governs the feet, lymphatic system, and sleep quality. Natives thrive when they protect restful sleep, wear supportive footwear, stay hydrated, and spend quiet time near nature or water to recharge.',
+                'career'        => 'Creative and empathetic, Pisces rising individuals excel in music, visual arts, filmmaking, healing professions, counseling, spirituality, education, and charitable organizations. They shine in work driven by meaning, imagination, and compassion.',
+                'relationships' => 'Romantic, devoted, and deeply understanding, Pisces ascendants seek an emotional and spiritual connection in love. Grounding idealism with clear communication helps build a secure, mutually supportive partnership.',
+            ],
+        ];
+
+        $profile = $profiles[$risingSignName] ?? $profiles['Aries'];
+        $dt = new \DateTime("{$dob} {$timeNormalized}", new \DateTimeZone('Asia/Kolkata'));
+
+        return [
+            'native_name'   => trim($name),
+            'gender'        => ucfirst(strtolower(trim($gender))),
+            'dob'           => $dt->format('j F Y'),
+            'tob'           => $dt->format('h:i A'),
+            'birth_place'   => trim($birthPlace),
+            'rising_sign'   => $risingSignName,
+            'hindi_name'    => $profile['hindi'],
+            'ruler'         => $profile['ruler'],
+            'element'       => $profile['element'],
+            'degree'        => $asc['degree_formatted'],
+            'nakshatra'     => $asc['nakshatra'] . ' (Pada ' . $asc['pada'] . ')',
+            'about'         => "Ascendant is one of the most sought concepts in astrology when it comes to predicting the minute events in your life. At the time of birth, the sign that rises in the sky is the person's ascendant. It helps in making predictions about the minute events, unlike your Moon or Sun sign that help in making weekly, monthly or yearly predictions for you. Your ascendant is {$risingSignName}.",
+            'personality'   => $profile['personality'],
+            'physical'      => $profile['physical'],
+            'health'        => $profile['health'],
+            'career'        => $profile['career'],
+            'relationships' => $profile['relationships'],
+        ];
+    }
 }
