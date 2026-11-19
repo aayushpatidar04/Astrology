@@ -254,7 +254,7 @@ onBeforeUnmount(() => {
                 <li class="relative" id="calculators-dropdown">
                     <button @click="showCalculatorsDropdown = !showCalculatorsDropdown" type="button"
                         class="nav-link inline-flex items-center hover:text-primary focus:outline-none"
-                        :class="route().current('tools.numerology') || route().current('tools.love-calculator') || route().current('tools.sun-sign') || route().current('tools.rising-sign') || route().current('tools.rashi') || route().current('tools.karakas') || route().current('tools.dasha') || route().current('tools.nakshatra') ? 'is-active text-primary font-bold' : ''">
+                        :class="route().current('tools.numerology') || route().current('tools.love-calculator') || route().current('tools.sun-sign') || route().current('tools.rising-sign') || route().current('tools.rashi') || route().current('tools.karakas') || route().current('tools.dasha') || route().current('tools.nakshatra') || route().current('tools.manglik') ? 'is-active text-primary font-bold' : ''">
                         Calculators
                         <Icon icon="mdi:chevron-down" width="16" height="16" class="ml-1" />
                     </button>
@@ -299,6 +299,11 @@ onBeforeUnmount(() => {
                             class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition"
                             :class="route().current('tools.nakshatra') ? 'font-bold text-orange-600 bg-orange-50' : ''">
                             Nakshatra Calculator
+                        </Link>
+                        <Link :href="route('tools.manglik')" @click="closeCalculatorsDropdown"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition"
+                            :class="route().current('tools.manglik') ? 'font-bold text-orange-600 bg-orange-50' : ''">
+                            Manglik Dosha Calculator
                         </Link>
                     </div>
                 </li>

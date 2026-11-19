@@ -1248,4 +1248,194 @@ class AstroAiService
             'cosmic_tip'      => $aiEnrichment['cosmic_tip'] ?? (\in_array($jupH, [1, 2, 5, 9, 11], true) ? "Jupiter aspects favor long-term planning—commit to one meaningful goal and act with confidence." : "Saturn in your {$satH}th house rewards discipline and patience—focus on steady consistency over shortcuts."),
         ];
     }
+
+    public function generateManglikReport(
+        string $name,
+        string $gender,
+        string $dob,
+        string $tob,
+        string $birthPlace,
+        ?float $lat = null,
+        ?float $lng = null
+    ): array {
+        $timeNormalized = !empty($tob) ? $tob : '12:00';
+        $chartResult = $this->vedicService->calculateChart($dob, $timeNormalized, $birthPlace, $lat, $lng);
+        $planets = $chartResult['planets'];
+
+        $lagna = $planets['Ascendant (Lagna)'];
+        $moon  = $planets['Moon'];
+        $venus = $planets['Venus'];
+        $mars  = $planets['Mars'];
+        $jup   = $planets['Jupiter'];
+
+        $lagnaSign = $lagna['rashi_number'];
+        $moonSign  = $moon['rashi_number'];
+        $venusSign = $venus['rashi_number'];
+        $marsSign  = $mars['rashi_number'];
+        $jupSign   = $jup['rashi_number'];
+
+        // 1. Mars House Position from Lagna, Moon, and Venus
+        $houseFromLagna = (($marsSign - $lagnaSign + 12) % 12) + 1;
+        $houseFromMoon  = (($marsSign - $moonSign + 12) % 12) + 1;
+        $houseFromVenus = (($marsSign - $venusSign + 12) % 12) + 1;
+
+        $primaryHouses   = array(1, 4, 7, 8, 12);
+        $secondaryHouses = array(2);
+
+        $score = 0;
+        $triggers = array();
+
+        $lagnaManglik = false;
+        if (in_array($houseFromLagna, $primaryHouses, true)) {
+            $score += 50;
+            $lagnaManglik = true;
+            $triggers[] = "Mars is in the {$houseFromLagna}th house from your Ascendant (Lagna).";
+        } elseif (in_array($houseFromLagna, $secondaryHouses, true)) {
+            $score += 25;
+            $lagnaManglik = true;
+            $triggers[] = "Mars is in the 2nd house from your Ascendant (South Indian Kuja Dosha house).";
+        }
+
+        $moonManglik = false;
+        if (in_array($houseFromMoon, $primaryHouses, true)) {
+            $score += 30;
+            $moonManglik = true;
+            $triggers[] = "Mars is in the {$houseFromMoon}th house from your Moon Sign (Chandra Kundli).";
+        } elseif (in_array($houseFromMoon, $secondaryHouses, true)) {
+            $score += 15;
+            $moonManglik = true;
+            $triggers[] = "Mars is in the 2nd house from your Moon Sign (Chandra Kundli).";
+        }
+
+        $venusManglik = false;
+        if (in_array($houseFromVenus, $primaryHouses, true)) {
+            $score += 20;
+            $venusManglik = true;
+            $triggers[] = "Mars is in the {$houseFromVenus}th house from Venus (Shukra Kundli).";
+        } elseif (in_array($houseFromVenus, $secondaryHouses, true)) {
+            $score += 10;
+            $venusManglik = true;
+            $triggers[] = "Mars is in the 2nd house from Venus (Shukra Kundli).";
+        }
+
+        // 2. Classical Cancellation Rules (Mangal Dosha Bhanga)
+        $cancellations = array();
+        $rawScore = $score;
+
+        if ($score > 0) {
+            // Rule A: Own Sign (Aries=1, Scorpio=8) or Exalted (Capricorn=10)
+            if (in_array($marsSign, array(1, 8, 10), true)) {
+                $score = 0;
+                $cancellations[] = 'Mars is placed in its own sign (Aries/Scorpio) or exalted sign (Capricorn), which completely neutralizes Mangal Dosha.';
+            }
+
+            // Rule B: Specific House-Sign Exceptions
+            $houseSignExceptions = array(
+                1  => array(1, 5),
+                2  => array(3, 6),
+                4  => array(1, 8),
+                7  => array(4, 10),
+                8  => array(9, 12),
+                12 => array(2, 7),
+            );
+
+            if ($score > 0 && isset($houseSignExceptions[$houseFromLagna]) && in_array($marsSign, $houseSignExceptions[$houseFromLagna], true)) {
+                $score *= 0.5;
+                $cancellations[] = "Mars in house {$houseFromLagna} occupies a classically neutralizing sign, reducing dosha intensity by 50%.";
+            }
+
+            // Rule C: Benefic Jupiter Conjunction (1) or Aspect (5, 7, 9) on Mars
+            $jupToMarsHouse = (($marsSign - $jupSign + 12) % 12) + 1;
+            if ($score > 0 && in_array($jupToMarsHouse, array(1, 5, 7, 9), true)) {
+                $score *= 0.5;
+                $cancellations[] = 'Benefic Jupiter aspects or conjuncts Mars, softening fiery energy and reducing intensity by 50%.';
+            }
+
+            // Rule D: Age 28+ Maturity Reduction
+            $age = (new \DateTime($dob))->diff(new \DateTime('now'))->y;
+            if ($score > 0 && $age >= 28) {
+                $score *= 0.75;
+                $cancellations[] = "Native is {$age} years old (above age 28), naturally mellowing Mars's intensity.";
+            }
+        }
+
+        $finalScore = (int) round($score);
+
+        // 3. Final Classification
+        if ($rawScore === 0) {
+            $isManglik = false;
+            $status    = 'Non-Manglik';
+            $severity  = 'None';
+            $verdict   = 'You do not have Manglik Dosha in your birth chart. Mars is harmoniously placed and poses no Kuja Dosha restrictions for marriage.';
+        } elseif ($finalScore === 0) {
+            $isManglik = false;
+            $status    = 'Non-Manglik (Dosha Cancelled)';
+            $severity  = 'Cancelled';
+            $verdict   = 'Although Mars occupies a Manglik house position, classical Vedic cancellation rules (Mangal Dosha Bhanga) fully neutralize its effects.';
+        } elseif ($finalScore < 50) {
+            $isManglik = true;
+            $status    = 'Anshik Manglik (Low / Partial)';
+            $severity  = 'Low';
+            $verdict   = 'You have a mild (Anshik) Manglik Dosha. Its influence is gentle and easily balanced through basic horoscope matching or simple remedies.';
+        } elseif ($finalScore < 80) {
+            $isManglik = true;
+            $status    = 'Manglik (Moderate)';
+            $severity  = 'Moderate';
+            $verdict   = 'You have Manglik Dosha in your birth chart. Matching horoscopes carefully before marriage helps channel Mars’s dynamic energy constructively.';
+        } else {
+            $isManglik = true;
+            $status    = 'Purna Manglik (High)';
+            $severity  = 'High';
+            $verdict   = 'You have High (Purna) Manglik Dosha across multiple reference charts. Marriage with another Manglik partner or following Vedic remedies is recommended.';
+        }
+
+        $houseEffects = array(
+            1  => 'Mars in the 1st house gives strong willpower, courage, and directness, which can sometimes come across as impatience or assertiveness in close relationships.',
+            2  => 'Mars in the 2nd house impacts family dynamics, finances, and speech—encouraging mindful, gentle communication with family and spouse.',
+            4  => 'Mars in the 4th house brings high energy into domestic life and property matters, requiring conscious calm to maintain peace at home.',
+            7  => 'Mars in the 7th house directly energizes marriage and partnerships, making mutual respect, patience, and shared goals essential.',
+            8  => 'Mars in the 8th house intensifies emotional transformation, shared finances, and in-law dynamics, rewarding transparency and trust.',
+            12 => 'Mars in the 12th house influences sleep, personal space, and expenses, encouraging emotional openness and balanced rest.',
+        );
+
+        $effectNote = $houseEffects[$houseFromLagna]
+            ?? "Mars is placed in your {$houseFromLagna}th house, supporting energy and drive without triggering traditional Manglik house friction.";
+
+        $dt = new \DateTime("{$dob} {$timeNormalized}", new \DateTimeZone('Asia/Kolkata'));
+
+        return array(
+            'native_name'   => trim($name),
+            'gender'        => ucfirst(strtolower(trim($gender))),
+            'dob'           => $dt->format('j F Y'),
+            'tob'           => $dt->format('h:i A'),
+            'birth_place'   => trim($birthPlace),
+            'is_manglik'    => $isManglik,
+            'status'        => $status,
+            'severity'      => $severity,
+            'score'         => $finalScore,
+            'verdict'       => $verdict,
+            'effect_note'   => $effectNote,
+            'mars_details'  => array(
+                'rashi'            => explode(' ', $mars['rashi'])[0],
+                'degree'           => $mars['degree_formatted'],
+                'nakshatra'        => $mars['nakshatra'] . ' (Pada ' . $mars['pada'] . ')',
+                'lagna_sign'       => explode(' ', $lagna['rashi'])[0],
+                'moon_sign'        => explode(' ', $moon['rashi'])[0],
+                'house_from_lagna' => $houseFromLagna,
+                'house_from_moon'  => $houseFromMoon,
+                'house_from_venus' => $houseFromVenus,
+                'lagna_manglik'    => $lagnaManglik,
+                'moon_manglik'     => $moonManglik,
+                'venus_manglik'    => $venusManglik,
+            ),
+            'triggers'      => $triggers,
+            'cancellations' => $cancellations,
+            'remedies'      => array(
+                'Recite or listen to Hanuman Chalisa regularly, especially on Tuesdays.',
+                'Offer red lentils (Masoor Dal) or jaggery to those in need on Tuesdays.',
+                'Chant the Mangal Beej Mantra: "Om Kram Kreem Kroum Sah Bhaumaya Namah" (108 times on Tuesdays).',
+                'Perform proper Ashtakoota & Mangal Dosha Kundli Milan before finalizing marriage.',
+            ),
+        );
+    }
 }
