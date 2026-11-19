@@ -211,7 +211,7 @@ onBeforeUnmount(() => {
                 <li class="relative" id="free-services-dropdown">
                     <button @click="showDropdown = !showDropdown" type="button"
                         class="nav-link inline-flex items-center hover:text-primary focus:outline-none"
-                        :class="route().current('tools.kundli') || route().current('tools.matchmaking') || route().current('tools.panchang') || route().current('tools.compatibility') || route().current('tools.tarot') || route().current('tools.baby-names') ? 'is-active text-primary font-bold' : ''">
+                        :class="route().current('tools.kundli') || route().current('tools.matchmaking') || route().current('tools.panchang') || route().current('tools.compatibility') || route().current('tools.tarot') || route().current('tools.baby-names') || route().current('tools.choghadiya') ? 'is-active text-primary font-bold' : ''">
                         Free Services
                         <Icon icon="mdi:chevron-down" width="16" height="16" class="ml-1" />
                     </button>
@@ -246,6 +246,11 @@ onBeforeUnmount(() => {
                             class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition"
                             :class="route().current('tools.baby-names') ? 'font-bold text-orange-600 bg-orange-50' : ''">
                             Baby Name Generator
+                        </Link>
+                        <Link :href="route('tools.choghadiya')" @click="closeDropdown"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-primary transition"
+                            :class="route().current('tools.choghadiya') ? 'font-bold text-orange-600 bg-orange-50' : ''">
+                            Choghadiya Muhurat
                         </Link>
                     </div>
                 </li>

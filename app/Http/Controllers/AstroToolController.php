@@ -770,6 +770,32 @@ class AstroToolController extends Controller
         ]);
     }
 
+    public function choghadiya(Request $request)
+    {
+        $date = $request->input('date', now('Asia/Kolkata')->format('Y-m-d'));
+        $city = $request->input('city', 'Jaipur, Rajasthan, India');
+        $lat  = (float) $request->input('lat', 26.9124);
+        $lng  = (float) $request->input('lng', 75.7873);
+
+        $choghadiyaData = $this->astroService->getChoghadiyaTimetable($date, $city, $lat, $lng);
+
+        $user = Auth::user();
+        if ($user) {
+            $user = $user->load('wallet');
+        }
+
+        return Inertia::render('Tools/Choghadiya', array(
+            'choghadiyaData' => $choghadiyaData,
+            'filters'        => array(
+                'date' => $date,
+                'city' => $city,
+                'lat'  => $lat,
+                'lng'  => $lng,
+            ),
+            'user' => $user,
+        ));
+    }
+
     public function searchCities(Request $request)
     {
         $query = $request->input('key', '');

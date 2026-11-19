@@ -1591,4 +1591,155 @@ class AstroAiService
             ),
         );
     }
+
+    public function getChoghadiyaTimetable(
+        ?string $date = null,
+        string $city = 'Jaipur, Rajasthan, India',
+        float $lat = 26.9124,
+        float $lng = 75.7873
+    ): array {
+        $tz = new \DateTimeZone('Asia/Kolkata');
+        $targetDate = $date
+            ? \DateTime::createFromFormat('Y-m-d', $date, $tz) ?: new \DateTime('now', $tz)
+            : new \DateTime('now', $tz);
+
+        $dateStr     = $targetDate->format('Y-m-d');
+        $nextDate    = (clone $targetDate)->modify('+1 day');
+        $nextDateStr = $nextDate->format('Y-m-d');
+        $dayOfWeek   = (int) $targetDate->format('w'); // 0 = Sun ... 6 = Sat
+
+        // 1. Exact Sunrise, Sunset & Next Day Sunrise for Location Coordinates
+        $sunToday = date_sun_info($targetDate->getTimestamp(), $lat, $lng);
+        $sunNext  = date_sun_info($nextDate->getTimestamp(), $lat, $lng);
+
+        $sunriseTs     = is_int($sunToday['sunrise'] ?? null) ? $sunToday['sunrise'] : strtotime("{$dateStr} 06:30:00");
+        $sunsetTs      = is_int($sunToday['sunset'] ?? null)  ? $sunToday['sunset']  : strtotime("{$dateStr} 17:45:00");
+        $nextSunriseTs = is_int($sunNext['sunrise'] ?? null)  ? $sunNext['sunrise']  : strtotime("{$nextDateStr} 06:31:00");
+
+        $choghadiyaMeta = array(
+            'Amrit' => array('ruler' => 'Moon',    'nature' => 'Most Auspicious', 'type' => 'good',    'activity' => 'All auspicious works, ceremonies, new ventures & key decisions'),
+            'Shubh' => array('ruler' => 'Jupiter', 'nature' => 'Auspicious',      'type' => 'good',    'activity' => 'Marriage, education, spiritual rituals & sacred beginnings'),
+            'Labh'  => array('ruler' => 'Mercury', 'nature' => 'Auspicious',      'type' => 'good',    'activity' => 'Business start, investments, accounts, trade & learning'),
+            'Char'  => array('ruler' => 'Venus',   'nature' => 'Good / Dynamic',  'type' => 'neutral', 'activity' => 'Travel, journeys, shifting & movement-related tasks'),
+            'Udveg' => array('ruler' => 'Sun',     'nature' => 'Inauspicious',    'type' => 'bad',     'activity' => 'Government or administrative tasks only; avoid new beginnings'),
+            'Rog'   => array('ruler' => 'Mars',    'nature' => 'Inauspicious',    'type' => 'bad',     'activity' => 'Avoid starting auspicious events or major commitments'),
+            'Kaal'  => array('ruler' => 'Saturn',  'nature' => 'Inauspicious',    'type' => 'bad',     'activity' => 'Avoid financial investments, travel & auspicious ceremonies'),
+        );
+
+        // 8 Day Choghadiya sequences by weekday (0=Sun .. 6=Sat)
+        $daySequences = array(
+            0 => array('Udveg', 'Char', 'Labh', 'Amrit', 'Kaal', 'Shubh', 'Rog', 'Udveg'),
+            1 => array('Amrit', 'Kaal', 'Shubh', 'Rog', 'Udveg', 'Char', 'Labh', 'Amrit'),
+            2 => array('Rog', 'Udveg', 'Char', 'Labh', 'Amrit', 'Kaal', 'Shubh', 'Rog'),
+            3 => array('Labh', 'Amrit', 'Kaal', 'Shubh', 'Rog', 'Udveg', 'Char', 'Labh'),
+            4 => array('Shubh', 'Rog', 'Udveg', 'Char', 'Labh', 'Amrit', 'Kaal', 'Shubh'),
+            5 => array('Char', 'Labh', 'Amrit', 'Kaal', 'Shubh', 'Rog', 'Udveg', 'Char'),
+            6 => array('Kaal', 'Shubh', 'Rog', 'Udveg', 'Char', 'Labh', 'Amrit', 'Kaal'),
+        );
+
+        // 8 Night Choghadiya sequences by weekday (0=Sun .. 6=Sat)
+        $nightSequences = array(
+            0 => array('Shubh', 'Amrit', 'Char', 'Rog', 'Kaal', 'Labh', 'Udveg', 'Shubh'),
+            1 => array('Char', 'Rog', 'Kaal', 'Labh', 'Udveg', 'Shubh', 'Amrit', 'Char'),
+            2 => array('Kaal', 'Labh', 'Udveg', 'Shubh', 'Amrit', 'Char', 'Rog', 'Kaal'),
+            3 => array('Udveg', 'Shubh', 'Amrit', 'Char', 'Rog', 'Kaal', 'Labh', 'Udveg'),
+            4 => array('Amrit', 'Char', 'Rog', 'Kaal', 'Labh', 'Udveg', 'Shubh', 'Amrit'),
+            5 => array('Rog', 'Kaal', 'Labh', 'Udveg', 'Shubh', 'Amrit', 'Char', 'Rog'),
+            6 => array('Labh', 'Udveg', 'Shubh', 'Amrit', 'Char', 'Rog', 'Kaal', 'Labh'),
+        );
+
+        $nowTs = now('Asia/Kolkata')->getTimestamp();
+        $currentChoghadiya = null;
+
+        // 2. Build 8 Day Slots
+        $daySlotSec = ($sunsetTs - $sunriseTs) / 8;
+        $daySlots   = array();
+
+        for ($i = 0; $i < 8; $i++) {
+            $startTs = (int) round($sunriseTs + ($i * $daySlotSec));
+            $endTs   = (int) round($sunriseTs + (($i + 1) * $daySlotSec));
+            $name    = $daySequences[$dayOfWeek][$i];
+            $meta    = $choghadiyaMeta[$name];
+            $isNow   = ($nowTs >= $startTs && $nowTs < $endTs);
+
+            $startDt = (new \DateTime("@{$startTs}"))->setTimezone($tz);
+            $endDt   = (new \DateTime("@{$endTs}"))->setTimezone($tz);
+
+            $slot = array(
+                'slot_number'  => $i + 1,
+                'period'       => 'Day',
+                'name'         => $name,
+                'ruler'        => $meta['ruler'],
+                'nature'       => $meta['nature'],
+                'type'         => $meta['type'],
+                'activity'     => $meta['activity'],
+                'start_time'   => $startDt->format('h:i A'),
+                'end_time'     => $endDt->format('h:i A'),
+                'time_range'   => $startDt->format('h:i A') . ' - ' . $endDt->format('h:i A'),
+                'is_current'   => $isNow,
+                'minutes_left' => $isNow ? max(1, (int) ceil(($endTs - $nowTs) / 60)) : null,
+            );
+
+            if ($isNow) {
+                $currentChoghadiya = $slot;
+            }
+            $daySlots[] = $slot;
+        }
+
+        // 3. Build 8 Night Slots
+        $nightSlotSec = ($nextSunriseTs - $sunsetTs) / 8;
+        $nightSlots   = array();
+
+        for ($i = 0; $i < 8; $i++) {
+            $startTs = (int) round($sunsetTs + ($i * $nightSlotSec));
+            $endTs   = (int) round($sunsetTs + (($i + 1) * $nightSlotSec));
+            $name    = $nightSequences[$dayOfWeek][$i];
+            $meta    = $choghadiyaMeta[$name];
+            $isNow   = ($nowTs >= $startTs && $nowTs < $endTs);
+
+            $startDt = (new \DateTime("@{$startTs}"))->setTimezone($tz);
+            $endDt   = (new \DateTime("@{$endTs}"))->setTimezone($tz);
+
+            $slot = array(
+                'slot_number'  => $i + 1,
+                'period'       => 'Night',
+                'name'         => $name,
+                'ruler'        => $meta['ruler'],
+                'nature'       => $meta['nature'],
+                'type'         => $meta['type'],
+                'activity'     => $meta['activity'],
+                'start_time'   => $startDt->format('h:i A'),
+                'end_time'     => $endDt->format('h:i A'),
+                'time_range'   => $startDt->format('h:i A') . ' - ' . $endDt->format('h:i A'),
+                'is_current'   => $isNow,
+                'minutes_left' => $isNow ? max(1, (int) ceil(($endTs - $nowTs) / 60)) : null,
+            );
+
+            if ($isNow) {
+                $currentChoghadiya = $slot;
+            }
+            $nightSlots[] = $slot;
+        }
+
+        $sunriseFormatted     = (new \DateTime("@{$sunriseTs}"))->setTimezone($tz)->format('h:i A');
+        $sunsetFormatted      = (new \DateTime("@{$sunsetTs}"))->setTimezone($tz)->format('h:i A');
+        $nextSunriseFormatted = (new \DateTime("@{$nextSunriseTs}"))->setTimezone($tz)->format('h:i A');
+
+        return array(
+            'date'               => $targetDate->format('j F Y'),
+            'raw_date'           => $dateStr,
+            'day_name'           => $targetDate->format('l'),
+            'city'               => $city,
+            'latitude'           => $lat,
+            'longitude'          => $lng,
+            'sunrise'            => $sunriseFormatted,
+            'sunset'             => $sunsetFormatted,
+            'next_sunrise'       => $nextSunriseFormatted,
+            'is_today'           => ($dateStr === now('Asia/Kolkata')->format('Y-m-d')),
+            'current_choghadiya' => $currentChoghadiya,
+            'day_choghadiya'     => $daySlots,
+            'night_choghadiya'   => $nightSlots,
+        );
+    }
+
 }
