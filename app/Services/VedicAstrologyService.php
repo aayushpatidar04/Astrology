@@ -808,4 +808,186 @@ class VedicAstrologyService
             'relationships' => $profile['relationships'],
         ];
     }
+
+    public function calculateRashi(
+        string $name,
+        string $gender,
+        string $dob,
+        string $tob,
+        string $birthPlace,
+        ?float $lat = null,
+        ?float $lng = null
+    ): array {
+        if ($lat === null || $lng === null) {
+            $coords = $this->getCoordinates($birthPlace);
+            $lat = $coords['lat'];
+            $lng = $coords['lon'];
+        }
+
+        $timeNormalized = !empty($tob) ? $tob : '12:00';
+        $chart = $this->calculateChart($dob, $timeNormalized, $birthPlace, $lat, $lng);
+        $moon = $chart['planets']['Moon'];
+
+        $rashiName = explode(' ', $moon['rashi'])[0];
+
+        $rashiProfiles = array(
+            'Aries' => array(
+                'hindi'         => 'Mesha',
+                'ruler'         => 'Mars',
+                'element'       => 'Fire',
+                'syllables'     => 'Chu, Che, Cho, La, Li, Lu, Le, Lo, A',
+                'lucky_color'   => 'Coral Red, Saffron',
+                'lucky_stone'   => 'Red Coral (Moonga)',
+                'personality'   => 'People born under Mesha (Aries) Moon Sign are emotionally dynamic, courageous, and spontaneous. Ruled by Mars, their mind reacts quickly to challenges and thrives on action, independence, and fresh initiatives. They are honest, warm-hearted, and straightforward, though impatience or quick temper can surface when things move too slowly.',
+                'career'        => 'Aries Rashi natives excel in leadership, entrepreneurship, defense, engineering, sports, surgery, and fast-paced management roles where initiative and decisive action are rewarded.',
+                'relationships' => 'Passionate, protective, and direct in love, Aries Moon individuals value loyalty and mutual independence. Practicing patience and calm listening brings lasting harmony in marriage and family life.',
+            ),
+            'Taurus' => array(
+                'hindi'         => 'Vrishabha',
+                'ruler'         => 'Venus',
+                'element'       => 'Earth',
+                'syllables'     => 'Ee, U, Ae, O, Va, Vi, Vu, Ve, Vo',
+                'lucky_color'   => 'Pearl White, Pastel Pink',
+                'lucky_stone'   => 'Diamond / White Sapphire',
+                'personality'   => 'People born under Vrishabha (Taurus) Moon Sign possess emotional stability, patience, and a deep appreciation for peace, beauty, and comfort. Ruled by Venus, they remain calm under pressure, value loyalty, and prefer steady, reliable progress over sudden change.',
+                'career'        => 'Taurus Rashi natives thrive in banking, finance, architecture, interior design, luxury retail, hospitality, music, and real estate where patience and resource management shine.',
+                'relationships' => 'Devoted, sensual, and dependable, Taurus Moon individuals seek long-term emotional security and warmth in relationships, showing affection through steady support and loyalty.',
+            ),
+            'Gemini' => array(
+                'hindi'         => 'Mithuna',
+                'ruler'         => 'Mercury',
+                'element'       => 'Air',
+                'syllables'     => 'Ka, Ki, Ku, Gha, Ng, Chha, Ke, Ko, Ha',
+                'lucky_color'   => 'Emerald Green, Yellow',
+                'lucky_stone'   => 'Emerald (Panna)',
+                'personality'   => 'People born under Mithuna (Gemini) Moon Sign are intellectually curious, expressive, and adaptable. Ruled by Mercury, they process emotions through conversation, learning, and social interaction, remaining youthful and quick-witted throughout life.',
+                'career'        => 'Gemini Rashi natives excel in media, journalism, writing, teaching, marketing, telecommunications, consulting, and technology roles driven by information and communication.',
+                'relationships' => 'Playful, communicative, and open-minded, Gemini Moon individuals need mental stimulation and lively dialogue in a partner to feel deeply connected.',
+            ),
+            'Cancer' => array(
+                'hindi'         => 'Karka',
+                'ruler'         => 'Moon',
+                'element'       => 'Water',
+                'syllables'     => 'Hi, Hu, He, Ho, Da, Di, Du, De, Do',
+                'lucky_color'   => 'Pearl White, Silver',
+                'lucky_stone'   => 'Natural Pearl (Moti)',
+                'personality'   => 'People born under Karka (Cancer) Moon Sign are deeply intuitive, compassionate, and emotionally perceptive. Because the Moon rules this sign directly, they possess strong memory, imagination, and natural empathy toward family and close friends.',
+                'career'        => 'Cancer Rashi natives flourish in healthcare, counseling, hospitality, real estate, education, human resources, and public welfare roles where care and intuition matter.',
+                'relationships' => 'Nurturing, loyal, and family-centered, Cancer Moon individuals cherish emotional security and a warm domestic bond, flourishing with a gentle, reassuring partner.',
+            ),
+            'Leo' => array(
+                'hindi'         => 'Simha',
+                'ruler'         => 'Sun',
+                'element'       => 'Fire',
+                'syllables'     => 'Ma, Mi, Mu, Me, Mo, Ta, Ti, Tu, Te',
+                'lucky_color'   => 'Golden Yellow, Ruby Red',
+                'lucky_stone'   => 'Ruby (Manik)',
+                'personality'   => 'People born under Simha (Leo) Moon Sign carry natural warmth, self-respect, and generous leadership. Ruled by the Sun, they have a noble, courageous heart, value integrity, and naturally inspire confidence in those around them.',
+                'career'        => 'Leo Rashi natives shine in administration, executive leadership, politics, creative arts, entertainment, law, and entrepreneurship where authority and vision are valued.',
+                'relationships' => 'Generous, loyal, and protective in love, Leo Moon individuals thrive when mutual appreciation, respect, and open-hearted affection anchor the partnership.',
+            ),
+            'Virgo' => array(
+                'hindi'         => 'Kanya',
+                'ruler'         => 'Mercury',
+                'element'       => 'Earth',
+                'syllables'     => 'To, Pa, Pi, Pu, Sha, Na, Tha, Pe, Po',
+                'lucky_color'   => 'Emerald Green, Ivory',
+                'lucky_stone'   => 'Emerald (Panna)',
+                'personality'   => 'People born under Kanya (Virgo) Moon Sign are thoughtful, observant, and practical. Ruled by Mercury, they seek order, clarity, and meaningful service, analyzing situations carefully before making decisions.',
+                'career'        => 'Virgo Rashi natives excel in data analytics, accounting, medicine, research, editing, software engineering, and operations where precision and problem-solving are essential.',
+                'relationships' => 'Sincere, attentive, and supportive, Virgo Moon individuals express love through thoughtful actions and dependability, thriving with a calm, understanding partner.',
+            ),
+            'Libra' => array(
+                'hindi'         => 'Tula',
+                'ruler'         => 'Venus',
+                'element'       => 'Air',
+                'syllables'     => 'Ra, Ri, Ru, Re, Ro, Ta, Ti, Tu, Te',
+                'lucky_color'   => 'Sky Blue, White',
+                'lucky_stone'   => 'Opal / White Sapphire',
+                'personality'   => 'People born under Tula (Libra) Moon Sign are diplomatic, gracious, and naturally drawn to balance and fairness. Ruled by Venus, they value peaceful relationships, refined aesthetics, and thoughtful cooperation.',
+                'career'        => 'Libra Rashi natives succeed in law, diplomacy, public relations, design, fashion, human resources, and client-focused consulting.',
+                'relationships' => 'Romantic, considerate, and partnership-oriented, Libra Moon individuals prioritize mutual respect, harmony, and open dialogue in marriage.',
+            ),
+            'Scorpio' => array(
+                'hindi'         => 'Vrishchika',
+                'ruler'         => 'Mars',
+                'element'       => 'Water',
+                'syllables'     => 'To, Na, Ni, Nu, Ne, No, Ya, Yi, Yu',
+                'lucky_color'   => 'Crimson, Maroon',
+                'lucky_stone'   => 'Red Coral (Moonga)',
+                'personality'   => 'People born under Vrishchika (Scorpio) Moon Sign possess deep emotional resilience, sharp intuition, and unwavering focus. Ruled by Mars, they feel things intensely, value authenticity, and demonstrate remarkable inner strength during transformations.',
+                'career'        => 'Scorpio Rashi natives excel in research, finance, psychology, surgery, cybersecurity, investigation, and strategic leadership.',
+                'relationships' => 'Fiercely loyal and deeply devoted, Scorpio Moon individuals seek complete trust and emotional honesty, forming profound lifelong bonds.',
+            ),
+            'Sagittarius' => array(
+                'hindi'         => 'Dhanu',
+                'ruler'         => 'Jupiter',
+                'element'       => 'Fire',
+                'syllables'     => 'Ye, Yo, Bha, Bhi, Bhu, Dha, Pha, Bhe',
+                'lucky_color'   => 'Turmeric Yellow, Saffron',
+                'lucky_stone'   => 'Yellow Sapphire (Pukhraj)',
+                'personality'   => 'People born under Dhanu (Sagittarius) Moon Sign are optimistic, principled, and philosophical. Ruled by Jupiter, they value honesty, higher wisdom, spiritual growth, and an expansive outlook on life.',
+                'career'        => 'Sagittarius Rashi natives thrive in teaching, law, advisory roles, publishing, international business, travel, and leadership.',
+                'relationships' => 'Warm, candid, and supportive, Sagittarius Moon individuals value shared ideals, friendship, and mutual growth in relationships.',
+            ),
+            'Capricorn' => array(
+                'hindi'         => 'Makara',
+                'ruler'         => 'Saturn',
+                'element'       => 'Earth',
+                'syllables'     => 'Bho, Ja, Ji, Khi, Khu, Khe, Kho, Ga, Gi',
+                'lucky_color'   => 'Royal Blue, Charcoal',
+                'lucky_stone'   => 'Blue Sapphire / Amethyst',
+                'personality'   => 'People born under Makara (Capricorn) Moon Sign are disciplined, grounded, and quietly determined. Ruled by Saturn, they approach responsibilities with patience, integrity, and practical wisdom.',
+                'career'        => 'Capricorn Rashi natives excel in corporate management, engineering, finance, government administration, law, and long-term business building.',
+                'relationships' => 'Committed, protective, and reliable, Capricorn Moon individuals express love through steady loyalty and enduring family support.',
+            ),
+            'Aquarius' => array(
+                'hindi'         => 'Kumbha',
+                'ruler'         => 'Saturn',
+                'element'       => 'Air',
+                'syllables'     => 'Gu, Ge, Go, Sa, Si, Su, Se, So, Da',
+                'lucky_color'   => 'Electric Blue, Indigo',
+                'lucky_stone'   => 'Blue Sapphire / Amethyst',
+                'personality'   => 'People born under Kumbha (Aquarius) Moon Sign are independent, thoughtful, and progressive. Ruled by Saturn, they balance humanitarian vision with calm objectivity and original thinking.',
+                'career'        => 'Aquarius Rashi natives thrive in technology, software engineering, scientific research, social enterprise, media, and systems strategy.',
+                'relationships' => 'Honest, friendly, and open-minded, Aquarius Moon individuals value intellectual rapport, trust, and mutual freedom in love.',
+            ),
+            'Pisces' => array(
+                'hindi'         => 'Meena',
+                'ruler'         => 'Jupiter',
+                'element'       => 'Water',
+                'syllables'     => 'Di, Du, Tha, Jha, De, Do, Cha, Chi',
+                'lucky_color'   => 'Turmeric Yellow, Seafoam',
+                'lucky_stone'   => 'Yellow Sapphire (Pukhraj)',
+                'personality'   => 'People born under Meena (Pisces) Moon Sign are empathetic, imaginative, and spiritually inclined. Ruled by Jupiter, they possess gentle wisdom, artistic sensitivity, and deep compassion.',
+                'career'        => 'Pisces Rashi natives excel in education, healing arts, counseling, creative media, music, spirituality, and advisory professions.',
+                'relationships' => 'Affectionate, understanding, and devoted, Pisces Moon individuals seek a soulful, harmonious emotional connection with their partner.',
+            ),
+        );
+
+        $profile = $rashiProfiles[$rashiName] ?? $rashiProfiles['Aries'];
+        $dt = new \DateTime("{$dob} {$timeNormalized}", new \DateTimeZone('Asia/Kolkata'));
+
+        return array(
+            'native_name'   => trim($name),
+            'gender'        => ucfirst(strtolower(trim($gender))),
+            'dob'           => $dt->format('j F Y'),
+            'tob'           => $dt->format('h:i A'),
+            'birth_place'   => trim($birthPlace),
+            'rashi'         => $rashiName,
+            'hindi_name'    => $profile['hindi'],
+            'ruler'         => $profile['ruler'],
+            'element'       => $profile['element'],
+            'nakshatra'     => $moon['nakshatra'] . ' (Pada ' . $moon['pada'] . ')',
+            'nakshatra_lord'=> $moon['nakshatra_lord'],
+            'degree'        => $moon['degree_formatted'],
+            'syllables'     => $profile['syllables'],
+            'lucky_color'   => $profile['lucky_color'],
+            'lucky_stone'   => $profile['lucky_stone'],
+            'about'         => "In Vedic astrology, your Moon Sign (Janma Rashi) is determined by the zodiac sign occupied by the Moon at the exact time and place of your birth. It governs your emotional nature, mind, daily Horoscope (Gochar), and compatibility. Your Janma Rashi is {$rashiName} ({$profile['hindi']}).",
+            'personality'   => $profile['personality'],
+            'career'        => $profile['career'],
+            'relationships' => $profile['relationships'],
+        );
+    }
 }

@@ -40,6 +40,7 @@ Route::get('/tools/baby-names', [AstroToolController::class, 'babyNames'])->name
 Route::get('/tools/love-calculator', [AstroToolController::class, 'loveCalculator'])->name('tools.love-calculator');
 Route::get('/tools/sun-sign', [AstroToolController::class, 'sunSignCalculator'])->name('tools.sun-sign');
 Route::get('/tools/rising-sign-calculator', [AstroToolController::class, 'risingSignCalculator'])->name('tools.rising-sign');
+Route::get('/tools/rashi-calculator', [AstroToolController::class, 'rashiCalculator'])->name('tools.rashi');
 Route::get('/api/cities/autocomplete', [AstroToolController::class, 'searchCities'])->name('api.cities.autocomplete');
 
 Route::middleware(['auth', 'verified', 'role:Admin'])->group(function () {

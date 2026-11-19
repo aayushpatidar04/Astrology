@@ -403,6 +403,56 @@ class AstroToolController extends Controller
         ]);
     }
 
+    public function rashiCalculator(Request $request, \App\Services\VedicAstrologyService $vedicService)
+    {
+        $rashiData = null;
+
+        if ($request->filled('dob')) {
+            $validated = $request->validate([
+                'name'        => 'required|string|max:120',
+                'gender'      => 'required|in:male,female,other',
+                'dob'         => 'required|date',
+                'tob'         => 'required|string',
+                'birth_place' => 'required|string|max:255',
+                'lat'         => 'nullable|numeric',
+                'lng'         => 'nullable|numeric',
+            ]);
+
+            if ($request->filled('lat') && $request->filled('lng')) {
+                $cityOnly = trim(explode(',', $validated['birth_place'])[0]);
+                Location::updateOrCreate(
+                    ['city_name' => $cityOnly],
+                    [
+                        'latitude'  => (float) $request->input('lat'),
+                        'longitude' => (float) $request->input('lng'),
+                        'country'   => 'India',
+                    ]
+                );
+            }
+
+            $rashiData = $vedicService->calculateRashi(
+                $validated['name'],
+                $validated['gender'],
+                $validated['dob'],
+                $validated['tob'],
+                $validated['birth_place'],
+                isset($validated['lat']) ? (float) $validated['lat'] : null,
+                isset($validated['lng']) ? (float) $validated['lng'] : null
+            );
+        }
+
+        $user = Auth::user();
+        if ($user) {
+            $user = $user->load('wallet');
+        }
+
+        return Inertia::render('Tools/RashiCalculator', [
+            'rashiData' => $rashiData,
+            'filters'   => $request->all(),
+            'user'      => $user,
+        ]);
+    }
+
     public function loveCalculator(Request $request, \App\Services\NumerologyService $numerologyService)
     {
         $loveData = null;
