@@ -319,6 +319,12 @@ onBeforeUnmount(() => {
                 </li>
 
                 <li>
+                    <Link :href="route('blog')" class="nav-link inline-flex items-center hover:text-primary"
+                        :class="route().current('blog*') ? 'is-active text-primary font-bold' : ''">
+                        Blogs
+                    </Link>
+                </li>
+                <li>
                     <Link href="/contact" class="nav-link inline-flex items-center hover:text-primary">Contact Us</Link>
                 </li>
                 <li v-if="role === 'Astrologer'">
