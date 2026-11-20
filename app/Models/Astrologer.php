@@ -45,6 +45,13 @@ class Astrologer extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function scopeHuman($query)
+    {
+        return $query->whereHas('user', function($q) {
+            $q->whereNotIn('email', ['acharya.ai@astrology.com', 'acharya.ai@myastrosathi.com']);
+        });
+    }
+
     public function verifier()
     {
         return $this->belongsTo(User::class, 'verified_by');

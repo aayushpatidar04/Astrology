@@ -26,7 +26,7 @@ class MainController extends Controller
         return Inertia::render('HomePage/Index', [
             'user' => Auth::user()?->load('wallet'),
             'blogs' => Blog::latest()->take(3)->get(),
-            'astrologers' => Astrologer::with('user')->where('online', 1)->latest()->take(9)->get()
+            'astrologers' => Astrologer::human()->with('user')->where('online', 1)->latest()->take(9)->get()
         ]);
     }
 
