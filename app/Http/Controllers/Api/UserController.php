@@ -100,6 +100,7 @@ class UserController extends Controller
                     'charged_call_price' => $astrologer->charged_call_price,
                     'average_rating' => $astrologer->average_rating,
                     'reviews_count' => $astrologer->reviews_count,
+                    'has_rated' => $astrologer->hasRated(Auth::id()),
                 ];
             });
 

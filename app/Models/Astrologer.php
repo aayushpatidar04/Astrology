@@ -76,4 +76,13 @@ class Astrologer extends Model
     {
         return $this->reviews()->count();
     }
+
+    public function hasRated(?int $userId = null): bool
+    {
+        $uid = $userId ?? auth()->id();
+        if (!$uid) {
+            return false;
+        }
+        return $this->reviews()->where('user_id', $uid)->exists();
+    }
 }
