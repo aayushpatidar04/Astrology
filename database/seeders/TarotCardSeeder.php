@@ -234,14 +234,16 @@ class TarotCardSeeder extends Seeder
         ];
 
         foreach ($majorArcana as $m) {
+            $slug = Str::slug($m[1]);
             TarotCard::updateOrCreate(
                 ['card_number' => $m[0]],
                 [
                     'name'              => $m[1],
-                    'slug'              => Str::slug($m[1]),
+                    'slug'              => $slug,
                     'arcana'            => 'Major',
                     'suit'              => 'Trump',
                     'element'           => $m[2],
+                    'image_url'         => '/images/tarot/' . $slug . '.jpg',
                     'keywords_upright'  => $m[3],
                     'keywords_reversed' => $m[4],
                     'upright_general'   => $m[5],
@@ -285,14 +287,16 @@ class TarotCardSeeder extends Seeder
         foreach ($suits as $suitName => $suitData) {
             foreach ($ranks as $rankName => $rData) {
                 $name = "{$rankName} of {$suitName}";
+                $slug = Str::slug($name);
                 TarotCard::updateOrCreate(
                     ['card_number' => $cardNumber++],
                     [
                         'name'              => $name,
-                        'slug'              => Str::slug($name),
+                        'slug'              => $slug,
                         'arcana'            => 'Minor',
                         'suit'              => $suitName,
                         'element'           => $suitData['element'],
+                        'image_url'         => '/images/tarot/' . $slug . '.jpg',
                         'keywords_upright'  => $rData['ku'],
                         'keywords_reversed' => $rData['kr'],
                         'upright_general'   => "{$rData['u']} general path. Stay open and proactive.",

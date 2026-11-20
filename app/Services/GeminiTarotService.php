@@ -56,6 +56,7 @@ class GeminiTarotService
                 'arcana'         => $cardModel->arcana,
                 'suit'           => $cardModel->suit,
                 'element'        => $cardModel->element,
+                'image_url'      => $cardModel->image_url,
                 'is_reversed'    => $isReversed,
                 'orientation'    => $orientation,
                 'keywords'       => $keywords,

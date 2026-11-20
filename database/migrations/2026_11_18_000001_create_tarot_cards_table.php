@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('arcana'); // Major, Minor
             $table->string('suit'); // Trump, Wands, Cups, Swords, Pentacles
             $table->string('element')->nullable(); // Fire, Water, Air, Earth, Spirit
+            $table->string('image_url')->nullable();
             $table->string('keywords_upright');
             $table->string('keywords_reversed');
             $table->text('upright_general');

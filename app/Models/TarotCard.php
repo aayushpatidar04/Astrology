@@ -15,6 +15,7 @@ class TarotCard extends Model
         'arcana',
         'suit',
         'element',
+        'image_url',
         'keywords_upright',
         'keywords_reversed',
         'upright_general',
@@ -26,6 +27,11 @@ class TarotCard extends Model
         'upright_finance',
         'reversed_finance',
     ];
+
+    public function getImageUrlsAttribute()
+    {
+        return $this->image_url;
+    }
 
     /**
      * Get the consistent, fixed interpretation for a given orientation and category
