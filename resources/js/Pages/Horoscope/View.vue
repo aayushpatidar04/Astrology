@@ -72,7 +72,7 @@ const timeframes = ['Yesterday', 'Today', 'Tomorrow', 'Weekly', 'Monthly', 'Year
         <Link :href="route('horoscope', { type: props.type.toLowerCase(), sign: z })" class="text-center">
           <div class="rounded-full border-2 border-orange-500 hover:bg-orange-300"
             :class="{ 'bg-orange-300': z === props.sign }">
-            <img :src="`/images/${z}.png`" :alt="z" class="w-12 h-12 md:w-16 md:h-16" />
+            <img :src="`/images/${z.toLowerCase()}.png`" :alt="z" class="w-12 h-12 md:w-16 md:h-16" />
           </div>
           <span class="mt-1 text-xs md:text-sm" :class="{ 'text-orange-600 font-semibold': z === props.sign }">{{ z
             }}</span>

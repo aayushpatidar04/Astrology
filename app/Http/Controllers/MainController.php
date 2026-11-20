@@ -161,7 +161,7 @@ class MainController extends Controller
         }
 
         return Inertia::render('Horoscope/View', [
-            'user' => Auth::user()->load('wallet'),
+            'user' => Auth::user()?->load('wallet'),
             'sign' => ucfirst($sign),
             'type' => ucfirst($type),
             'date' => $formattedDate,
