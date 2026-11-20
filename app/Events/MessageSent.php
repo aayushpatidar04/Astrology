@@ -25,6 +25,35 @@ class MessageSent implements ShouldBroadcastNow
     {
         $this->message = $message;
         $this->chatId = $message->chat_id;
+
+        $this->sendPushNotification($message);
+    }
+
+    protected function sendPushNotification(ChatMessage $message)
+    {
+        try {
+            $chat = \App\Models\Chat::with('participants.user')->find($message->chat_id);
+            if (!$chat) return;
+
+            $senderId = $message->user_id;
+            foreach ($chat->participants as $participant) {
+                if ($participant->user_id !== $senderId && $participant->user && !empty($participant->user->device_token)) {
+                    $senderName = $message->user?->name ?? 'Someone';
+                    app(\App\Services\FirebaseNotificationService::class)->sendNotification(
+                        $participant->user->device_token,
+                        "New Message from {$senderName}",
+                        \Illuminate\Support\Str::limit($message->message, 80),
+                        [
+                            'type' => 'chat_message',
+                            'chat_id' => (string) $message->chat_id,
+                            'sender_id' => (string) $senderId,
+                        ]
+                    );
+                }
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('MessageSent Push Notification Failed: ' . $e->getMessage());
+        }
     }
 
     /**

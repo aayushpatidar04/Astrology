@@ -186,18 +186,6 @@ class UserController extends Controller
                 $user->id,
                 $user->name
             ));
-
-            $this->sendNotification(
-                $astrologerUser->device_token,
-                'Incoming Chat Request',
-                $user->name . ' has started a chat session.',
-                [
-                    'type' => 'incoming_request',
-                    'request_type' => 'chat',
-                    'chat_id' => $chat->id,
-                    'caller_id' => $user->id,
-                ]
-            );
         }
 
         return response()->json([

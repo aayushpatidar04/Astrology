@@ -404,24 +404,6 @@ class AstrologerController extends Controller
 
         broadcast(new MessageSent($message))->toOthers();
 
-        $recipientId = $chat->participants()
-            ->where('user_id', '!=', Auth::id())
-            ->value('user_id');
-
-        if ($recipientId) {
-            $recipient = User::find($recipientId);
-            $this->sendNotification(
-                $recipient?->device_token,
-                Auth::user()->name,
-                $message->message,
-                [
-                    'type' => 'chat_message',
-                    'chat_id' => $chat->id,
-                    'sender_id' => Auth::id(),
-                ]
-            );
-        }
-
         return response()->json([
             'success' => true,
             'message' => $message,
