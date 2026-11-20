@@ -74,6 +74,26 @@ class AstrologerController extends Controller
         }
     }
 
+    public function getStatus(Request $request, $id = null)
+    {
+        $astrologer = $id ? \App\Models\Astrologer::find($id) : Auth::user()?->astrologer;
+
+        if (! $astrologer) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Astrologer profile not found',
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'astrologer_id' => $astrologer->id,
+            'user_id' => $astrologer->user_id,
+            'online' => (bool) $astrologer->online,
+            'is_busy' => (bool) $astrologer->user?->is_busy,
+        ]);
+    }
+
     public function chats($id = null)
     {
         $user = Auth::user();
