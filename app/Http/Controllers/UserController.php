@@ -431,7 +431,7 @@ class UserController extends Controller
 
     public function talkToAstrologers(Request $request)
     {
-        $query = Astrologer::with('user', 'reviews');
+        $query = Astrologer::human()->with('user', 'reviews');
 
         if ($search = trim($request->input('search'))) {
             if ($search !== '' && $search !== 'null' && $search !== 'undefined') {
