@@ -292,20 +292,6 @@ class MainController extends Controller
         ]);
     }
 
-    public function chogdiya()
-    {
-        $year = date('Y');
-        $day = date('l');
-
-        $chogdiya = Chogdiya::where('year', $year)->where('day', $day)->first();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Chogdiya fetched successfully!',
-            'chogdiya' => $chogdiya,
-        ]);
-    }
-
     public function getBanners()
     {
         $banners = Banner::where('active', 1)->latest()->get();

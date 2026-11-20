@@ -32,7 +32,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/chats/{chatId}/messages', [MainController::class, 'sendMessage']);
     Route::post('/chats/{chatId}/typing', [MainController::class, 'typing']);
     Route::get('/astrologer/status/{id?}', [App\Http\Controllers\Api\AstrologerController::class, 'getStatus']);
-    Route::get('/chogdiya', [MainController::class, 'chogdiya']);
     Route::get('/banners', [MainController::class, 'getBanners']);
     Route::get('/testimonials', [MainController::class, 'getTestimonials']);
 

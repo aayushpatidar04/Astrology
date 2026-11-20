@@ -95,34 +95,42 @@ onBeforeUnmount(() => {
         :class="scrolled ? 'shadow-lg shadow-orange-900/5' : 'shadow-sm'">
         <!-- Top Bar -->
         <div
-            class="flex flex-col md:flex-row md:justify-between md:items-center px-4 md:px-6 py-2 text-sm bg-gradient-to-r from-[#fff4ea] via-gray-100 to-[#fff4ea]">
-            <!-- Logo -->
-            <div class="flex justify-between items-center">
+            class="flex flex-wrap justify-between items-center px-4 md:px-6 py-2.5 text-sm bg-gradient-to-r from-[#fff4ea] via-gray-100 to-[#fff4ea]">
+            <!-- Logo & Mobile Controls -->
+            <div class="flex justify-between items-center w-full md:w-auto">
                 <Link :href="route('index')" class="block">
                     <img src="/images/logo.png" alt="MyAstroSathi"
-                        class="h-12 w-auto transition-transform duration-300 hover:scale-105" />
+                        class="h-10 md:h-12 w-auto transition-transform duration-300 hover:scale-105" />
                 </Link>
-                <!-- Mobile menu toggle -->
-                <button @click="mobileMenuOpen = !mobileMenuOpen" aria-label="Toggle menu"
-                    class="md:hidden rounded-lg p-1 text-gray-700 transition hover:bg-orange-100 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                    <Icon :icon="mobileMenuOpen ? 'mdi:close' : 'mdi:menu'" width="28" height="28" />
-                </button>
+
+                <div class="flex items-center gap-2 md:hidden">
+                    <template v-if="user">
+                        <Link :href="route('user.recharge')"
+                            class="flex items-center rounded-full bg-orange-100 px-2.5 py-1 text-xs text-primary font-bold">
+                            <Icon icon="mdi:wallet" width="16" height="16" class="mr-1" /> ₹{{ user.wallet?.balance ?? 0 }}
+                        </Link>
+                    </template>
+                    <button @click="mobileMenuOpen = !mobileMenuOpen" aria-label="Toggle menu"
+                        class="rounded-lg p-1.5 text-gray-700 transition hover:bg-orange-100 hover:text-primary focus:outline-none">
+                        <Icon :icon="mobileMenuOpen ? 'mdi:close' : 'mdi:menu'" width="26" height="26" />
+                    </button>
+                </div>
             </div>
 
             <!-- Contact Info -->
-            <div class="hidden md:flex items-center gap-6 mt-2 md:mt-0">
+            <div class="hidden lg:flex items-center gap-6">
                 <a href="tel:+919691565883"
-                    class="flex items-center text-primary transition hover:text-primary-dark hover:-translate-y-0.5">
-                    <Icon icon="mdi:phone" width="20" height="20" class="mr-1" /> <b>+91 96915 65883</b>
+                    class="flex items-center text-primary transition hover:text-primary-dark">
+                    <Icon icon="mdi:phone" width="18" height="18" class="mr-1" /> <b>+91 96915 65883</b>
                 </a>
                 <a href="mailto:myastrosathi15@gmail.com"
-                    class="flex items-center text-primary transition hover:text-primary-dark hover:-translate-y-0.5">
-                    <Icon icon="mdi:email" width="20" height="20" class="mr-1" /> <b>myastrosathi15@gmail.com</b>
+                    class="flex items-center text-primary transition hover:text-primary-dark">
+                    <Icon icon="mdi:email" width="18" height="18" class="mr-1" /> <b>myastrosathi15@gmail.com</b>
                 </a>
             </div>
 
-            <!-- Auth / Balance -->
-            <div class="hidden md:block mt-2 md:mt-0">
+            <!-- Auth / Balance (Desktop) -->
+            <div class="hidden md:block">
                 <template v-if="user">
                     <span class="flex items-center text-gray-700 font-semibold">
                         <Link :href="route('user.recharge')"
@@ -148,9 +156,9 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- Navigation -->
-        <nav class="md:flex md:justify-between md:items-center px-4 md:px-6 py-3"
-            :class="mobileMenuOpen ? 'block animate-fade-down' : 'hidden md:flex'">
-            <ul class="flex flex-col gap-2 md:gap-0 md:flex-row md:space-x-6 text-gray-700 font-medium items-center">
+        <nav class="md:flex md:flex-wrap lg:flex-nowrap md:justify-between md:items-center px-4 md:px-6 py-3 border-t md:border-t-0 border-gray-100 bg-white"
+            :class="mobileMenuOpen ? 'block' : 'hidden md:flex'">
+            <ul class="flex flex-col md:flex-row md:flex-wrap items-start md:items-center gap-x-3 lg:gap-x-5 gap-y-2 text-gray-700 font-medium text-xs lg:text-sm">
                 <li>
                     <Link :href="route('index')" class="nav-link inline-flex items-center"
                         :class="route().current('index') ? 'is-active text-primary font-bold' : 'hover:text-primary'">
@@ -351,18 +359,15 @@ onBeforeUnmount(() => {
             </ul>
 
             <!-- Action Buttons -->
-            <div v-if="!user || role === 'User'">
-                <div class="flex flex-col md:flex-row md:space-x-3 mt-4 md:mt-0">
+            <div v-if="!user || role === 'User'" class="hidden md:block shrink-0 mt-3 md:mt-0">
+                <div class="flex flex-wrap md:flex-row items-center gap-2">
                     <Link :href="route('user.chat-with-astrologers')"
-                        class="group flex items-center justify-center px-4 py-2 rounded-lg bg-red-600 text-white shadow-md shadow-red-600/20 transition duration-300 hover:-translate-y-0.5 hover:bg-red-700 hover:shadow-lg hover:shadow-red-600/30 mb-2 md:mb-0">
-                        <Icon icon="mdi:wechat" width="20" height="20"
-                            class="mr-1 transition-transform duration-300 group-hover:scale-110" /> Chat With Astrologer
+                        class="group flex items-center justify-center px-3 py-1.5 lg:px-4 lg:py-2 rounded-lg bg-red-600 text-white text-xs lg:text-sm shadow-md transition duration-300 hover:bg-red-700">
+                        <Icon icon="mdi:wechat" width="18" height="18" class="mr-1" /> Chat With Astrologer
                     </Link>
                     <Link :href="route('user.talk-to-astrologers')"
-                        class="group flex items-center justify-center px-4 py-2 rounded-lg bg-green-600 text-white shadow-md shadow-green-600/20 transition duration-300 hover:-translate-y-0.5 hover:bg-green-700 hover:shadow-lg hover:shadow-green-600/30">
-                        <Icon icon="mdi:phone-in-talk-outline" width="20" height="20"
-                            class="mr-1 transition-transform duration-300 group-hover:scale-110" /> Talk To
-                        Astrologer
+                        class="group flex items-center justify-center px-3 py-1.5 lg:px-4 lg:py-2 rounded-lg bg-green-600 text-white text-xs lg:text-sm shadow-md transition duration-300 hover:bg-green-700">
+                        <Icon icon="mdi:phone-in-talk-outline" width="18" height="18" class="mr-1" /> Talk To Astrologer
                     </Link>
                 </div>
             </div>
