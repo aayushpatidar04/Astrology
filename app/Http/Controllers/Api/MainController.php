@@ -224,11 +224,11 @@ class MainController extends Controller
 
         $horoscope = $query->first() ?? Horoscope::create(app(AstroAiService::class)->buildHoroscopePayload($sign, $t === 'yesterday' || $t === 'tomorrow' ? 'daily' : $type, $dateStr));
         $horoscopes[] = $horoscope;
-        
+
         return response()->json([
             'status' => 'success',
             'message' => 'Horoscope fetched successfully!',
-            'horoscopes' => $horoscope,
+            'horoscopes' => $horoscopes,
         ]);
     }
 
