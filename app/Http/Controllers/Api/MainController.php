@@ -12,6 +12,7 @@ use App\Models\Chat;
 use App\Models\Chogdiya;
 use App\Models\Horoscope;
 use App\Models\Testimonial;
+use App\Services\AstroAiService;
 use App\Services\FirebaseNotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -119,52 +120,55 @@ class MainController extends Controller
 
     public function horoscopesByType($type)
     {
-        $query = Horoscope::query();
+        $signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
         $now = Carbon::now();
+        $t = strtolower($type);
+        $dateStr = null;
+        $key = null;
 
-        switch (strtolower($type)) {
-            case 'today':
-                $query->where('type', 'daily')
-                    ->whereDate('date', $now->toDateString());
-                break;
-
-            case 'tomorrow':
-                $query->where('type', 'daily')
-                    ->whereDate('date', $now->copy()->addDay()->toDateString());
-                break;
-
-            case 'yesterday':
-                $query->where('type', 'daily')
-                    ->whereDate('date', $now->copy()->subDay()->toDateString());
-                break;
-
-            case 'weekly':
-                $weekKey = $now->format('Y-W');
-                $query->where('type', 'weekly')
-                    ->where('week_key', $weekKey);
-                break;
-
-            case 'monthly':
-                $monthKey = $now->format('Y-m'); // e.g. 2026-03
-                $query->where('type', 'monthly')
-                    ->where('month_key', $monthKey);
-                break;
-
-            case 'yearly':
-                $yearKey = $now->format('Y'); // e.g. 2026
-                $query->where('type', 'yearly')
-                    ->where('year_key', $yearKey);
-                break;
-
-            default:
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Invalid horoscope type provided.',
-                    'error' => 'Invalid horoscope type provided.',
-                ], 422);
+        if ($t === 'today') {
+            $type = 'daily';
+            $dateStr = $now->toDateString();
+        } elseif ($t === 'tomorrow') {
+            $type = 'daily';
+            $dateStr = $now->copy()->addDay()->toDateString();
+        } elseif ($t === 'yesterday') {
+            $type = 'daily';
+            $dateStr = $now->copy()->subDay()->toDateString();
+        } elseif ($t === 'weekly') {
+            $type = 'weekly';
+            $key = $now->format('Y-W');
+        } elseif ($t === 'monthly') {
+            $type = 'monthly';
+            $key = $now->format('Y-m');
+        } elseif ($t === 'yearly') {
+            $type = 'yearly';
+            $key = $now->format('Y');
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid horoscope type provided.',
+            ], 422);
         }
 
-        $horoscopes = $query->latest()->get();
+        $horoscopes = [];
+        $astroService = app(AstroAiService::class);
+
+        foreach ($signs as $sign) {
+            $query = Horoscope::where('sign', $sign)->where('type', $type);
+            if ($type === 'daily' && $dateStr) {
+                $query->whereDate('date', $dateStr);
+            } elseif ($type === 'weekly' && $key) {
+                $query->where('week_key', $key);
+            } elseif ($type === 'monthly' && $key) {
+                $query->where('month_key', $key);
+            } elseif ($type === 'yearly' && $key) {
+                $query->where('year_key', $key);
+            }
+
+            $horoscope = $query->first() ?? Horoscope::create($astroService->buildHoroscopePayload($sign, $t === 'yesterday' || $t === 'tomorrow' ? 'daily' : $type, $dateStr));
+            $horoscopes[] = $horoscope;
+        }
 
         return response()->json([
             'status' => 'success',
@@ -175,57 +179,53 @@ class MainController extends Controller
 
     public function horoscopesByTypeAndSign($type, $sign)
     {
-        $query = Horoscope::query();
         $now = Carbon::now();
+        $t = strtolower($type);
+        $dateStr = null;
+        $key = null;
 
-        switch (strtolower($type)) {
-            case 'today':
-                $query->where('type', 'daily')->where('sign', $sign)
-                    ->whereDate('date', $now->toDateString());
-                break;
-
-            case 'tomorrow':
-                $query->where('type', 'daily')->where('sign', $sign)
-                    ->whereDate('date', $now->copy()->addDay()->toDateString());
-                break;
-
-            case 'yesterday':
-                $query->where('type', 'daily')->where('sign', $sign)
-                    ->whereDate('date', $now->copy()->subDay()->toDateString());
-                break;
-
-            case 'weekly':
-                $weekKey = $now->format('Y-W');
-                $query->where('type', 'weekly')->where('sign', $sign)
-                    ->where('week_key', $weekKey);
-                break;
-
-            case 'monthly':
-                $monthKey = $now->format('Y-m'); // e.g. 2026-03
-                $query->where('type', 'monthly')->where('sign', $sign)
-                    ->where('month_key', $monthKey);
-                break;
-
-            case 'yearly':
-                $yearKey = $now->format('Y'); // e.g. 2026
-                $query->where('type', 'yearly')->where('sign', $sign)
-                    ->where('year_key', $yearKey);
-                break;
-
-            default:
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Invalid horoscope type provided.',
-                    'error' => 'Invalid horoscope type provided.',
-                ], 422);
+        if ($t === 'today') {
+            $type = 'daily';
+            $dateStr = $now->toDateString();
+        } elseif ($t === 'tomorrow') {
+            $type = 'daily';
+            $dateStr = $now->copy()->addDay()->toDateString();
+        } elseif ($t === 'yesterday') {
+            $type = 'daily';
+            $dateStr = $now->copy()->subDay()->toDateString();
+        } elseif ($t === 'weekly') {
+            $type = 'weekly';
+            $key = $now->format('Y-W');
+        } elseif ($t === 'monthly') {
+            $type = 'monthly';
+            $key = $now->format('Y-m');
+        } elseif ($t === 'yearly') {
+            $type = 'yearly';
+            $key = $now->format('Y');
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid horoscope type provided.',
+            ], 422);
         }
 
-        $horoscopes = $query->latest()->get();
+        $query = Horoscope::where('sign', $sign)->where('type', $type);
+        if ($type === 'daily' && $dateStr) {
+            $query->whereDate('date', $dateStr);
+        } elseif ($type === 'weekly' && $key) {
+            $query->where('week_key', $key);
+        } elseif ($type === 'monthly' && $key) {
+            $query->where('month_key', $key);
+        } elseif ($type === 'yearly' && $key) {
+            $query->where('year_key', $key);
+        }
+
+        $horoscope = $query->first() ?? Horoscope::create(app(AstroAiService::class)->buildHoroscopePayload($sign, $t === 'yesterday' || $t === 'tomorrow' ? 'daily' : $type, $dateStr));
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Horoscopes fetched successfully!',
-            'horoscopes' => $horoscopes,
+            'message' => 'Horoscope fetched successfully!',
+            'horoscope' => $horoscope,
         ]);
     }
 
