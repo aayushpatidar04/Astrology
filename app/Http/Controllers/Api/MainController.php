@@ -148,6 +148,7 @@ class MainController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Invalid horoscope type provided.',
+                'error' => 'Invalid horoscope type provided.',
             ], 422);
         }
 
@@ -206,6 +207,7 @@ class MainController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Invalid horoscope type provided.',
+                'error' => 'Invalid horoscope type provided.',
             ], 422);
         }
 
