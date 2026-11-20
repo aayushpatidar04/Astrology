@@ -225,7 +225,7 @@ class MainController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Horoscope fetched successfully!',
-            'horoscope' => $horoscope,
+            'horoscopes' => $horoscope,
         ]);
     }
 
