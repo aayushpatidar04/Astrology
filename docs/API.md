@@ -17,7 +17,7 @@ Laravel 12 JSON API powering real-time Vedic astrology tools, horoscopes, AI ast
 - **Role-based Access Scopes:**
   - **Public / Unauthenticated:** OTP sending/verification, registration, blogs, horoscopes, and public calculators.
   - **User (`role:User`):** Consultations, live astrologer chat/call, wallet recharges, profile management, and paid AI Astrologer chat.
-  - **Astrologer (`role:Astrologer`):** Managing online status, accepting chat/call requests, viewing stats, earnings, and transaction history.
+  - **Astrologer (`role:Astrologer`):** Managing online status, accepting/rejecting chat requests, viewing stats, earnings, and transaction history.
   - **Admin (`role:Admin`):** User management, blog publishing, horoscope/banner management, and recharge package configuration.
 - **HTTP Status Codes:** `200` Success, `201` Created, `401` Unauthorized, `403` Forbidden, `402` Payment Required (Insufficient Wallet Balance), `404` Not Found, `409` Conflict, `422` Unprocessable Entity (Validation Error), `500` Server Error.
 
@@ -25,10 +25,11 @@ Laravel 12 JSON API powering real-time Vedic astrology tools, horoscopes, AI ast
 
 ## Changes in this API update
 
-- Added **Acharya AI Paid Astrologer Chat Bot** endpoints (`/api/ai-astrologer/init`, `/api/ai-astrologer/send`, `/api/ai-astrologer/settle`) supporting persistent session history, contextual memory, a 30-minute session reuse rule, and real-time per-minute wallet billing (₹15.00/min).
-- Added **Live Astrologer Status API** (`GET /api/astrologer/status/{id?}`).
-- Added **Auspicious Muhurat Finder** (`GET /api/tools/muhurat-finder`).
-- Added complete Vedic calculation tools: Sun Sign, Rising Sign, Rashi, Atmakaraka & Darakaraka, Vimshottari Dasha, Nakshatra, Manglik Dosha, Shani Sade Sati, and Daily Choghadiya Timetable.
+- **Added:** `POST /api/astrologer/chats/{chatId}/reject` — Astrologer chat request rejection endpoint triggering real-time broadcasting (`ChatRequestRejected`) and tandem Firebase push notifications.
+- **Updated:** Event broadcasting (`MessageSent`, `IncomingAstrologerRequest`) now automatically dispatches Firebase push notifications in tandem, removing manual duplicate push calls across controllers.
+- **Added:** Acharya AI Paid Astrologer Chat Bot endpoints (`/api/ai-astrologer/init`, `/api/ai-astrologer/send`, `/api/ai-astrologer/settle`) supporting persistent session history, contextual memory, a 30-minute session reuse rule, and real-time per-minute wallet billing (₹5.00/min).
+- **Added:** Live Astrologer Status API (`GET /api/astrologer/status/{id?}`).
+- **Added:** Auspicious Muhurat Finder (`GET /api/tools/muhurat-finder`) and complete Vedic calculation tools (Sun Sign, Rising Sign, Rashi, Atmakaraka & Darakaraka, Vimshottari Dasha, Nakshatra, Manglik Dosha, Shani Sade Sati, Choghadiya).
 
 ---
 
@@ -145,4 +146,5 @@ Laravel 12 JSON API powering real-time Vedic astrology tools, horoscopes, AI ast
 | GET | `/api/recharge` | Get available wallet recharge packages |
 | GET | `/api/astrologer/status/{id?}` | Get live online/busy availability status for an astrologer |
 | POST | `/api/astrologer/status` | Update astrologer online status (`{"online": true}`) |
+| POST | `/api/astrologer/chats/{chatId}/reject` | Reject incoming chat request (triggers `ChatRequestRejected` broadcast & push) |
 | GET | `/api/astrologer/wallet` | Get astrologer earnings and transaction ledger |

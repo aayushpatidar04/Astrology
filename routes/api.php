@@ -96,6 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/astrologers/{id}/transactions', [AstrologerController::class, 'getAstrologerTransactions']);
 
         Route::post('/astrologer/status', [AstrologerController::class, 'status']);
+        Route::post('/astrologer/chats/{chatId}/reject', [AstrologerController::class, 'rejectChat']);
         Route::post('/astrologer/chats/{id}/messages', [AstrologerController::class, 'storeMessage']);
         Route::patch('/astrologer/profile', [AstrologerController::class, 'update']);
         Route::post('/astrologer/astrologer', [AstrologerController::class, 'updateAstrologer']);

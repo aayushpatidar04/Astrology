@@ -262,6 +262,31 @@ class AstrologerController extends Controller
 
         return Redirect::route('astrologer.profile.edit');
     }
+    
+    public function rejectChat(Request $request, $chatId)
+    {
+        $userId = Auth::id();
+        $chat = Chat::whereHas('participants', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        })->findOrFail($chatId);
+
+        ChatSession::where('chat_id', $chatId)
+            ->whereNull('ended_at')
+            ->update([
+                'ended_by' => 'astrologer',
+                'ended_at' => now(),
+            ]);
+
+        $astrologerName = Auth::user()->name;
+
+        broadcast(new \App\Events\ChatRequestRejected($chatId, $astrologerName));
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Chat request rejected successfully.',
+        ]);
+    }
+
     /**
      * Delete the user's account.
      */

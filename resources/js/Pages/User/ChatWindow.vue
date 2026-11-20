@@ -154,6 +154,10 @@ onMounted(async () => {
             }
             scrollToBottom();
         })
+        .listen('ChatRequestRejected', (e) => {
+            chatEndReason.value = 'astrologer';
+            showEndModal.value = true;
+        })
         .listen('TypingEvent', (e) => {
             typingUser.value = e.typing ? e.userId : null;
         });

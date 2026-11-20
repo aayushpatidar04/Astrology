@@ -91,6 +91,7 @@ Route::middleware(['auth', 'verified', 'role:Astrologer'])->group(function () {
     Route::post('/astrologer/status', [AstrologerController::class, 'status'])->name('astrologer.status');
     Route::get('/astrologer/status/{id?}', [AstrologerController::class, 'getStatus'])->name('astrologer.status.get');
     Route::get('/astrologer/chats/{id?}', [AstrologerController::class, 'chats'])->middleware('astrologer.status')->name('astrologer.chats');
+    Route::post('/astrologer/chats/{chatId}/reject', [AstrologerController::class, 'rejectChat'])->name('astrologer.chats.reject');
     Route::post('/astrologer/chats/{id}/messages', [AstrologerController::class, 'storeMessage'])->name('astrologer.chats.storeMessage');
 
     Route::get('/astrologer/profile', [AstrologerController::class, 'edit'])->name('astrologer.profile.edit');
