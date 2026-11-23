@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\PhoneOtp;
+use App\Models\WhatsappOtpRecipient;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -88,6 +89,12 @@ class WhatsAppOtpService
 
             throw new RuntimeException('Unable to send an OTP right now.');
         }
+
+        // Record the unique recipient so we can count distinct users reached by OTP.
+        WhatsappOtpRecipient::updateOrCreate(
+            ['phone' => $phone],
+            ['sent_at' => now()]
+        );
 
         PhoneOtp::updateOrCreate(
             ['phone' => $phone],
