@@ -3,7 +3,7 @@ import { Link, Head, usePage, router } from '@inertiajs/vue3';
 import Header from '@/Pages/Layouts/Header.vue';
 import Footer from '../Layouts/Footer.vue';
 import Pagination from '@/Components/Pagination.vue';
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import echo from '@/echo'
 
 const props = defineProps({
@@ -11,6 +11,25 @@ const props = defineProps({
     astrologers: Object,
     filters: Object,
 })
+
+onMounted(() => {
+    props.astrologers.data.forEach(ast => {
+        if (ast.user_id) {
+            echo.private(`astrologer.${ast.user_id}`)
+                .listen('AstrologerStatusChanged', (e) => {
+                    ast.online = e.online;
+                });
+        }
+    });
+});
+
+onBeforeUnmount(() => {
+    props.astrologers.data.forEach(ast => {
+        if (ast.user_id) {
+            echo.leave(`astrologer.${ast.user_id}`);
+        }
+    });
+});
 
 const page = usePage()
 const flash = page.props.flash
