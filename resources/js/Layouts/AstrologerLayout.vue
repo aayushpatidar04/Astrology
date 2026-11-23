@@ -83,7 +83,7 @@ onMounted(() => {
 
         echo.private(`astrologer.${astrologerUserId}`)
             .listen("AstrologerStatusChanged", (e) => {
-                localOnline.value = !!e.online;
+                online.value = !!e.online;
             });
     }
 });

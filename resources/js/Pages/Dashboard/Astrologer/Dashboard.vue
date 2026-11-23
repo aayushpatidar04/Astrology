@@ -125,7 +125,7 @@ onMounted(async () => {
 
                 <div class="dsh-avail">
                     <label class="adm-switch">
-                        <input type="checkbox" v-model="online" :disabled="toggling" />
+                        <input type="checkbox" :checked="online" :disabled="toggling" @change="toggleStatus()" />
                         <span class="adm-switch-track"></span>
                     </label>
                     <p>
