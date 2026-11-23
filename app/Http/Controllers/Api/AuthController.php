@@ -27,6 +27,15 @@ class AuthController extends Controller
                 ],
             ]);
 
+            // Block admin users from logging in via API OTP flow; they must use the web login.
+            $existingUser = User::where('phone', $validated['phone'])->first();
+            if ($existingUser && $existingUser->hasRole('Admin')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Administration need to login through WEB',
+                ], 403);
+            }
+
             $otpService->send($validated['phone']);
 
             return response()->json([
