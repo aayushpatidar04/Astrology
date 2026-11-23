@@ -55,6 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tools/choghadiya', [AstroToolController::class, 'choghadiya']);
     Route::get('/tools/muhurat-finder', [AstroToolController::class, 'muhuratFinder']);
     Route::get('/ai-astrologer/init', [AstroToolController::class, 'aiAstrologerInit']);
+    Route::get('/ai-astrologer/status', [AstroToolController::class, 'aiAstrologerStatus']);
     Route::post('/ai-astrologer/send', [AstroToolController::class, 'aiAstrologerSend']);
     Route::post('/ai-astrologer/settle', [AstroToolController::class, 'aiAstrologerSettle']);
     Route::get('/cities/autocomplete', [AstroToolController::class, 'searchCities']);

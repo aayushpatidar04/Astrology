@@ -839,7 +839,23 @@ class AstroToolController extends Controller
 
         return Inertia::render('Tools/AiAstrologerChat', [
             'user' => $user,
-            'chatRatePerMin' => 5.00,
+            'chatRatePerMin' => 15.00,
+        ]);
+    }
+
+    public function aiAstrologerStatus(Request $request)
+    {
+        $acharyaUser = User::where('email', 'acharya.ai@myastrosathi.com')->first();
+        if (!$acharyaUser || !$acharyaUser->astrologer) {
+            return response()->json([
+                'status' => 'success',
+                'online' => 0,
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'online' => (int) $acharyaUser->astrologer->online,
         ]);
     }
 

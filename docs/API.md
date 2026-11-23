@@ -25,6 +25,7 @@ Laravel 12 JSON API powering real-time Vedic astrology tools, horoscopes, AI ast
 
 ## Changes in this API update
 
+- **Added:** `GET /api/ai-astrologer/status` — Retrieve Acharya AI Astrologer online status (`0` or `1`).
 - **Added:** `GET /api/user/chat-sessions` — Retrieve user's past and active chat session history (paginated), matching the web app's chat sessions screen.
 - **Added:** `POST /api/astrologer/chats/{chatId}/reject` — Astrologer chat request rejection endpoint triggering real-time broadcasting (`ChatRequestRejected`) and tandem Firebase push notifications.
 - **Updated:** Event broadcasting (`MessageSent`, `IncomingAstrologerRequest`) now automatically dispatches Firebase push notifications in tandem, removing manual duplicate push calls across controllers.
@@ -94,6 +95,7 @@ Laravel 12 JSON API powering real-time Vedic astrology tools, horoscopes, AI ast
 
 | Method | Path | Purpose |
 |---|---|---|
+| GET | `/api/ai-astrologer/status` | Get Acharya AI Astrologer online status (`0` or `1`) |
 | GET | `/api/ai-astrologer/init` | Initialize or resume active AI chat session (30-min rule) |
 | POST | `/api/ai-astrologer/send` | Send user message to Acharya AI and receive Gemini AI response |
 | POST | `/api/ai-astrologer/settle` | Settle per-minute wallet deductions (₹15.00/min) |
