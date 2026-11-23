@@ -25,11 +25,10 @@ Laravel 12 JSON API powering real-time Vedic astrology tools, horoscopes, AI ast
 
 ## Changes in this API update
 
+- **Added:** `GET /api/user/chat-sessions` — Retrieve user's past and active chat session history (paginated), matching the web app's chat sessions screen.
 - **Added:** `POST /api/astrologer/chats/{chatId}/reject` — Astrologer chat request rejection endpoint triggering real-time broadcasting (`ChatRequestRejected`) and tandem Firebase push notifications.
 - **Updated:** Event broadcasting (`MessageSent`, `IncomingAstrologerRequest`) now automatically dispatches Firebase push notifications in tandem, removing manual duplicate push calls across controllers.
-- **Added:** Acharya AI Paid Astrologer Chat Bot endpoints (`/api/ai-astrologer/init`, `/api/ai-astrologer/send`, `/api/ai-astrologer/settle`) supporting persistent session history, contextual memory, a 30-minute session reuse rule, and real-time per-minute wallet billing (₹5.00/min).
-- **Added:** Live Astrologer Status API (`GET /api/astrologer/status/{id?}`).
-- **Added:** Auspicious Muhurat Finder (`GET /api/tools/muhurat-finder`) and complete Vedic calculation tools (Sun Sign, Rising Sign, Rashi, Atmakaraka & Darakaraka, Vimshottari Dasha, Nakshatra, Manglik Dosha, Shani Sade Sati, Choghadiya).
+- **Added:** Acharya AI Paid Astrologer Chat Bot endpoints (`/api/ai-astrologer/init`, `/api/ai-astrologer/send`, `/api/ai-astrologer/settle`) supporting persistent session history, contextual memory, a 30-minute session reuse rule, and real-time per-minute wallet billing (₹15.00/min).
 
 ---
 
@@ -99,36 +98,6 @@ Laravel 12 JSON API powering real-time Vedic astrology tools, horoscopes, AI ast
 | POST | `/api/ai-astrologer/send` | Send user message to Acharya AI and receive Gemini AI response |
 | POST | `/api/ai-astrologer/settle` | Settle per-minute wallet deductions (₹15.00/min) |
 
-### Multi-Step Workflow: Acharya AI Live Chat
-1. **Initialize Session:**
-   ```http
-   GET /api/ai-astrologer/init
-   Authorization: Bearer <token>
-   Accept: application/json
-   ```
-2. **Send Message & Get Contextual AI Response:**
-   ```http
-   POST /api/ai-astrologer/send
-   Authorization: Bearer <token>
-   Content-Type: application/json
-
-   {
-     "chat_id": 1,
-     "message": "When will my career take off?"
-   }
-   ```
-3. **Time-Based Wallet Settlement (Every 15-60 seconds):**
-   ```http
-   POST /api/ai-astrologer/settle
-   Authorization: Bearer <token>
-   Content-Type: application/json
-
-   {
-     "chat_id": 1,
-     "elapsed_seconds": 15
-   }
-   ```
-
 ---
 
 ## User Directory & Astrologer Endpoints
@@ -139,6 +108,7 @@ Laravel 12 JSON API powering real-time Vedic astrology tools, horoscopes, AI ast
 | POST | `/api/chats` | Create or retrieve chat thread with astrologer (`{"astrologer_id": 1}`) |
 | POST | `/api/chats/{chatId}/start` | Start live chat session notification |
 | GET | `/api/chats` | List user's active/past chat sessions |
+| GET | `/api/user/chat-sessions` | Retrieve user's chat sessions history (paginated) |
 | GET | `/api/chats/{chatId}/messages` | Get message history for chat thread (Query: `?page=N`) |
 | POST | `/api/chats/{chatId}/messages` | Send chat message |
 | POST | `/api/end-chat/{chatId}` | End human astrologer chat and settle wallet deduction |

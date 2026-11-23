@@ -75,6 +75,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/call/start', [UserController::class, 'start']);
         Route::post('/calls/{id}/end', [UserController::class, 'callEnd']);
+        Route::get('/user/chat-sessions', [UserController::class, 'chatSessions']);
         Route::get('/user/call-history', [UserController::class, 'callHistory']);
         Route::post('/call/signal', [UserController::class, 'signal']);
         Route::post('/call/update-status', [UserController::class, 'updateCallStatus']);

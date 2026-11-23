@@ -686,6 +686,20 @@ class UserController extends Controller
         ]);
     }
 
+    public function chatSessions()
+    {
+        $sessions = ChatSession::with(['chat', 'user', 'astrologer.astrologer', 'astrologer.details'])
+            ->where('user_id', Auth::id())
+            ->latest()
+            ->paginate(20);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Chat sessions fetched successfully!',
+            'sessions' => $sessions,
+        ]);
+    }
+
     public function callHistory()
     {
         $history = CallHistory::with(['user', 'astrologer.astrologer'])
