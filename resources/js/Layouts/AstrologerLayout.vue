@@ -1,12 +1,14 @@
 <script setup>
-import { ref, computed, provide, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, provide, onMounted, onBeforeUnmount, watch } from "vue";
 import Dropdown from "@/Components/Dropdown.vue";
 import Alert from "@/Components/Alert.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
-import { Link, usePage } from "@inertiajs/vue3";
+import { Link, usePage, router } from "@inertiajs/vue3";
 import { Icon } from "@iconify/vue";
 import axios from "axios";
 import echo from "@/echo";
+
+import { useAstroStatus } from "@/Composables/useAstroStatus";
 
 // `flush` removes the content padding so full-height screens (Chats / Calls) can fill the area
 defineProps({ flush: { type: Boolean, default: false } });
@@ -59,41 +61,8 @@ const openIncomingRequest = () => {
     dismissIncomingRequest();
 };
 
-// ---------- online / offline status ----------
-const online = ref(!!page.props.auth.user.astrologer?.online);
-const toggling = ref(false);
-
-const toggleStatus = async () => {
-    if (toggling.value) return;
-    toggling.value = true;
-    online.value = !online.value;
-    try {
-        await axios.post("/astrologer/status", {
-            online: online.value ? 1 : 0,
-        });
-        if (online.value) {
-            alertRef.value?.showAlert(
-                "You are now online and available for chats!",
-                "success",
-            );
-        } else {
-            alertRef.value?.showAlert(
-                "You are now offline. Users cannot reach you.",
-                "success",
-            );
-        }
-    } catch (error) {
-        online.value = !online.value;
-        alertRef.value?.showAlert(
-            "Something went wrong, please try after some time!",
-            "error",
-        );
-    } finally {
-        toggling.value = false;
-    }
-};
-
-// pages (e.g. Dashboard) can read / toggle the same state
+const { online, toggling, toggleStatus: baseToggleStatus } = useAstroStatus();
+const toggleStatus = () => baseToggleStatus(alertRef.value);
 provide("astroStatus", { online, toggling, toggleStatus });
 
 function onKey(e) {
@@ -111,6 +80,11 @@ onMounted(() => {
                 );
                 if (!duplicate) incomingRequests.value.push(request);
             });
+
+        echo.private(`astrologer.${astrologerUserId}`)
+            .listen("AstrologerStatusChanged", (e) => {
+                localOnline.value = !!e.online;
+            });
     }
 });
 
@@ -118,6 +92,7 @@ onBeforeUnmount(() => {
     document.removeEventListener("keydown", onKey);
     if (astrologerUserId) {
         echo.leave(`astrologer-inbox.${astrologerUserId}`);
+        echo.leave(`astrologer.${astrologerUserId}`);
     }
 });
 </script>

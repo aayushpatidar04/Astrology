@@ -21,10 +21,10 @@ const hour = new Date().getHours()
 const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 const today = dayjs().format('dddd, D MMMM YYYY')
 
-// shared with the layout so the top-bar switch and this page never disagree
-const status = inject('astroStatus', null)
-const online = computed(() => !!status?.online.value)
-const toggling = computed(() => !!status?.toggling.value)
+import { useAstroStatus } from '@/Composables/useAstroStatus'
+
+const { online, toggling, toggleStatus } = useAstroStatus()
+const status = { online, toggling, toggleStatus }
 
 const inr = (n) => '₹' + Math.round(+n || 0).toLocaleString('en-IN')
 const hasStats = computed(() => Object.keys(props.stats || {}).length > 0)
@@ -125,7 +125,7 @@ onMounted(async () => {
 
                 <div class="dsh-avail">
                     <label class="adm-switch">
-                        <input type="checkbox" :checked="online" :disabled="toggling" @change="status?.toggleStatus()" />
+                        <input type="checkbox" v-model="online" :disabled="toggling" />
                         <span class="adm-switch-track"></span>
                     </label>
                     <p>
