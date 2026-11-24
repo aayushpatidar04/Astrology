@@ -233,7 +233,16 @@ const startCall = async () => {
 
 
         // Setup WebRTC
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        localStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+                highpassFilter: true,
+                sampleRate: 48000,
+                channelCount: 1
+            }
+        })
 
         pc = new RTCPeerConnection({
             iceServers: [
@@ -556,7 +565,7 @@ const bars = Array.from({ length: 24 }, (_, i) => ({ d: ((i * 37) % 11) / 10, h:
                 <span v-for="n in 14" :key="n" class="cs-star"
                     :style="{ top: (n * 37) % 100 + '%', left: (n * 53) % 100 + '%', animationDelay: (n % 6) * 0.45 + 's' }"></span>
 
-                <audio ref="remoteAudio" autoplay></audio>
+                <audio ref="remoteAudio" autoplay playsinline></audio>
 
                 <div class="cs-top">
                     <span class="cs-badge"><Icon icon="mdi:lock-outline" width="14" height="14" /> Audio call</span>

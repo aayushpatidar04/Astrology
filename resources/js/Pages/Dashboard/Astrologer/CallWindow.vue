@@ -260,7 +260,16 @@ const formatDuration = (seconds) => {
 const acceptCall = async () => {
     // ask for the mic first, so a denied permission doesn't leave the UI stuck on "connecting"
     try {
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        localStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+                highpassFilter: true,
+                sampleRate: 48000,
+                channelCount: 1
+            }
+        })
     } catch (err) {
         console.error('Microphone access failed:', err)
         callStatus.value = 'Microphone access denied'
@@ -376,7 +385,7 @@ watch(liveMessages, async () => {
 
     <div class="cc">
         <!-- remote audio lives outside the animated stage so the ref is always available -->
-        <audio ref="remoteAudio" autoplay></audio>
+        <audio ref="remoteAudio" autoplay playsinline></audio>
 
         <!-- Header -->
         <header class="cc-head">
