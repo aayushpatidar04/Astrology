@@ -134,6 +134,11 @@ let pc = null
 let localStream = null
 let callTimeoutTimer = null
 
+function setOpusConfig(sdp) {
+    if (!sdp) return sdp;
+    return sdp.replace(/a=fmtp:111 .*/g, 'a=fmtp:111 minptime=10;useinbandfec=1;usedtx=0');
+}
+
 function sendSignal(type, data) {
     axios.post('/call/signal', {
         roomId: props.chat.id,
@@ -212,6 +217,7 @@ const startCall = async () => {
                 } else if (e.type === 'call_joined') {
                     // Astrologer has joined and accepted, now send offer
                     const offer = await pc.createOffer()
+                    offer.sdp = setOpusConfig(offer.sdp)
                     await pc.setLocalDescription(offer)
                     sendSignal('offer', { type: offer.type, sdp: offer.sdp })
                     callStatus.value = 'connecting...'

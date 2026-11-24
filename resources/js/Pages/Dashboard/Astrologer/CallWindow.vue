@@ -68,6 +68,11 @@ const metaFor = (s) => statusMeta[s] || { icon: 'mdi:phone-outline', tone: 'gray
 
 
 
+function setOpusConfig(sdp) {
+    if (!sdp) return sdp;
+    return sdp.replace(/a=fmtp:111 .*/g, 'a=fmtp:111 minptime=10;useinbandfec=1;usedtx=0');
+}
+
 function sendSignal(type, data) {
 
     axios.post('/call/signal', {
@@ -175,6 +180,7 @@ onMounted(async () => {
                     await pc.addIceCandidate(new RTCIceCandidate(candidate))
                 }
                 const answer = await pc.createAnswer()
+                answer.sdp = setOpusConfig(answer.sdp)
                 await pc.setLocalDescription(answer)
                 sendSignal('answer', { type: answer.type, sdp: answer.sdp })
             } else if (e.type === 'candidate') {
